@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/go-coldbrew/core/config"
+	"github.com/go-coldbrew/log"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
@@ -66,7 +67,7 @@ func (c *cb) runHTTP(ctx context.Context) error {
 			mux.ServeHTTP(w, r)
 		}),
 	}
-	//log.Info("Starting HTTP server on ", gatewayAddr)
+	log.Info(ctx, "Starting HTTP server on ", gatewayAddr)
 	return gwServer.ListenAndServe()
 }
 
@@ -80,7 +81,7 @@ func (c *cb) runGRPC(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to listen: %v", err)
 	}
-	//log.Info("Starting GRPC server on ", grpcServerEndpoint)
+	log.Info(ctx, "Starting GRPC server on ", grpcServerEndpoint)
 	grpcServer := grpc.NewServer(c.getGRPCServerOptions()...)
 	c.svc.InitGRPC(ctx, grpcServer)
 	return grpcServer.Serve(lis)
