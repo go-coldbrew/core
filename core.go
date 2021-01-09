@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/go-coldbrew/core/config"
+	"github.com/go-coldbrew/interceptors"
 	"github.com/go-coldbrew/log"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -41,7 +42,7 @@ func (c *cb) init() {
 func (c *cb) runHTTP(ctx context.Context) error {
 	// Register gRPC server endpoint
 	// Note: Make sure the gRPC server is running properly and accessible
-	grpcServerEndpoint := fmt.Sprintf("0.0.0.0:%d", c.config.GRPCPort)
+	grpcServerEndpoint := fmt.Sprintf("%s:%d", c.config.ListenHost, c.config.GRPCPort)
 	mux := runtime.NewServeMux()
 	opts := []grpc.DialOption{grpc.WithInsecure()}
 	err := c.svc.InitHTTP(ctx, mux, grpcServerEndpoint, opts)
@@ -50,17 +51,17 @@ func (c *cb) runHTTP(ctx context.Context) error {
 	}
 
 	// Start HTTP server (and proxy calls to gRPC server endpoint)
-	gatewayAddr := fmt.Sprintf("0.0.0.0:%d", c.config.HTTPPort)
+	gatewayAddr := fmt.Sprintf("%s:%d", c.config.ListenHost, c.config.HTTPPort)
 	gwServer := &http.Server{
 		Addr: gatewayAddr,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if strings.HasPrefix(r.URL.Path, "/swagger/") {
+			if !c.config.DisableSwagger && strings.HasPrefix(r.URL.Path, "/swagger/") {
 				http.StripPrefix("/swagger/", c.svc.GetOpenAPIHandler(ctx)).ServeHTTP(w, r)
 				return
-			} else if strings.HasPrefix(r.URL.Path, "/debug/") {
+			} else if !c.config.DisableDebug && strings.HasPrefix(r.URL.Path, "/debug/") {
 				pprof.Index(w, r)
 				return
-			} else if strings.HasPrefix(r.URL.Path, "/metrics") {
+			} else if !c.config.DisablePormetheus && strings.HasPrefix(r.URL.Path, "/metrics") {
 				promhttp.Handler().ServeHTTP(w, r)
 				return
 			}
@@ -72,11 +73,16 @@ func (c *cb) runHTTP(ctx context.Context) error {
 }
 
 func (c *cb) getGRPCServerOptions() []grpc.ServerOption {
-	return []grpc.ServerOption{}
+	so := make([]grpc.ServerOption, 0, 0)
+	so = append(so,
+		grpc.ChainUnaryInterceptor(interceptors.DefaultInterceptors()...),
+		grpc.ChainStreamInterceptor(interceptors.DefaultStreamInterceptors()...),
+	)
+	return so
 }
 
 func (c *cb) runGRPC(ctx context.Context) error {
-	grpcServerEndpoint := fmt.Sprintf("0.0.0.0:%d", c.config.GRPCPort)
+	grpcServerEndpoint := fmt.Sprintf("%s:%d", c.config.ListenHost, c.config.GRPCPort)
 	lis, err := net.Listen("tcp", grpcServerEndpoint)
 	if err != nil {
 		return fmt.Errorf("failed to listen: %v", err)
