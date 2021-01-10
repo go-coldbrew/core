@@ -11,10 +11,10 @@ import (
 type CBService interface {
 	InitHTTP(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) error
 	InitGRPC(ctx context.Context, server *grpc.Server) error
-	GetOpenAPIHandler(ctx context.Context) http.Handler
 }
 
 type CB interface {
 	SetService(CBService) error
 	Run() error
+	SetOpenAPIHandler(http.Handler)
 }

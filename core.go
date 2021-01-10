@@ -2,7 +2,6 @@ package core
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -18,36 +17,30 @@ import (
 )
 
 type cb struct {
-	svc    CBService
-	config config.Config
+	svc            []CBService
+	openAPIHandler http.Handler
+	config         config.Config
 }
-
-var (
-	ErrServiceAlreadyInitialized = errors.New("service is already initialized")
-)
 
 func (c *cb) SetService(svc CBService) error {
-	if c.svc != nil {
-		return ErrServiceAlreadyInitialized
-	}
-	c.svc = svc
+	c.svc = append(c.svc, svc)
 	return nil
-
 }
 
-func (c *cb) init() {
-
+func (c *cb) SetOpenAPIHandler(handler http.Handler) {
+	c.openAPIHandler = handler
 }
 
-func (c *cb) runHTTP(ctx context.Context) error {
+func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 	// Register gRPC server endpoint
 	// Note: Make sure the gRPC server is running properly and accessible
 	grpcServerEndpoint := fmt.Sprintf("%s:%d", c.config.ListenHost, c.config.GRPCPort)
 	mux := runtime.NewServeMux()
 	opts := []grpc.DialOption{grpc.WithInsecure()}
-	err := c.svc.InitHTTP(ctx, mux, grpcServerEndpoint, opts)
-	if err != nil {
-		return err
+	for _, s := range c.svc {
+		if err := s.InitHTTP(ctx, mux, grpcServerEndpoint, opts); err != nil {
+			return nil, err
+		}
 	}
 
 	// Start HTTP server (and proxy calls to gRPC server endpoint)
@@ -55,8 +48,8 @@ func (c *cb) runHTTP(ctx context.Context) error {
 	gwServer := &http.Server{
 		Addr: gatewayAddr,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if !c.config.DisableSwagger && strings.HasPrefix(r.URL.Path, "/swagger/") {
-				http.StripPrefix("/swagger/", c.svc.GetOpenAPIHandler(ctx)).ServeHTTP(w, r)
+			if !c.config.DisableSwagger && c.openAPIHandler != nil && strings.HasPrefix(r.URL.Path, "/swagger/") {
+				http.StripPrefix("/swagger/", c.openAPIHandler).ServeHTTP(w, r)
 				return
 			} else if !c.config.DisableDebug && strings.HasPrefix(r.URL.Path, "/debug/") {
 				pprof.Index(w, r)
@@ -69,7 +62,11 @@ func (c *cb) runHTTP(ctx context.Context) error {
 		}),
 	}
 	log.Info(ctx, "Starting HTTP server on ", gatewayAddr)
-	return gwServer.ListenAndServe()
+	return gwServer, nil
+}
+
+func (c *cb) runHTTP(ctx context.Context, svr *http.Server) error {
+	return svr.ListenAndServe()
 }
 
 func (c *cb) getGRPCServerOptions() []grpc.ServerOption {
@@ -81,16 +78,24 @@ func (c *cb) getGRPCServerOptions() []grpc.ServerOption {
 	return so
 }
 
-func (c *cb) runGRPC(ctx context.Context) error {
+func (c *cb) initGRPC(ctx context.Context) (*grpc.Server, error) {
+	grpcServer := grpc.NewServer(c.getGRPCServerOptions()...)
+	for _, s := range c.svc {
+		if err := s.InitGRPC(ctx, grpcServer); err != nil {
+			return nil, err
+		}
+	}
+	return grpcServer, nil
+}
+
+func (c *cb) runGRPC(ctx context.Context, svr *grpc.Server) error {
 	grpcServerEndpoint := fmt.Sprintf("%s:%d", c.config.ListenHost, c.config.GRPCPort)
 	lis, err := net.Listen("tcp", grpcServerEndpoint)
 	if err != nil {
 		return fmt.Errorf("failed to listen: %v", err)
 	}
 	log.Info(ctx, "Starting GRPC server on ", grpcServerEndpoint)
-	grpcServer := grpc.NewServer(c.getGRPCServerOptions()...)
-	c.svc.InitGRPC(ctx, grpcServer)
-	return grpcServer.Serve(lis)
+	return svr.Serve(lis)
 }
 
 func (c *cb) Run() error {
@@ -98,12 +103,22 @@ func (c *cb) Run() error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	grpcSvr, err := c.initGRPC(ctx)
+	if err != nil {
+		return err
+	}
+
+	httpSvr, err := c.initHTTP(ctx)
+	if err != nil {
+		return err
+	}
+
 	errChan := make(chan error, 0)
 	go func() {
-		errChan <- c.runHTTP(ctx)
+		errChan <- c.runGRPC(ctx, grpcSvr)
 	}()
 	go func() {
-		errChan <- c.runGRPC(ctx)
+		errChan <- c.runHTTP(ctx, httpSvr)
 	}()
 	return <-errChan
 }
@@ -112,5 +127,6 @@ func (c *cb) Run() error {
 func New(c config.Config) CB {
 	return &cb{
 		config: c,
+		svc:    make([]CBService, 0, 0),
 	}
 }
