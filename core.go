@@ -31,6 +31,10 @@ func (c *cb) SetOpenAPIHandler(handler http.Handler) {
 	c.openAPIHandler = handler
 }
 
+func (c *cb) processConfig() {
+	setupNewRelic(c.config.AppName, c.config.NewRelicLicenseKey)
+}
+
 func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 	// Register gRPC server endpoint
 	// Note: Make sure the gRPC server is running properly and accessible
@@ -125,8 +129,10 @@ func (c *cb) Run() error {
 
 //New creates a new ColdBrew object
 func New(c config.Config) CB {
-	return &cb{
+	impl := &cb{
 		config: c,
 		svc:    make([]CBService, 0, 0),
 	}
+	impl.processConfig()
+	return impl
 }
