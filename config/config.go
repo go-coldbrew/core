@@ -12,4 +12,5 @@ type Config struct {
 	DisableDebug       bool   `envconfig:"DISABLE_DEBUG" default:"false"`
 	DisablePormetheus  bool   `envconfig:"DISABLE_PROMETHEUS" default:"false"`
 	NewRelicLicenseKey string `envconfig:"NEW_RELIC_LICENSE_KEY" default:""`
+	SentryDSN          string `envconfig:"SENTRY_DSN" default:""`
 }

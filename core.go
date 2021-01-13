@@ -33,6 +33,7 @@ func (c *cb) SetOpenAPIHandler(handler http.Handler) {
 
 func (c *cb) processConfig() {
 	setupNewRelic(c.config.AppName, c.config.NewRelicLicenseKey)
+	setupSentry(c.config.SentryDSN)
 }
 
 func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {

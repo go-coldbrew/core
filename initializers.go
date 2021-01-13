@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/go-coldbrew/errors/notifier"
 	"github.com/go-coldbrew/log"
 	nrutil "github.com/go-coldbrew/tracing/newrelic"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
@@ -26,4 +27,10 @@ func setupNewRelic(serviceName, apiKey string) {
 	}
 	nrutil.SetNewRelicApp(app)
 	log.Info(context.Background(), "NewRelic initialized for "+serviceName)
+}
+
+func setupSentry(dsn string) {
+	if dsn != "" {
+		notifier.InitSentry(dsn)
+	}
 }
