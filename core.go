@@ -14,6 +14,7 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 type cb struct {
@@ -98,6 +99,9 @@ func (c *cb) runGRPC(ctx context.Context, svr *grpc.Server) error {
 	lis, err := net.Listen("tcp", grpcServerEndpoint)
 	if err != nil {
 		return fmt.Errorf("failed to listen: %v", err)
+	}
+	if !c.config.DisableGRPCReflection {
+		reflection.Register(svr)
 	}
 	log.Info(ctx, "Starting GRPC server on ", grpcServerEndpoint)
 	return svr.Serve(lis)
