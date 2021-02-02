@@ -40,3 +40,9 @@ func setupEnvironment(env string) {
 		notifier.SetEnvironment(env)
 	}
 }
+
+func setupReleaseName(rel string) {
+	if rel != "" {
+		notifier.SetRelease(rel)
+	}
+}

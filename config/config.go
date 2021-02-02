@@ -14,5 +14,6 @@ type Config struct {
 	DisablePormetheus     bool   `envconfig:"DISABLE_PROMETHEUS" default:"false"`
 	NewRelicLicenseKey    string `envconfig:"NEW_RELIC_LICENSE_KEY" default:""`
 	SentryDSN             string `envconfig:"SENTRY_DSN" default:""`
+	ReleaseName           string `envconfig:"RELEASE_NAME" default:""`
 	DisableGRPCReflection bool   `envconfig:"DISABLE_GRPC_REFLECTION" default:"false"`
 }
