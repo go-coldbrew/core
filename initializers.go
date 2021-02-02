@@ -34,3 +34,9 @@ func setupSentry(dsn string) {
 		notifier.InitSentry(dsn)
 	}
 }
+
+func setupEnvironment(env string) {
+	if env != "" {
+		notifier.SetEnvironment(env)
+	}
+}
