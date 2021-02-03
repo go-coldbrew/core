@@ -3,6 +3,7 @@ module github.com/go-coldbrew/core
 go 1.15
 
 require (
+	github.com/HdrHistogram/hdrhistogram-go v1.0.1 // indirect
 	github.com/bugsnag/bugsnag-go v2.1.0+incompatible // indirect
 	github.com/bugsnag/panicwrap v1.3.1 // indirect
 	github.com/go-coldbrew/errors v0.0.0-20210202032732-032991513cc0
@@ -12,8 +13,11 @@ require (
 	github.com/google/uuid v1.2.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.1.0
 	github.com/newrelic/go-agent/v3 v3.10.0
+	github.com/opentracing/opentracing-go v1.2.0
 	github.com/prometheus/client_golang v1.9.0
 	github.com/prometheus/procfs v0.3.0 // indirect
+	github.com/uber/jaeger-client-go v2.25.0+incompatible
+	github.com/uber/jaeger-lib v2.4.0+incompatible // indirect
 	golang.org/x/net v0.0.0-20210119194325-5f4716e94777 // indirect
 	golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c // indirect
 	golang.org/x/text v0.3.5 // indirect
