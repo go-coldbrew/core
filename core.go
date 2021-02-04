@@ -36,6 +36,7 @@ func (c *cb) processConfig() {
 	setupNewRelic(c.config.AppName, c.config.NewRelicLicenseKey)
 	setupSentry(c.config.SentryDSN)
 	setupEnvironment(c.config.Environment)
+	setupReleaseName(c.config.ReleaseName)
 	setupJaeger(c.config.AppName, c.config.JaegerLocalAgent, c.config.JaegerCollectorEndpoint, c.config.JaegerSamplerType, c.config.JaegerSamplerParams)
 }
 
