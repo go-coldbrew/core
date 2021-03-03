@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"io"
 	"strings"
 
 	metricCollector "github.com/afex/hystrix-go/hystrix/metric_collector"
@@ -9,6 +10,7 @@ import (
 	"github.com/go-coldbrew/hystrixprometheus"
 	"github.com/go-coldbrew/log"
 	nrutil "github.com/go-coldbrew/tracing/newrelic"
+	jprom "github.com/jaegertracing/jaeger-lib/metrics/prometheus"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
@@ -28,7 +30,7 @@ func setupNewRelic(serviceName, apiKey string) {
 		newrelic.ConfigLicense(apiKey),
 	)
 	if err != nil {
-		log.Error(context.Background(), err)
+		log.Error(context.Background(), "msg", "NewRelic could not be initialized", "err", err)
 		return
 	}
 	nrutil.SetNewRelicApp(app)
@@ -53,34 +55,26 @@ func setupReleaseName(rel string) {
 	}
 }
 
-func setupJaeger(serviceName, localAgentHostPort, collectorEndpoint, samplerType string, samplerParam float64) {
-	if localAgentHostPort == "" && collectorEndpoint == "" {
-		// do not init
-		return
+func setupJaeger(serviceName string) io.Closer {
+	conf, err := jaegerconfig.FromEnv()
+	if err != nil {
+		log.Info(context.Background(), "msg", "could not initialize jaeger", "err", err)
+		return nil
 	}
-	conf := jaegerconfig.Configuration{
-		Reporter: &jaegerconfig.ReporterConfig{
-			LocalAgentHostPort: localAgentHostPort,
-			CollectorEndpoint:  collectorEndpoint,
-		},
-		ServiceName: serviceName,
-	}
-	if samplerType != "" {
-		conf.Sampler = &jaegerconfig.SamplerConfig{
-			Type:  samplerType,
-			Param: samplerParam,
-		}
-	}
+	conf.ServiceName = serviceName
 	zipkinPropagator := zipkin.NewZipkinB3HTTPHeaderPropagator()
-	jaegerTracer, _, err := conf.NewTracer(
+	jaegerTracer, closer, err := conf.NewTracer(
 		jaegerconfig.Injector(opentracing.HTTPHeaders, zipkinPropagator),
 		jaegerconfig.Extractor(opentracing.HTTPHeaders, zipkinPropagator),
 		jaegerconfig.ZipkinSharedRPCSpan(true),
+		jaegerconfig.Metrics(jprom.New()),
 	)
 	if err != nil {
-		log.Error(context.Background(), "could not initialize jaeger", err)
+		log.Info(context.Background(), "msg", "could not initialize jaeger", "err", err)
+		return nil
 	}
 	opentracing.SetGlobalTracer(jaegerTracer)
+	return closer
 }
 
 func setupHystrix() {

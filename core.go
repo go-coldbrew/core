@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/http/pprof"
@@ -21,6 +22,7 @@ type cb struct {
 	svc            []CBService
 	openAPIHandler http.Handler
 	config         config.Config
+	closers        []io.Closer
 }
 
 func (c *cb) SetService(svc CBService) error {
@@ -37,7 +39,10 @@ func (c *cb) processConfig() {
 	setupSentry(c.config.SentryDSN)
 	setupEnvironment(c.config.Environment)
 	setupReleaseName(c.config.ReleaseName)
-	setupJaeger(c.config.AppName, c.config.JaegerLocalAgent, c.config.JaegerCollectorEndpoint, c.config.JaegerSamplerType, c.config.JaegerSamplerParams)
+	cls := setupJaeger(c.config.AppName)
+	if cls != nil {
+		c.closers = append(c.closers, cls)
+	}
 	setupHystrix()
 }
 
@@ -133,7 +138,18 @@ func (c *cb) Run() error {
 	go func() {
 		errChan <- c.runHTTP(ctx, httpSvr)
 	}()
-	return <-errChan
+	err = <-errChan
+	c.close()
+	return err
+}
+
+func (c *cb) close() {
+	for _, closer := range c.closers {
+		if closer != nil {
+			log.Info(context.Background(), "closing", closer)
+			closer.Close()
+		}
+	}
 }
 
 //New creates a new ColdBrew object

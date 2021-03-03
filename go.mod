@@ -14,6 +14,7 @@ require (
 	github.com/go-coldbrew/tracing v0.0.0-20210109114859-c3a68db049fe
 	github.com/google/uuid v1.2.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.1.0
+	github.com/jaegertracing/jaeger-lib v2.4.0+incompatible
 	github.com/newrelic/go-agent/v3 v3.10.0
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/prometheus/client_golang v1.9.0
