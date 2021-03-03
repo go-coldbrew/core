@@ -4,11 +4,14 @@ import (
 	"context"
 	"strings"
 
+	metricCollector "github.com/afex/hystrix-go/hystrix/metric_collector"
 	"github.com/go-coldbrew/errors/notifier"
+	"github.com/go-coldbrew/hystrixprometheus"
 	"github.com/go-coldbrew/log"
 	nrutil "github.com/go-coldbrew/tracing/newrelic"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/opentracing/opentracing-go"
+	"github.com/prometheus/client_golang/prometheus"
 	jaegerconfig "github.com/uber/jaeger-client-go/config"
 	"github.com/uber/jaeger-client-go/zipkin"
 )
@@ -78,4 +81,9 @@ func setupJaeger(serviceName, localAgentHostPort, collectorEndpoint, samplerType
 		log.Error(context.Background(), "could not initialize jaeger", err)
 	}
 	opentracing.SetGlobalTracer(jaegerTracer)
+}
+
+func setupHystrix() {
+	promC := hystrixprometheus.NewPrometheusCollector("hystrix", nil, prometheus.DefBuckets)
+	metricCollector.Registry.Register(promC.Collector)
 }

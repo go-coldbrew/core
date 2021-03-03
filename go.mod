@@ -4,9 +4,11 @@ go 1.15
 
 require (
 	github.com/HdrHistogram/hdrhistogram-go v1.0.1 // indirect
+	github.com/afex/hystrix-go v0.0.0-20180502004556-fa1af6a1f4f5
 	github.com/bugsnag/bugsnag-go v2.1.0+incompatible // indirect
 	github.com/bugsnag/panicwrap v1.3.1 // indirect
 	github.com/go-coldbrew/errors v0.0.0-20210202032732-032991513cc0
+	github.com/go-coldbrew/hystrixprometheus v0.0.0-20210303032357-2eccd8cfd8af
 	github.com/go-coldbrew/interceptors v0.0.0-20210128055137-5ba8134f2342
 	github.com/go-coldbrew/log v0.0.0-20210108160031-027cd625aad3
 	github.com/go-coldbrew/tracing v0.0.0-20210109114859-c3a68db049fe

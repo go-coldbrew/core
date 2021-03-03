@@ -38,6 +38,7 @@ func (c *cb) processConfig() {
 	setupEnvironment(c.config.Environment)
 	setupReleaseName(c.config.ReleaseName)
 	setupJaeger(c.config.AppName, c.config.JaegerLocalAgent, c.config.JaegerCollectorEndpoint, c.config.JaegerSamplerType, c.config.JaegerSamplerParams)
+	setupHystrix()
 }
 
 func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
