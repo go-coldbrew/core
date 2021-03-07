@@ -11,19 +11,21 @@ require (
 	github.com/go-coldbrew/hystrixprometheus v0.0.0-20210303032357-2eccd8cfd8af
 	github.com/go-coldbrew/interceptors v0.0.0-20210128055137-5ba8134f2342
 	github.com/go-coldbrew/log v0.0.0-20210108160031-027cd625aad3
-	github.com/go-coldbrew/tracing v0.0.0-20210109114859-c3a68db049fe
+	github.com/go-coldbrew/tracing v0.0.0-20210307071337-1e6c7bfb4ab4
 	github.com/google/uuid v1.2.0 // indirect
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.1.0
+	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.3.0
 	github.com/jaegertracing/jaeger-lib v2.4.0+incompatible
 	github.com/newrelic/go-agent/v3 v3.10.0
+	github.com/newrelic/go-agent/v3/integrations/nrgrpc v1.1.0
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/prometheus/client_golang v1.9.0
-	github.com/prometheus/procfs v0.3.0 // indirect
+	github.com/prometheus/common v0.18.0 // indirect
+	github.com/prometheus/procfs v0.6.0 // indirect
 	github.com/uber/jaeger-client-go v2.25.0+incompatible
 	github.com/uber/jaeger-lib v2.4.0+incompatible // indirect
-	golang.org/x/net v0.0.0-20210119194325-5f4716e94777 // indirect
-	golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c // indirect
-	golang.org/x/text v0.3.5 // indirect
-	google.golang.org/genproto v0.0.0-20210201184850-646a494a81ea // indirect
-	google.golang.org/grpc v1.35.0
+	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110 // indirect
+	golang.org/x/sys v0.0.0-20210305230114-8fe3ee5dd75b // indirect
+	google.golang.org/genproto v0.0.0-20210303154014-9728d6b83eeb // indirect
+	google.golang.org/grpc v1.36.0
 )
