@@ -67,7 +67,8 @@ func tracingWrapper(h http.Handler) http.Handler {
 			r = r.WithContext(opentracing.ContextWithSpan(r.Context(), serverSpan))
 			defer serverSpan.Finish()
 		}
-		interceptors.NRHttpTracer("", h).ServeHTTP(w, r)
+		_, han := interceptors.NRHttpTracer("", h.ServeHTTP)
+		han(w, r)
 	})
 }
 
