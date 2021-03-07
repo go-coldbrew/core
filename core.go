@@ -12,10 +12,8 @@ import (
 	"github.com/go-coldbrew/core/config"
 	"github.com/go-coldbrew/interceptors"
 	"github.com/go-coldbrew/log"
-	nrutil "github.com/go-coldbrew/tracing/newrelic"
 	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	"github.com/newrelic/go-agent/v3/integrations/nrgrpc"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -123,11 +121,6 @@ func (c *cb) getGRPCServerOptions() []grpc.ServerOption {
 		grpc.ChainUnaryInterceptor(interceptors.DefaultInterceptors()...),
 		grpc.ChainStreamInterceptor(interceptors.DefaultStreamInterceptors()...),
 	)
-	if app := nrutil.GetNewRelicApp(); app != nil {
-		so = append(so, grpc.UnaryInterceptor(nrgrpc.UnaryServerInterceptor(app)),
-			grpc.StreamInterceptor(nrgrpc.StreamServerInterceptor(app)),
-		)
-	}
 	return so
 }
 
