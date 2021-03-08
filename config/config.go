@@ -5,7 +5,7 @@ type Config struct {
 	ListenHost            string `envconfig:"LISTEN_HOST" default:"0.0.0.0"`
 	GRPCPort              int    `envconfig:"GRPC_PORT" default:"9090"`
 	HTTPPort              int    `envconfig:"HTTP_PORT" default:"9091"`
-	AppName               string `envconfig:"APP_NAME" default:"ColdBrewService"`
+	AppName               string `envconfig:"APP_NAME" default:""`
 	Environment           string `envconfig:"ENVIRONMENT" default:""`
 	LogLevel              string `envconfig:"LOG_LEVEL" default:"info"`
 	JSONLogs              bool   `envconfig:"JSON_LOGS" default:"true"`
