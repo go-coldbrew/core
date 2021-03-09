@@ -59,14 +59,16 @@ func tracingWrapper(h http.Handler) http.Handler {
 			opentracing.HTTPHeaders,
 			opentracing.HTTPHeadersCarrier(r.Header))
 		if err == nil || err == opentracing.ErrSpanContextNotFound {
-			serverSpan := opentracing.GlobalTracer().StartSpan(
-				"ServeHTTP",
-				// this is magical, it attaches the new span to the parent parentSpanContext, and creates an unparented one if empty.
-				ext.RPCServerOption(parentSpanContext),
-				grpcGatewayTag,
-			)
-			r = r.WithContext(opentracing.ContextWithSpan(r.Context(), serverSpan))
-			defer serverSpan.Finish()
+			if interceptors.FilterMethodsFunc(r.Context(), r.URL.Path) {
+				serverSpan := opentracing.GlobalTracer().StartSpan(
+					"ServeHTTP",
+					// this is magical, it attaches the new span to the parent parentSpanContext, and creates an unparented one if empty.
+					ext.RPCServerOption(parentSpanContext),
+					grpcGatewayTag,
+				)
+				r = r.WithContext(opentracing.ContextWithSpan(r.Context(), serverSpan))
+				defer serverSpan.Finish()
+			}
 		}
 		_, han := interceptors.NRHttpTracer("", h.ServeHTTP)
 		han(w, r)
@@ -80,7 +82,11 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 	mux := runtime.NewServeMux()
 	opts := []grpc.DialOption{grpc.WithInsecure(),
 		grpc.WithUnaryInterceptor(
-			interceptors.DefaultClientInterceptor(grpc_opentracing.WithTraceHeaderName(c.config.TraceHeaderName), interceptors.WithoutHystrix()),
+			interceptors.DefaultClientInterceptor(
+				grpc_opentracing.WithTraceHeaderName(c.config.TraceHeaderName),
+				grpc_opentracing.WithFilterFunc(interceptors.FilterMethodsFunc),
+				interceptors.WithoutHystrix(),
+			),
 		),
 	}
 	for _, s := range c.svc {
