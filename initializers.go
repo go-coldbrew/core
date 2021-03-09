@@ -8,6 +8,7 @@ import (
 	metricCollector "github.com/afex/hystrix-go/hystrix/metric_collector"
 	"github.com/go-coldbrew/errors/notifier"
 	"github.com/go-coldbrew/hystrixprometheus"
+	"github.com/go-coldbrew/interceptors"
 	"github.com/go-coldbrew/log"
 	nrutil "github.com/go-coldbrew/tracing/newrelic"
 	jprom "github.com/jaegertracing/jaeger-lib/metrics/prometheus"
@@ -80,4 +81,10 @@ func setupJaeger(serviceName string) io.Closer {
 func setupHystrix() {
 	promC := hystrixprometheus.NewPrometheusCollector("hystrix", nil, prometheus.DefBuckets)
 	metricCollector.Registry.Register(promC.Collector)
+}
+
+func configureInterceptors(DoNotLogGRPCReflection bool) {
+	if DoNotLogGRPCReflection {
+		interceptors.FilterMethods = append(interceptors.FilterMethods, "grpc.reflection.v1alpha.ServerReflection")
+	}
 }

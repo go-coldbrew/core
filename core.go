@@ -47,6 +47,7 @@ func (c *cb) processConfig() {
 		c.closers = append(c.closers, cls)
 	}
 	setupHystrix()
+	configureInterceptors(c.config.DoNotLogGRPCReflection)
 }
 
 // https://grpc-ecosystem.github.io/grpc-gateway/docs/operations/tracing/#opentracing-support
@@ -79,9 +80,7 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 	mux := runtime.NewServeMux()
 	opts := []grpc.DialOption{grpc.WithInsecure(),
 		grpc.WithUnaryInterceptor(
-			grpc_opentracing.UnaryClientInterceptor(
-				grpc_opentracing.WithTracer(opentracing.GlobalTracer()),
-			),
+			interceptors.DefaultClientInterceptor(grpc_opentracing.WithTraceHeaderName(c.config.TraceHeaderName), interceptors.WithoutHystrix()),
 		),
 	}
 	for _, s := range c.svc {
