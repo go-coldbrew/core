@@ -135,8 +135,8 @@ github.com/getsentry/raven-go v0.2.0 h1:no+xWJRb5ZI7eE8TWgIq1jLulQiIoLG0IfYxv5JY
 github.com/getsentry/raven-go v0.2.0/go.mod h1:KungGk8q33+aIAZUIVWZDr2OfAEBsO49PX4NzFV5kcQ=
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
 github.com/go-coldbrew/errors v0.0.0-20210109113850-277e56974859/go.mod h1:J6Uc62KDaMgX4+5Jhdz6TNUzLeuo3JQf0gc1xFhHziM=
-github.com/go-coldbrew/errors v0.0.0-20210202032732-032991513cc0 h1:7JlGXHny+u5YkEXjmieRYy7m614G0FbO8EN7D8YWMe0=
-github.com/go-coldbrew/errors v0.0.0-20210202032732-032991513cc0/go.mod h1:J6Uc62KDaMgX4+5Jhdz6TNUzLeuo3JQf0gc1xFhHziM=
+github.com/go-coldbrew/errors v0.0.0-20210310035316-429b0389ed1c h1:lEtkPL9XEJ/zW4JgAxxnyd8uds+E9kRZme/RqAOG9Xs=
+github.com/go-coldbrew/errors v0.0.0-20210310035316-429b0389ed1c/go.mod h1:J6Uc62KDaMgX4+5Jhdz6TNUzLeuo3JQf0gc1xFhHziM=
 github.com/go-coldbrew/hystrixprometheus v0.0.0-20210303032357-2eccd8cfd8af h1:SAEfKTh3+cxEh6NdU4jrRoUXgBC10vrnqH3aeuwZ9bY=
 github.com/go-coldbrew/hystrixprometheus v0.0.0-20210303032357-2eccd8cfd8af/go.mod h1:YmypTbSAJmc3xnSfDZ2ZhG0tHbpiHXvpS3nI1DIEPb0=
 github.com/go-coldbrew/interceptors v0.0.0-20210309153120-9004ebe28553 h1:ehPEHnQczifZcK0Bmgp6LOYYW02/3bR9bbr6wmXMun0=

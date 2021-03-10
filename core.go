@@ -47,7 +47,7 @@ func (c *cb) processConfig() {
 		c.closers = append(c.closers, cls)
 	}
 	setupHystrix()
-	configureInterceptors(c.config.DoNotLogGRPCReflection)
+	configureInterceptors(c.config.DoNotLogGRPCReflection, c.config.TraceHeaderName)
 }
 
 // https://grpc-ecosystem.github.io/grpc-gateway/docs/operations/tracing/#opentracing-support
@@ -77,11 +77,25 @@ func tracingWrapper(h http.Handler) http.Handler {
 	})
 }
 
+func getCustomHeaderMatcher(header string) func(string) (string, bool) {
+	header = strings.ToLower(header)
+	return func(key string) (string, bool) {
+		switch strings.ToLower(key) {
+		case header:
+			return key, true
+		default:
+			return runtime.DefaultHeaderMatcher(key)
+		}
+	}
+}
+
 func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 	// Register gRPC server endpoint
 	// Note: Make sure the gRPC server is running properly and accessible
 	grpcServerEndpoint := fmt.Sprintf("%s:%d", c.config.ListenHost, c.config.GRPCPort)
-	mux := runtime.NewServeMux()
+	mux := runtime.NewServeMux(
+		runtime.WithIncomingHeaderMatcher(getCustomHeaderMatcher(c.config.TraceHeaderName)),
+	)
 	opts := []grpc.DialOption{grpc.WithInsecure(),
 		grpc.WithUnaryInterceptor(
 			interceptors.DefaultClientInterceptor(

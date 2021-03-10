@@ -7,7 +7,7 @@ require (
 	github.com/afex/hystrix-go v0.0.0-20180502004556-fa1af6a1f4f5
 	github.com/bugsnag/bugsnag-go v2.1.0+incompatible // indirect
 	github.com/bugsnag/panicwrap v1.3.1 // indirect
-	github.com/go-coldbrew/errors v0.0.0-20210202032732-032991513cc0
+	github.com/go-coldbrew/errors v0.0.0-20210310035316-429b0389ed1c
 	github.com/go-coldbrew/hystrixprometheus v0.0.0-20210303032357-2eccd8cfd8af
 	github.com/go-coldbrew/interceptors v0.0.0-20210309153120-9004ebe28553
 	github.com/go-coldbrew/log v0.0.0-20210108160031-027cd625aad3

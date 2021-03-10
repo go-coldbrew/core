@@ -83,8 +83,11 @@ func setupHystrix() {
 	metricCollector.Registry.Register(promC.Collector)
 }
 
-func configureInterceptors(DoNotLogGRPCReflection bool) {
+func configureInterceptors(DoNotLogGRPCReflection bool, traceHeaderName string) {
 	if DoNotLogGRPCReflection {
 		interceptors.FilterMethods = append(interceptors.FilterMethods, "grpc.reflection.v1alpha.ServerReflection")
+	}
+	if traceHeaderName != "" {
+		notifier.SetTraceHeaderName(traceHeaderName)
 	}
 }
