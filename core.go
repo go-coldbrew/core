@@ -65,6 +65,8 @@ func tracingWrapper(h http.Handler) http.Handler {
 					// this is magical, it attaches the new span to the parent parentSpanContext, and creates an unparented one if empty.
 					ext.RPCServerOption(parentSpanContext),
 					grpcGatewayTag,
+					opentracing.Tag{Key: string(ext.HTTPUrl), Value: r.URL.Path},
+					opentracing.Tag{Key: string(ext.HTTPMethod), Value: r.Method},
 				)
 				r = r.WithContext(opentracing.ContextWithSpan(r.Context(), serverSpan))
 				defer serverSpan.Finish()
