@@ -9,7 +9,7 @@ require (
 	github.com/bugsnag/panicwrap v1.3.1 // indirect
 	github.com/go-coldbrew/errors v0.0.0-20210310035316-429b0389ed1c
 	github.com/go-coldbrew/hystrixprometheus v0.0.0-20210303032357-2eccd8cfd8af
-	github.com/go-coldbrew/interceptors v0.0.0-20210309153120-9004ebe28553
+	github.com/go-coldbrew/interceptors v0.0.0-20210310053517-8ec9d7c7f4e7
 	github.com/go-coldbrew/log v0.0.0-20210108160031-027cd625aad3
 	github.com/go-coldbrew/tracing v0.0.0-20210307100008-7cb4e16426e4
 	github.com/google/uuid v1.2.0 // indirect
