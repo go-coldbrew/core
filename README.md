@@ -15,17 +15,18 @@ import "github.com/go-coldbrew/core"
 - [type CBService](<#type-cbservice>)
 
 
-## type [CB](<https://github.com/go-coldbrew/core/blob/main/types.go#L16-L20>)
+## type [CB](<https://github.com/go-coldbrew/core/blob/main/types.go#L17-L22>)
 
 ```go
 type CB interface {
     SetService(CBService) error
     Run() error
     SetOpenAPIHandler(http.Handler)
+    Stop(time.Duration) error
 }
 ```
 
-### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L209>)
+### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L260>)
 
 ```go
 func New(c config.Config) CB
@@ -33,7 +34,7 @@ func New(c config.Config) CB
 
 New creates a new ColdBrew object
 
-## type [CBService](<https://github.com/go-coldbrew/core/blob/main/types.go#L11-L14>)
+## type [CBService](<https://github.com/go-coldbrew/core/blob/main/types.go#L12-L15>)
 
 ```go
 type CBService interface {
