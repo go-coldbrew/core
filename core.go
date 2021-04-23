@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"net/http/pprof"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/go-coldbrew/core/config"
 	"github.com/go-coldbrew/interceptors"
@@ -26,6 +28,10 @@ type cb struct {
 	openAPIHandler http.Handler
 	config         config.Config
 	closers        []io.Closer
+	grpcServer     *grpc.Server
+	httpServer     *http.Server
+	cancelFunc     context.CancelFunc
+	gracefulWait   sync.WaitGroup
 }
 
 func (c *cb) SetService(svc CBService) error {
@@ -48,6 +54,13 @@ func (c *cb) processConfig() {
 	}
 	setupHystrix()
 	configureInterceptors(c.config.DoNotLogGRPCReflection, c.config.TraceHeaderName)
+	if !c.config.DisableSignalHandler {
+		dur := time.Second * 10
+		if c.config.ShutdownDurationInSeconds > 0 {
+			dur = time.Second * time.Duration(c.config.ShutdownDurationInSeconds)
+		}
+		startSignalHandler(c, dur)
+	}
 }
 
 // https://grpc-ecosystem.github.io/grpc-gateway/docs/operations/tracing/#opentracing-support
@@ -171,27 +184,30 @@ func (c *cb) runGRPC(ctx context.Context, svr *grpc.Server) error {
 
 func (c *cb) Run() error {
 	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	ctx, c.cancelFunc = context.WithCancel(ctx)
+	defer c.cancelFunc()
 
-	grpcSvr, err := c.initGRPC(ctx)
+	var err error
+
+	c.grpcServer, err = c.initGRPC(ctx)
 	if err != nil {
 		return err
 	}
 
-	httpSvr, err := c.initHTTP(ctx)
+	c.httpServer, err = c.initHTTP(ctx)
 	if err != nil {
 		return err
 	}
 
-	errChan := make(chan error, 0)
+	errChan := make(chan error, 2)
 	go func() {
-		errChan <- c.runGRPC(ctx, grpcSvr)
+		errChan <- c.runGRPC(ctx, c.grpcServer)
 	}()
 	go func() {
-		errChan <- c.runHTTP(ctx, httpSvr)
+		errChan <- c.runHTTP(ctx, c.httpServer)
 	}()
 	err = <-errChan
+	c.gracefulWait.Wait() // if graceful shutdown is in progress wait for it to finish
 	c.close()
 	return err
 }
@@ -202,6 +218,41 @@ func (c *cb) close() {
 			log.Info(context.Background(), "closing", closer)
 			closer.Close()
 		}
+	}
+}
+
+func (c *cb) Stop(dur time.Duration) error {
+	c.gracefulWait.Add(1) // tell runner that a graceful shutdow is in progress
+	defer c.gracefulWait.Done()
+	ctx, cancel := context.WithTimeout(context.Background(), dur)
+	defer func() {
+		cancel()
+		if c.cancelFunc != nil {
+			c.cancelFunc()
+		}
+	}()
+	if c.httpServer != nil {
+		go c.httpServer.Shutdown(ctx)
+	}
+	if c.grpcServer != nil {
+		timedCall(ctx, c.grpcServer.GracefulStop)
+		c.grpcServer.Stop()
+	}
+	return nil
+}
+
+func timedCall(ctx context.Context, f func()) {
+	done := make(chan struct{})
+	go func() {
+		f()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		log.Info(context.Background(), "grpc graceful shutdown complete")
+	case <-ctx.Done():
+		log.Info(context.Background(), "grpc graceful shutdown failed, forcing shutdown")
 	}
 }
 

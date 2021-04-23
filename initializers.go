@@ -3,7 +3,11 @@ package core
 import (
 	"context"
 	"io"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
 
 	metricCollector "github.com/afex/hystrix-go/hystrix/metric_collector"
 	"github.com/go-coldbrew/errors/notifier"
@@ -89,5 +93,21 @@ func configureInterceptors(DoNotLogGRPCReflection bool, traceHeaderName string) 
 	}
 	if traceHeaderName != "" {
 		notifier.SetTraceHeaderName(traceHeaderName)
+	}
+}
+
+func startSignalHandler(c *cb, dur time.Duration) {
+	go signalWatcher(context.Background(), c, dur)
+}
+
+func signalWatcher(ctx context.Context, c *cb, dur time.Duration) {
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, syscall.SIGTERM, syscall.SIGINT)
+	log.Info(ctx, "signal watcher started")
+	for sig := range signals {
+		log.Info(ctx, "signal: shutdown on "+sig.String())
+		c.Stop(dur)
+		log.Info(ctx, "signal: shutdown completed "+sig.String())
+		break
 	}
 }
