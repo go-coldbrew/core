@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -35,6 +36,9 @@ type cb struct {
 }
 
 func (c *cb) SetService(svc CBService) error {
+	if svc == nil {
+		return errors.New("service is nil")
+	}
 	c.svc = append(c.svc, svc)
 	return nil
 }
