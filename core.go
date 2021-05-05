@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -35,6 +36,9 @@ type cb struct {
 }
 
 func (c *cb) SetService(svc CBService) error {
+	if svc == nil {
+		return errors.New("service is nil")
+	}
 	c.svc = append(c.svc, svc)
 	return nil
 }
@@ -237,6 +241,12 @@ func (c *cb) Stop(dur time.Duration) error {
 	if c.grpcServer != nil {
 		timedCall(ctx, c.grpcServer.GracefulStop)
 		c.grpcServer.Stop()
+	}
+	for _, svc := range c.svc {
+		// call stopper to stop services
+		if s, ok := svc.(CBStopper); ok {
+			s.Stop()
+		}
 	}
 	return nil
 }
