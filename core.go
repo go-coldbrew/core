@@ -238,6 +238,12 @@ func (c *cb) Stop(dur time.Duration) error {
 		timedCall(ctx, c.grpcServer.GracefulStop)
 		c.grpcServer.Stop()
 	}
+	for _, svc := range c.svc {
+		// call stopper to stop services
+		if s, ok := svc.(CBStopper); ok {
+			s.Stop()
+		}
+	}
 	return nil
 }
 
