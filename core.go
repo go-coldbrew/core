@@ -48,6 +48,7 @@ func (c *cb) SetOpenAPIHandler(handler http.Handler) {
 }
 
 func (c *cb) processConfig() {
+	setupLogger(c.config.LogLevel, c.config.JSONLogs)
 	setupNewRelic(c.config.AppName, c.config.NewRelicLicenseKey)
 	setupSentry(c.config.SentryDSN)
 	setupEnvironment(c.config.Environment)

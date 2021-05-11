@@ -8,14 +8,29 @@
 import "github.com/go-coldbrew/core"
 ```
 
+package core is the core module for cold brew and provides the base implementation for Cold Brew\.
+
+The idea behind cold brew is simple\, we want to reuse as many good components that we can by providing only a thin wrapper around them if needed\.
+
+### The components in use by cold brew currently are
+
+```
+github.com/grpc-ecosystem/grpc-gateway
+github.com/prometheus/client_golang
+github.github.com/afex/hystrix-go
+github.com/opentracing/opentracing-go
+github.com/newrelic/go-agent
+```
+
 ## Index
 
 - [type CB](<#type-cb>)
   - [func New(c config.Config) CB](<#func-new>)
 - [type CBService](<#type-cbservice>)
+- [type CBStopper](<#type-cbstopper>)
 
 
-## type [CB](<https://github.com/go-coldbrew/core/blob/main/types.go#L17-L22>)
+## type [CB](<https://github.com/go-coldbrew/core/blob/main/types.go#L21-L26>)
 
 ```go
 type CB interface {
@@ -26,7 +41,7 @@ type CB interface {
 }
 ```
 
-### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L260>)
+### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L271>)
 
 ```go
 func New(c config.Config) CB
@@ -40,6 +55,14 @@ New creates a new ColdBrew object
 type CBService interface {
     InitHTTP(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) error
     InitGRPC(ctx context.Context, server *grpc.Server) error
+}
+```
+
+## type [CBStopper](<https://github.com/go-coldbrew/core/blob/main/types.go#L17-L19>)
+
+```go
+type CBStopper interface {
+    Stop()
 }
 ```
 

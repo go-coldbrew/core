@@ -14,6 +14,8 @@ import (
 	"github.com/go-coldbrew/hystrixprometheus"
 	"github.com/go-coldbrew/interceptors"
 	"github.com/go-coldbrew/log"
+	"github.com/go-coldbrew/log/loggers"
+	"github.com/go-coldbrew/log/loggers/gokit"
 	nrutil "github.com/go-coldbrew/tracing/newrelic"
 	jprom "github.com/jaegertracing/jaeger-lib/metrics/prometheus"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
@@ -40,6 +42,17 @@ func setupNewRelic(serviceName, apiKey string) {
 	}
 	nrutil.SetNewRelicApp(app)
 	log.Info(context.Background(), "NewRelic initialized for "+serviceName)
+}
+
+func setupLogger(logLevel string, jsonlogs bool) {
+	log.SetLogger(log.NewLogger(gokit.NewLogger(loggers.WithJSONLogs(jsonlogs))))
+
+	ll, err := loggers.ParseLevel(logLevel)
+	if err != nil {
+		log.Error(context.Background(), "err", "could not set log level", "level", logLevel)
+	} else {
+		log.SetLevel(ll)
+	}
 }
 
 func setupSentry(dsn string) {
