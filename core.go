@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/NYTimes/gziphandler"
 	"github.com/go-coldbrew/core/config"
 	"github.com/go-coldbrew/interceptors"
 	"github.com/go-coldbrew/log"
@@ -144,7 +145,7 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 				promhttp.Handler().ServeHTTP(w, r)
 				return
 			}
-			tracingWrapper(mux).ServeHTTP(w, r)
+			gziphandler.GzipHandler(tracingWrapper(mux)).ServeHTTP(w, r)
 		}),
 	}
 	log.Info(ctx, "Starting HTTP server on ", gatewayAddr)
