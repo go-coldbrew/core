@@ -13,29 +13,48 @@ import "github.com/go-coldbrew/core/config"
 - [type Config](<#type-config>)
 
 
-## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L3-L23>)
+## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L3-L42>)
 
 ```go
 type Config struct {
-    // App configuration
-    ListenHost                string `envconfig:"LISTEN_HOST" default:"0.0.0.0"`
-    GRPCPort                  int    `envconfig:"GRPC_PORT" default:"9090"`
-    HTTPPort                  int    `envconfig:"HTTP_PORT" default:"9091"`
-    AppName                   string `envconfig:"APP_NAME" default:""`
-    Environment               string `envconfig:"ENVIRONMENT" default:""`
-    LogLevel                  string `envconfig:"LOG_LEVEL" default:"info"`
-    JSONLogs                  bool   `envconfig:"JSON_LOGS" default:"true"`
-    DisableSwagger            bool   `envconfig:"DISABLE_SWAGGER" default:"false"`
-    DisableDebug              bool   `envconfig:"DISABLE_DEBUG" default:"false"`
-    DisablePormetheus         bool   `envconfig:"DISABLE_PROMETHEUS" default:"false"`
-    NewRelicLicenseKey        string `envconfig:"NEW_RELIC_LICENSE_KEY" default:""`
-    SentryDSN                 string `envconfig:"SENTRY_DSN" default:""`
-    ReleaseName               string `envconfig:"RELEASE_NAME" default:""`
-    DisableGRPCReflection     bool   `envconfig:"DISABLE_GRPC_REFLECTION" default:"false"`
-    TraceHeaderName           string `envconfig:"TRACE_HEADER_NAME" default:"x-trace-id"`
-    DoNotLogGRPCReflection    bool   `envconfig:"DO_NOT_LOG_GRPC_REFLECTION" default:"true"`
-    DisableSignalHandler      bool   `envconfig:"DISABLE_SIGNAL_HANDLER" default:"false"`
-    ShutdownDurationInSeconds int    `envconfig:"SHUTDOWN_DURATION_IN_SECONDS" default:"10"`
+    // Host to listen on
+    ListenHost string `envconfig:"LISTEN_HOST" default:"0.0.0.0"`
+    // GRPC Port, defaults to 9090
+    GRPCPort int `envconfig:"GRPC_PORT" default:"9090"`
+    // HTTP Port, defaults to 9091
+    HTTPPort int `envconfig:"HTTP_PORT" default:"9091"`
+    // Name of the Application
+    AppName string `envconfig:"APP_NAME" default:""`
+    // Environment e.g. Production / Integration / Development
+    Environment string `envconfig:"ENVIRONMENT" default:""`
+    // LogLevel to print, default to info
+    LogLevel string `envconfig:"LOG_LEVEL" default:"info"`
+    // Should logs be emitted in json format, defaults to true
+    JSONLogs bool `envconfig:"JSON_LOGS" default:"true"`
+    // Should we disable swagger at /swagger/, defaults to false
+    DisableSwagger bool `envconfig:"DISABLE_SWAGGER" default:"false"`
+    // Should we disable go debug at /debug/, defaults to false
+    DisableDebug bool `envconfig:"DISABLE_DEBUG" default:"false"`
+    // Should we disable prometheus at /metrics, defaults to false
+    DisablePormetheus bool `envconfig:"DISABLE_PROMETHEUS" default:"false"`
+    // The License key for NewRelic metrics reporting
+    NewRelicLicenseKey string `envconfig:"NEW_RELIC_LICENSE_KEY" default:""`
+    // DSN for reporting errors to sentry
+    SentryDSN string `envconfig:"SENTRY_DSN" default:""`
+    // Name of this release
+    ReleaseName string `envconfig:"RELEASE_NAME" default:""`
+    // When set disable the GRPC reflecttion server which can be useful for tools like grpccurl, default false
+    DisableGRPCReflection bool `envconfig:"DISABLE_GRPC_REFLECTION" default:"false"`
+    // Trace header, when this HTTP header is present CB will add the value to log/trace contexts
+    TraceHeaderName string `envconfig:"TRACE_HEADER_NAME" default:"x-trace-id"`
+    // When we match this HTTP header prefix, we forward append the values to grpc metadata
+    HTTPHeaderPrefix string `envconfig:"HTTP_HEADER_PREFIX" default:""`
+    // Should we log calls to GRPC reflection API, defaults to true
+    DoNotLogGRPCReflection bool `envconfig:"DO_NOT_LOG_GRPC_REFLECTION" default:"true"`
+    // Should we disable signal handler, defaults to false and CB handles all SIG_INT/SIG_TERM
+    DisableSignalHandler bool `envconfig:"DISABLE_SIGNAL_HANDLER" default:"false"`
+    // Duration for whic CB will wait for calls to complete before shutting down the server
+    ShutdownDurationInSeconds int `envconfig:"SHUTDOWN_DURATION_IN_SECONDS" default:"10"`
 }
 ```
 

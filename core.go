@@ -96,15 +96,17 @@ func tracingWrapper(h http.Handler) http.Handler {
 	})
 }
 
-func getCustomHeaderMatcher(header string) func(string) (string, bool) {
+func getCustomHeaderMatcher(prefix, header string) func(string) (string, bool) {
+	prefix = strings.ToLower(prefix)
 	header = strings.ToLower(header)
 	return func(key string) (string, bool) {
-		switch strings.ToLower(key) {
-		case header:
+		key = strings.ToLower(key)
+		if key == header {
 			return key, true
-		default:
-			return runtime.DefaultHeaderMatcher(key)
+		} else if len(prefix) > 0 && strings.HasPrefix(key, prefix) {
+			return key, true
 		}
+		return runtime.DefaultHeaderMatcher(key)
 	}
 }
 
@@ -112,8 +114,12 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 	// Register gRPC server endpoint
 	// Note: Make sure the gRPC server is running properly and accessible
 	grpcServerEndpoint := fmt.Sprintf("%s:%d", c.config.ListenHost, c.config.GRPCPort)
+	pMar := &runtime.ProtoMarshaller{}
 	mux := runtime.NewServeMux(
-		runtime.WithIncomingHeaderMatcher(getCustomHeaderMatcher(c.config.TraceHeaderName)),
+		runtime.WithIncomingHeaderMatcher(getCustomHeaderMatcher(c.config.HTTPHeaderPrefix, c.config.TraceHeaderName)),
+		runtime.WithMarshalerOption("application/proto", pMar),
+		runtime.WithMarshalerOption("application/protobuf", pMar),
+		runtime.WithMarshalerOption(pMar.ContentType(nil), pMar),
 	)
 	opts := []grpc.DialOption{grpc.WithInsecure(),
 		grpc.WithUnaryInterceptor(
