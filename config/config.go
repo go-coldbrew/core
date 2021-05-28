@@ -21,6 +21,8 @@ type Config struct {
 	DisableDebug bool `envconfig:"DISABLE_DEBUG" default:"false"`
 	// Should we disable prometheus at /metrics, defaults to false
 	DisablePormetheus bool `envconfig:"DISABLE_PROMETHEUS" default:"false"`
+	// Enables grpc request histograms in prometheus reporting
+	EnablePrometheusGRPCHistogram bool `envconfig:"ENABLE_PROMETHEUS_GRPC_HISTOGRAM" default:"false"`
 	// The License key for NewRelic metrics reporting
 	NewRelicLicenseKey string `envconfig:"NEW_RELIC_LICENSE_KEY" default:""`
 	// DSN for reporting errors to sentry

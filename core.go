@@ -17,6 +17,7 @@ import (
 	"github.com/go-coldbrew/interceptors"
 	"github.com/go-coldbrew/log"
 	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
+	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
@@ -66,6 +67,9 @@ func (c *cb) processConfig() {
 			dur = time.Second * time.Duration(c.config.ShutdownDurationInSeconds)
 		}
 		startSignalHandler(c, dur)
+	}
+	if c.config.EnablePrometheusGRPCHistogram {
+		grpc_prometheus.EnableHandlingTimeHistogram()
 	}
 }
 
@@ -144,7 +148,7 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 			if !c.config.DisableSwagger && c.openAPIHandler != nil && strings.HasPrefix(r.URL.Path, "/swagger/") {
 				http.StripPrefix("/swagger/", c.openAPIHandler).ServeHTTP(w, r)
 				return
-			} else if !c.config.DisableDebug && strings.HasPrefix(r.URL.Path, "/debug/") {
+			} else if !c.config.DisableDebug && strings.HasPrefix(r.URL.Path, "/debug/pprof/") {
 				pprof.Index(w, r)
 				return
 			} else if !c.config.DisablePormetheus && strings.HasPrefix(r.URL.Path, "/metrics") {
