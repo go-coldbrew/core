@@ -118,13 +118,20 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 	// Register gRPC server endpoint
 	// Note: Make sure the gRPC server is running properly and accessible
 	grpcServerEndpoint := fmt.Sprintf("%s:%d", c.config.ListenHost, c.config.GRPCPort)
+
 	pMar := &runtime.ProtoMarshaller{}
-	mux := runtime.NewServeMux(
+	muxOpts := []runtime.ServeMuxOption{
 		runtime.WithIncomingHeaderMatcher(getCustomHeaderMatcher(c.config.HTTPHeaderPrefix, c.config.TraceHeaderName)),
 		runtime.WithMarshalerOption("application/proto", pMar),
 		runtime.WithMarshalerOption("application/protobuf", pMar),
-		runtime.WithMarshalerOption(pMar.ContentType(nil), pMar),
-	)
+	}
+
+	if c.config.UseJSONBuiltinMarshaller {
+		muxOpts = append(muxOpts, runtime.WithMarshalerOption(c.config.JSONBuiltinMarshallerMime, &runtime.JSONBuiltin{}))
+	}
+
+	mux := runtime.NewServeMux(muxOpts...)
+
 	opts := []grpc.DialOption{grpc.WithInsecure(),
 		grpc.WithUnaryInterceptor(
 			interceptors.DefaultClientInterceptor(
@@ -247,6 +254,11 @@ func (c *cb) Stop(dur time.Duration) error {
 			c.cancelFunc()
 		}
 	}()
+	for _, svc := range c.svc {
+		if s, ok := svc.(CBGracefulStopper); ok {
+			s.FailCheck(true)
+		}
+	}
 	if c.httpServer != nil {
 		go c.httpServer.Shutdown(ctx)
 	}

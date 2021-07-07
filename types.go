@@ -14,6 +14,11 @@ type CBService interface {
 	InitGRPC(ctx context.Context, server *grpc.Server) error
 }
 
+type CBGracefulStopper interface {
+	CBStopper
+	FailCheck(bool)
+}
+
 type CBStopper interface {
 	Stop()
 }
