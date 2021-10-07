@@ -14,6 +14,7 @@ import (
 
 	"github.com/NYTimes/gziphandler"
 	"github.com/go-coldbrew/core/config"
+	feature_flags "github.com/go-coldbrew/feature-flags"
 	"github.com/go-coldbrew/interceptors"
 	"github.com/go-coldbrew/log"
 	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
@@ -211,6 +212,11 @@ func (c *cb) Run() error {
 	defer c.cancelFunc()
 
 	var err error
+
+	err = feature_flags.Initialize(c.config.AppName, c.config.FeatureFlagConfig)
+	if err != nil {
+		return err
+	}
 
 	c.grpcServer, err = c.initGRPC(ctx)
 	if err != nil {
