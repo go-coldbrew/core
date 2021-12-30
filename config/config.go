@@ -1,5 +1,9 @@
 package config
 
+import (
+	ffConfig "github.com/go-coldbrew/feature-flags/config"
+)
+
 type Config struct {
 	// Host to listen on
 	ListenHost string `envconfig:"LISTEN_HOST" default:"0.0.0.0"`
@@ -45,4 +49,6 @@ type Config struct {
 	UseJSONBuiltinMarshaller bool `envconfig:"USE_JSON_BUILTIN_MARSHALLER" default:"false"`
 	// JSONBuiltinMarshallerMime specifies the Content-Type/Accept header for use by the json builtin marshaler
 	JSONBuiltinMarshallerMime string `envconfig:"JSON_BUILTIN_MARSHALLER_MIME" default:"application/json"`
+
+	FeatureFlagConfig ffConfig.Config
 }
