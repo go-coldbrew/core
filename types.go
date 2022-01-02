@@ -15,7 +15,6 @@ type CBService interface {
 }
 
 type CBGracefulStopper interface {
-	CBStopper
 	FailCheck(bool)
 }
 

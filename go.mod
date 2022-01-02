@@ -11,8 +11,9 @@ require (
 	github.com/go-coldbrew/errors v0.1.1
 	github.com/go-coldbrew/feature-flags v0.1.3
 	github.com/go-coldbrew/hystrixprometheus v0.1.0
-	github.com/go-coldbrew/interceptors v0.1.3
+	github.com/go-coldbrew/interceptors v0.1.4
 	github.com/go-coldbrew/log v0.1.0
+	github.com/go-coldbrew/options v0.1.0
 	github.com/go-coldbrew/tracing v0.0.0-20210315144405-14fc34cc65e1
 	github.com/go-kit/kit v0.12.0 // indirect
 	github.com/gofrs/uuid v4.2.0+incompatible // indirect

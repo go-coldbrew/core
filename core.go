@@ -17,6 +17,8 @@ import (
 	feature_flags "github.com/go-coldbrew/feature-flags"
 	"github.com/go-coldbrew/interceptors"
 	"github.com/go-coldbrew/log"
+	"github.com/go-coldbrew/log/loggers"
+	"github.com/go-coldbrew/options"
 	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -97,6 +99,11 @@ func tracingWrapper(h http.Handler) http.Handler {
 			}
 		}
 		_, han := interceptors.NRHttpTracer("", h.ServeHTTP)
+		// add this info to log
+		ctx := r.Context()
+		ctx = options.AddToOptions(ctx, "", "")
+		ctx = loggers.AddToLogContext(ctx, "httpPath", r.URL.Path)
+		r = r.WithContext(ctx)
 		han(w, r)
 	})
 }

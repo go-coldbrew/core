@@ -203,6 +203,8 @@ github.com/go-coldbrew/hystrixprometheus v0.1.0 h1:/NWnsIpBhnxliMIhOs1B/kA7irLMg
 github.com/go-coldbrew/hystrixprometheus v0.1.0/go.mod h1:YmypTbSAJmc3xnSfDZ2ZhG0tHbpiHXvpS3nI1DIEPb0=
 github.com/go-coldbrew/interceptors v0.1.3 h1:C8Edo+y42HmbRYMEuVFmDyp9wIzPYZScNMmMpfor8mE=
 github.com/go-coldbrew/interceptors v0.1.3/go.mod h1:UYLjVWMOtD7C6uxoSH0tz1Cvl4cTIQcnvvCIXSb8CKw=
+github.com/go-coldbrew/interceptors v0.1.4 h1:hMEOVp9VMGhtzpDsPjE29N+I2BqYyRzeHsXgLMITYW4=
+github.com/go-coldbrew/interceptors v0.1.4/go.mod h1:nTMDG1Hkei7GLZU3+RJf+PrySF1b21GCFhAnfdN9S7E=
 github.com/go-coldbrew/log v0.0.0-20210108160031-027cd625aad3/go.mod h1:oKY0UIgGN6xe5ZoHEDuVkt2j81IRVRSj5e+lKd/mTr0=
 github.com/go-coldbrew/log v0.1.0 h1:8k4LzNsuV8jujpLi9cl+9luJOYw/vQZ8xVtz897hLDA=
 github.com/go-coldbrew/log v0.1.0/go.mod h1:qIlJAwY07jjjz5bnuMBlG7PUnmibB66uEBvfQC6bA8s=
@@ -596,6 +598,7 @@ github.com/posener/goreadme v1.3.4/go.mod h1:yBXYQ97sLwAy9gU5gpTgX1QlJIcXWXisrUA
 github.com/posener/script v1.1.5/go.mod h1:Rg3ijooqulo05aGLyGsHoLmIOUzHUVK19WVgrYBPU/E=
 github.com/princjef/gomarkdoc v0.1.3/go.mod h1:e6LalIOZyy7UhYWc3/0TL4wwPEXSUxMPaK6BqGpnKpE=
 github.com/princjef/gomarkdoc v0.2.1/go.mod h1:k16wbqWczV/LpfLxcv3G4y0qFtM2f4wicmmZBNzyFLc=
+github.com/princjef/gomarkdoc v0.3.0/go.mod h1:k16wbqWczV/LpfLxcv3G4y0qFtM2f4wicmmZBNzyFLc=
 github.com/princjef/mageutil v0.1.0/go.mod h1:mkShhaUomCYfAoVvTKRcbAs8YSVPdtezI5j6K+VXhrs=
 github.com/prometheus/client_golang v0.9.1/go.mod h1:7SWBe2y4D6OKWSNQJUaRYU/AaXPKyh/dDVn+NZz0KFw=
 github.com/prometheus/client_golang v0.9.3-0.20190127221311-3c4408c8b829/go.mod h1:p2iRAGwDERtqlqzRXnrOVns+ignqQo//hLXqYxZYVNs=
