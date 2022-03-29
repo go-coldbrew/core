@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"google.golang.org/protobuf/encoding/protojson"
 	"io"
 	"net"
 	"net/http"
@@ -127,11 +128,21 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 	// Note: Make sure the gRPC server is running properly and accessible
 	grpcServerEndpoint := fmt.Sprintf("%s:%d", c.config.ListenHost, c.config.GRPCPort)
 
+	jsonMarshallerWithSnakeCase := &runtime.JSONPb{
+		MarshalOptions: protojson.MarshalOptions{
+			EmitUnpopulated: true,
+			UseProtoNames:   true,
+		},
+		UnmarshalOptions: protojson.UnmarshalOptions{
+			DiscardUnknown: true,
+		},
+	}
 	pMar := &runtime.ProtoMarshaller{}
 	muxOpts := []runtime.ServeMuxOption{
 		runtime.WithIncomingHeaderMatcher(getCustomHeaderMatcher(c.config.HTTPHeaderPrefix, c.config.TraceHeaderName)),
 		runtime.WithMarshalerOption("application/proto", pMar),
 		runtime.WithMarshalerOption("application/protobuf", pMar),
+		runtime.WithMarshalerOption("application/json-snake", jsonMarshallerWithSnakeCase),
 	}
 
 	if c.config.UseJSONBuiltinMarshaller {
