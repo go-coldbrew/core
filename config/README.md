@@ -13,7 +13,7 @@ import "github.com/go-coldbrew/core/config"
 - [type Config](<#type-config>)
 
 
-## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L3-L42>)
+## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L7-L70>)
 
 ```go
 type Config struct {
@@ -37,6 +37,8 @@ type Config struct {
     DisableDebug bool `envconfig:"DISABLE_DEBUG" default:"false"`
     // Should we disable prometheus at /metrics, defaults to false
     DisablePormetheus bool `envconfig:"DISABLE_PROMETHEUS" default:"false"`
+    // Enables grpc request histograms in prometheus reporting
+    EnablePrometheusGRPCHistogram bool `envconfig:"ENABLE_PROMETHEUS_GRPC_HISTOGRAM" default:"false"`
     // The License key for NewRelic metrics reporting
     NewRelicLicenseKey string `envconfig:"NEW_RELIC_LICENSE_KEY" default:""`
     // DSN for reporting errors to sentry
@@ -53,8 +55,30 @@ type Config struct {
     DoNotLogGRPCReflection bool `envconfig:"DO_NOT_LOG_GRPC_REFLECTION" default:"true"`
     // Should we disable signal handler, defaults to false and CB handles all SIG_INT/SIG_TERM
     DisableSignalHandler bool `envconfig:"DISABLE_SIGNAL_HANDLER" default:"false"`
-    // Duration for whic CB will wait for calls to complete before shutting down the server
+    // Duration for which CB will wait for calls to complete before shutting down the server
     ShutdownDurationInSeconds int `envconfig:"SHUTDOWN_DURATION_IN_SECONDS" default:"10"`
+    // UseJSONBuiltinMarshaller switches marshaler for application/json to encoding/json
+    UseJSONBuiltinMarshaller bool `envconfig:"USE_JSON_BUILTIN_MARSHALLER" default:"false"`
+    // JSONBuiltinMarshallerMime specifies the Content-Type/Accept header for use by the json builtin marshaler
+    JSONBuiltinMarshallerMime string `envconfig:"JSON_BUILTIN_MARSHALLER_MIME" default:"application/json"`
+    // MaxConnectionIdle is a duration for the amount of time after which an
+    // idle connection would be closed by sending a GoAway. Idleness duration is
+    // defined since the most recent time the number of outstanding RPCs became
+    // zero or the connection establishment.
+    // https://github.com/grpc/grpc-go/blob/v1.48.0/keepalive/keepalive.go#L50
+    GRPCServerMaxConnectionIdleInSeconds int `envconfig:"GRPC_SERVER_MAX_CONNECTION_IDLE_IN_SECONDS"`
+    // MaxConnectionAge is a duration for the maximum amount of time a
+    // connection may exist before it will be closed by sending a GoAway. A
+    // random jitter of +/-10% will be added to MaxConnectionAge to spread out
+    // connection storms.
+    // https://github.com/grpc/grpc-go/blob/v1.48.0/keepalive/keepalive.go#L50
+    GRPCServerMaxConnectionAgeInSeconds int `envconfig:"GRPC_SERVER_MAX_CONNECTION_AGE_IN_SECONDS"`
+    // MaxConnectionAgeGrace is an additive period after MaxConnectionAge after
+    // which the connection will be forcibly closed.
+    // https://github.com/grpc/grpc-go/blob/v1.48.0/keepalive/keepalive.go#L50
+    GRPCServerMaxConnectionAgeGraceInSeconds int `envconfig:"GRPC_SERVER_MAX_CONNECTION_AGE_GRACE_IN_SECONDS"`
+
+    FeatureFlagConfig ffConfig.Config
 }
 ```
 

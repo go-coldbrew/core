@@ -26,6 +26,7 @@ import (
 	"github.com/opentracing/opentracing-go/ext"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
 )
 
@@ -187,6 +188,16 @@ func (c *cb) getGRPCServerOptions() []grpc.ServerOption {
 		grpc.ChainUnaryInterceptor(interceptors.DefaultInterceptors()...),
 		grpc.ChainStreamInterceptor(interceptors.DefaultStreamInterceptors()...),
 	)
+	if c.config.GRPCServerMaxConnectionAgeGraceInSeconds > 0 ||
+		c.config.GRPCServerMaxConnectionAgeInSeconds > 0 ||
+		c.config.GRPCServerMaxConnectionIdleInSeconds > 0 {
+		option := keepalive.ServerParameters{
+			MaxConnectionIdle:     time.Duration(c.config.GRPCServerMaxConnectionIdleInSeconds) * time.Second,
+			MaxConnectionAge:      time.Duration(c.config.GRPCServerMaxConnectionAgeInSeconds) * time.Second,
+			MaxConnectionAgeGrace: time.Duration(c.config.GRPCServerMaxConnectionAgeGraceInSeconds) * time.Second,
+		}
+		so = append(so, grpc.KeepaliveParams(option))
+	}
 	return so
 }
 
