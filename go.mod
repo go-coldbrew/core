@@ -25,6 +25,7 @@ require (
 	github.com/newrelic/go-agent/v3 v3.15.2
 	github.com/newrelic/go-agent/v3/integrations/nrgrpc v1.3.1 // indirect
 	github.com/opentracing/opentracing-go v1.2.0
+	github.com/princjef/gomarkdoc v0.4.0 // indirect
 	github.com/prometheus/client_golang v1.11.0
 	github.com/prometheus/common v0.32.1 // indirect
 	github.com/twmb/murmur3 v1.1.6 // indirect

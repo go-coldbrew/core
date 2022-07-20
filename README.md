@@ -26,11 +26,12 @@ github.com/newrelic/go-agent
 
 - [type CB](<#type-cb>)
   - [func New(c config.Config) CB](<#func-new>)
+- [type CBGracefulStopper](<#type-cbgracefulstopper>)
 - [type CBService](<#type-cbservice>)
 - [type CBStopper](<#type-cbstopper>)
 
 
-## type [CB](<https://github.com/go-coldbrew/core/blob/main/types.go#L21-L26>)
+## type [CB](<https://github.com/go-coldbrew/core/blob/main/types.go#L25-L30>)
 
 ```go
 type CB interface {
@@ -41,13 +42,21 @@ type CB interface {
 }
 ```
 
-### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L278>)
+### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L323>)
 
 ```go
 func New(c config.Config) CB
 ```
 
 New creates a new ColdBrew object
+
+## type [CBGracefulStopper](<https://github.com/go-coldbrew/core/blob/main/types.go#L17-L19>)
+
+```go
+type CBGracefulStopper interface {
+    FailCheck(bool)
+}
+```
 
 ## type [CBService](<https://github.com/go-coldbrew/core/blob/main/types.go#L12-L15>)
 
@@ -58,7 +67,7 @@ type CBService interface {
 }
 ```
 
-## type [CBStopper](<https://github.com/go-coldbrew/core/blob/main/types.go#L17-L19>)
+## type [CBStopper](<https://github.com/go-coldbrew/core/blob/main/types.go#L21-L23>)
 
 ```go
 type CBStopper interface {
