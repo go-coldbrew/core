@@ -191,10 +191,15 @@ func (c *cb) getGRPCServerOptions() []grpc.ServerOption {
 	if c.config.GRPCServerMaxConnectionAgeGraceInSeconds > 0 ||
 		c.config.GRPCServerMaxConnectionAgeInSeconds > 0 ||
 		c.config.GRPCServerMaxConnectionIdleInSeconds > 0 {
-		option := keepalive.ServerParameters{
-			MaxConnectionIdle:     time.Duration(c.config.GRPCServerMaxConnectionIdleInSeconds) * time.Second,
-			MaxConnectionAge:      time.Duration(c.config.GRPCServerMaxConnectionAgeInSeconds) * time.Second,
-			MaxConnectionAgeGrace: time.Duration(c.config.GRPCServerMaxConnectionAgeGraceInSeconds) * time.Second,
+		option := keepalive.ServerParameters{}
+		if c.config.GRPCServerMaxConnectionIdleInSeconds > 0 {
+			option.MaxConnectionIdle = time.Duration(c.config.GRPCServerMaxConnectionIdleInSeconds) * time.Second
+		}
+		if c.config.GRPCServerMaxConnectionAgeInSeconds > 0 {
+			option.MaxConnectionAge = time.Duration(c.config.GRPCServerMaxConnectionAgeInSeconds) * time.Second
+		}
+		if c.config.GRPCServerMaxConnectionAgeGraceInSeconds > 0 {
+			option.MaxConnectionAgeGrace = time.Duration(c.config.GRPCServerMaxConnectionAgeGraceInSeconds) * time.Second
 		}
 		so = append(so, grpc.KeepaliveParams(option))
 	}
