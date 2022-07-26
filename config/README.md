@@ -13,7 +13,7 @@ import "github.com/go-coldbrew/core/config"
 - [type Config](<#type-config>)
 
 
-## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L7-L70>)
+## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L7-L73>)
 
 ```go
 type Config struct {
@@ -56,7 +56,10 @@ type Config struct {
     // Should we disable signal handler, defaults to false and CB handles all SIG_INT/SIG_TERM
     DisableSignalHandler bool `envconfig:"DISABLE_SIGNAL_HANDLER" default:"false"`
     // Duration for which CB will wait for calls to complete before shutting down the server
-    ShutdownDurationInSeconds int `envconfig:"SHUTDOWN_DURATION_IN_SECONDS" default:"10"`
+    ShutdownDurationInSeconds int `envconfig:"SHUTDOWN_DURATION_IN_SECONDS" default:"15"`
+    // Duration for which CB will wait for healthcheck fail to be propagated before initiating server shutdown
+    // once shutdown is initiated all new calls will fail
+    HealthcheckWaitDurationInSeconds int `envconfig:"GRPC_GRACEFUL_DURATION_IN_SECONDS" default:"7"`
     // UseJSONBuiltinMarshaller switches marshaler for application/json to encoding/json
     UseJSONBuiltinMarshaller bool `envconfig:"USE_JSON_BUILTIN_MARSHALLER" default:"false"`
     // JSONBuiltinMarshallerMime specifies the Content-Type/Accept header for use by the json builtin marshaler

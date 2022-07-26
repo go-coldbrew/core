@@ -283,11 +283,19 @@ func (c *cb) Stop(dur time.Duration) error {
 			c.cancelFunc()
 		}
 	}()
+
 	for _, svc := range c.svc {
 		if s, ok := svc.(CBGracefulStopper); ok {
 			s.FailCheck(true)
 		}
 	}
+	if c.config.HealthcheckWaitDurationInSeconds > 0 {
+		d := time.Second * time.Duration(c.config.HealthcheckWaitDurationInSeconds)
+		log.Info(context.Background(), "msg", "graceful shutdown timer started", "duration", d)
+		time.Sleep(d)
+		log.Info(context.Background(), "msg", "graceful shutdown timer finished", "duration", d)
+	}
+	log.Info(context.Background(), "msg", "Server shut down started, bye bye")
 	if c.httpServer != nil {
 		go c.httpServer.Shutdown(ctx)
 	}
