@@ -76,7 +76,7 @@ func (c *cb) processConfig() {
 		grpc_prometheus.EnableHandlingTimeHistogram()
 	}
 	if c.config.NewRelicOpentelemetry {
-		setupNROpenTelemetry(c.config.AppName, c.config.NewRelicLicenseKey)
+		setupNROpenTelemetry(c.config.AppName, c.config.NewRelicLicenseKey, c.config.ReleaseName)
 	}
 }
 
