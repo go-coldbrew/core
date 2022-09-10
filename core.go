@@ -55,7 +55,7 @@ func (c *cb) SetOpenAPIHandler(handler http.Handler) {
 
 func (c *cb) processConfig() {
 	setupLogger(c.config.LogLevel, c.config.JSONLogs)
-	setupNewRelic(c.config.AppName, c.config.NewRelicLicenseKey)
+	setupNewRelic(c.config.AppName, c.config.NewRelicLicenseKey, c.config.NewRelicDistributedTracing)
 	setupSentry(c.config.SentryDSN)
 	setupEnvironment(c.config.Environment)
 	setupReleaseName(c.config.ReleaseName)
@@ -74,6 +74,9 @@ func (c *cb) processConfig() {
 	}
 	if c.config.EnablePrometheusGRPCHistogram {
 		grpc_prometheus.EnableHandlingTimeHistogram()
+	}
+	if c.config.NewRelicOpentelemetry {
+		setupNROpenTelemetry(c.config.AppName, c.config.NewRelicLicenseKey)
 	}
 }
 
@@ -327,7 +330,7 @@ func timedCall(ctx context.Context, f func()) {
 	}
 }
 
-//New creates a new ColdBrew object
+// New creates a new ColdBrew object
 func New(c config.Config) CB {
 	impl := &cb{
 		config: c,
