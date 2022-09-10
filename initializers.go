@@ -23,9 +23,17 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	jaegerconfig "github.com/uber/jaeger-client-go/config"
 	"github.com/uber/jaeger-client-go/zipkin"
+	"go.opentelemetry.io/otel"
+	otelBridge "go.opentelemetry.io/otel/bridge/opentracing"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
+	"google.golang.org/grpc/credentials"
 )
 
-func setupNewRelic(serviceName, apiKey string) {
+func setupNewRelic(serviceName, apiKey string, tracing bool) {
 	if strings.TrimSpace(apiKey) == "" {
 		log.Info(context.Background(), "Not initializing NewRelic because token is empty")
 		return
@@ -35,6 +43,7 @@ func setupNewRelic(serviceName, apiKey string) {
 		newrelic.ConfigEnabled(true),
 		newrelic.ConfigAppName(serviceName),
 		newrelic.ConfigLicense(apiKey),
+		newrelic.ConfigFromEnvironment(),
 	)
 	if err != nil {
 		log.Error(context.Background(), "msg", "NewRelic could not be initialized", "err", err)
@@ -92,7 +101,56 @@ func setupJaeger(serviceName string) io.Closer {
 		return nil
 	}
 	opentracing.SetGlobalTracer(jaegerTracer)
+	log.Info(context.Background(), "msg", "jaeger tracing initialized")
 	return closer
+}
+
+func setupNROpenTelemetry(serviceName string, license string) {
+	if serviceName == "" || license == "" {
+		log.Error(context.Background(), "msg", "not initializing NR opentelemetry tracing")
+	}
+	var headers = map[string]string{
+		"api-key": license,
+	}
+
+	var clientOpts = []otlptracegrpc.Option{
+		otlptracegrpc.WithEndpoint("https://otlp.nr-data.net:4317"),
+		otlptracegrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, "")),
+		otlptracegrpc.WithReconnectionPeriod(1 * time.Second),
+		otlptracegrpc.WithTimeout(3 * time.Second),
+		otlptracegrpc.WithHeaders(headers),
+		otlptracegrpc.WithCompressor("gzip"),
+	}
+
+	otlpExporter, err := otlptrace.New(context.Background(), otlptracegrpc.NewClient(clientOpts...))
+	if err != nil {
+		log.Error(context.Background(), "msg", "creating OTLP trace exporter", "err", err)
+		return
+	}
+
+	r, err := resource.New(context.Background(),
+		resource.WithAttributes(
+			// the service name used to display traces in backends
+			semconv.ServiceNameKey.String(serviceName),
+		),
+		resource.WithFromEnv(),
+	)
+
+	if err != nil {
+		log.Error(context.Background(), "msg", "creating OTLP trace exporter", "err", err)
+	}
+
+	tracerProvider := sdktrace.NewTracerProvider(
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+		sdktrace.WithBatcher(otlpExporter),
+		sdktrace.WithResource(r),
+	)
+	otelTracer := tracerProvider.Tracer("NR")
+	// Use the bridgeTracer as your OpenTracing tracer.
+	bridgeTracer, wrapperTracerProvider := otelBridge.NewTracerPair(otelTracer)
+
+	otel.SetTracerProvider(wrapperTracerProvider)
+	opentracing.SetGlobalTracer(bridgeTracer)
 }
 
 func setupHystrix() {

@@ -26,9 +26,13 @@ type Config struct {
 	// Should we disable prometheus at /metrics, defaults to false
 	DisablePormetheus bool `envconfig:"DISABLE_PROMETHEUS" default:"false"`
 	// Enables grpc request histograms in prometheus reporting
-	EnablePrometheusGRPCHistogram bool `envconfig:"ENABLE_PROMETHEUS_GRPC_HISTOGRAM" default:"false"`
+	EnablePrometheusGRPCHistogram bool `envconfig:"ENABLE_PROMETHEUS_GRPC_HISTOGRAM" default:"true"`
 	// The License key for NewRelic metrics reporting
 	NewRelicLicenseKey string `envconfig:"NEW_RELIC_LICENSE_KEY" default:""`
+	// Enable NewRelic Distributed Tracing
+	NewRelicDistributedTracing bool `envconfig:"NEW_RELIC_DISTRIBUTED_TRACING" default:"true"`
+	// Enable new relic opentelemetry
+	NewRelicOpentelemetry bool `envconfig:"NEW_RELIC_OPENTELEMETRY" default:"true"`
 	// DSN for reporting errors to sentry
 	SentryDSN string `envconfig:"SENTRY_DSN" default:""`
 	// Name of this release
