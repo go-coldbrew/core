@@ -145,7 +145,7 @@ func setupNROpenTelemetry(serviceName, license, version string) {
 	}
 
 	tracerProvider := sdktrace.NewTracerProvider(
-		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+		sdktrace.WithSampler(sdktrace.ParentBased(sdktrace.TraceIDRatioBased(0.2))), // sample 20%
 		sdktrace.WithBatcher(otlpExporter),
 		sdktrace.WithResource(r),
 	)
