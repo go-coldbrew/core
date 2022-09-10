@@ -104,7 +104,7 @@ func setupJaeger(serviceName string) io.Closer {
 	return closer
 }
 
-func setupNROpenTelemetry(serviceName, license, version string) {
+func setupNROpenTelemetry(serviceName, license, version string, ratio float64) {
 	if serviceName == "" || license == "" {
 		log.Info(context.Background(), "msg", "not initializing NR opentelemetry tracing")
 		return
@@ -145,7 +145,7 @@ func setupNROpenTelemetry(serviceName, license, version string) {
 	}
 
 	tracerProvider := sdktrace.NewTracerProvider(
-		sdktrace.WithSampler(sdktrace.ParentBased(sdktrace.TraceIDRatioBased(0.2))), // sample 20%
+		sdktrace.WithSampler(sdktrace.ParentBased(sdktrace.TraceIDRatioBased(ratio))), // sample 20%
 		sdktrace.WithBatcher(otlpExporter),
 		sdktrace.WithResource(r),
 	)
