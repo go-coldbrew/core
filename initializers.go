@@ -30,7 +30,6 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
-	"google.golang.org/grpc/credentials"
 )
 
 func setupNewRelic(serviceName, apiKey string, tracing bool) {
@@ -105,19 +104,17 @@ func setupJaeger(serviceName string) io.Closer {
 	return closer
 }
 
-func setupNROpenTelemetry(serviceName string, license string) {
+func setupNROpenTelemetry(serviceName, license, version string) {
 	if serviceName == "" || license == "" {
-		log.Error(context.Background(), "msg", "not initializing NR opentelemetry tracing")
+		log.Info(context.Background(), "msg", "not initializing NR opentelemetry tracing")
+		return
 	}
 	var headers = map[string]string{
 		"api-key": license,
 	}
 
 	var clientOpts = []otlptracegrpc.Option{
-		otlptracegrpc.WithEndpoint("https://otlp.nr-data.net:4317"),
-		otlptracegrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, "")),
-		otlptracegrpc.WithReconnectionPeriod(1 * time.Second),
-		otlptracegrpc.WithTimeout(3 * time.Second),
+		otlptracegrpc.WithEndpoint("otlp.nr-data.net:4317"),
 		otlptracegrpc.WithHeaders(headers),
 		otlptracegrpc.WithCompressor("gzip"),
 	}
@@ -128,16 +125,23 @@ func setupNROpenTelemetry(serviceName string, license string) {
 		return
 	}
 
-	r, err := resource.New(context.Background(),
+	d := resource.Default()
+	res, err := resource.New(context.Background(),
 		resource.WithAttributes(
 			// the service name used to display traces in backends
 			semconv.ServiceNameKey.String(serviceName),
+			semconv.ServiceVersionKey.String(version),
 		),
-		resource.WithFromEnv(),
 	)
+	if err != nil {
+		log.Error(context.Background(), "msg", "creating OTLP resource", "err", err)
+		return
+	}
+	r, err := resource.Merge(d, res)
 
 	if err != nil {
-		log.Error(context.Background(), "msg", "creating OTLP trace exporter", "err", err)
+		log.Error(context.Background(), "msg", "merging OTLP resource", "err", err)
+		return
 	}
 
 	tracerProvider := sdktrace.NewTracerProvider(
@@ -145,12 +149,13 @@ func setupNROpenTelemetry(serviceName string, license string) {
 		sdktrace.WithBatcher(otlpExporter),
 		sdktrace.WithResource(r),
 	)
-	otelTracer := tracerProvider.Tracer("NR")
+	otelTracer := tracerProvider.Tracer("")
 	// Use the bridgeTracer as your OpenTracing tracer.
 	bridgeTracer, wrapperTracerProvider := otelBridge.NewTracerPair(otelTracer)
 
 	otel.SetTracerProvider(wrapperTracerProvider)
 	opentracing.SetGlobalTracer(bridgeTracer)
+	log.Info(context.Background(), "msg", "Initialized NR opentelemetry tracing")
 }
 
 func setupHystrix() {
