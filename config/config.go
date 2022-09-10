@@ -33,6 +33,8 @@ type Config struct {
 	NewRelicDistributedTracing bool `envconfig:"NEW_RELIC_DISTRIBUTED_TRACING" default:"true"`
 	// Enable new relic opentelemetry
 	NewRelicOpentelemetry bool `envconfig:"NEW_RELIC_OPENTELEMETRY" default:"true"`
+	// Sampling ratio for NR opentelemetry
+	NewRelicOpentelemetrySample float64 `envconfig:"NEW_RELIC_OPENTELEMETRY_SAMPLE" default:"0.2"`
 	// DSN for reporting errors to sentry
 	SentryDSN string `envconfig:"SENTRY_DSN" default:""`
 	// Name of this release
