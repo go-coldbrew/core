@@ -167,6 +167,18 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 			if !c.config.DisableSwagger && c.openAPIHandler != nil && strings.HasPrefix(r.URL.Path, "/swagger/") {
 				http.StripPrefix("/swagger/", c.openAPIHandler).ServeHTTP(w, r)
 				return
+			} else if !c.config.DisableDebug && strings.HasPrefix(r.URL.Path, "/debug/pprof/cmdline") {
+				pprof.Cmdline(w, r)
+				return
+			} else if !c.config.DisableDebug && strings.HasPrefix(r.URL.Path, "/debug/pprof/profile") {
+				pprof.Profile(w, r)
+				return
+			} else if !c.config.DisableDebug && strings.HasPrefix(r.URL.Path, "/debug/pprof/symbol") {
+				pprof.Symbol(w, r)
+				return
+			} else if !c.config.DisableDebug && strings.HasPrefix(r.URL.Path, "/debug/pprof/trace") {
+				pprof.Trace(w, r)
+				return
 			} else if !c.config.DisableDebug && strings.HasPrefix(r.URL.Path, "/debug/pprof/") {
 				pprof.Index(w, r)
 				return
