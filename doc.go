@@ -12,4 +12,16 @@
 //	github.com/opentracing/opentracing-go
 //	github.com/newrelic/go-agent
 //
+// The core module provides the base implementation for Cold Brew.
+// It provides the following features
+//
+//   - A base implementation for a gRPC server
+//   - A base implementation for a gRPC gateway
+//   - A base implementation for health check
+//   - A base implementation for metrics
+//   - A base implementation for a circuit breaker
+//   - A base implementation for a tracing
+//   - A base implementation for a new relic
+//   - A base implementation for a logger
+//   - A base implementation for a gRPC server reflection
 package core

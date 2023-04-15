@@ -14,7 +14,6 @@ import (
 
 	"github.com/NYTimes/gziphandler"
 	"github.com/go-coldbrew/core/config"
-	feature_flags "github.com/go-coldbrew/feature-flags"
 	"github.com/go-coldbrew/interceptors"
 	"github.com/go-coldbrew/log"
 	"github.com/go-coldbrew/log/loggers"
@@ -49,6 +48,9 @@ func (c *cb) SetService(svc CBService) error {
 	return nil
 }
 
+// SetOpenAPIHandler sets the openapi handler
+// This is used to serve the openapi spec
+// This is optional
 func (c *cb) SetOpenAPIHandler(handler http.Handler) {
 	c.openAPIHandler = handler
 }
@@ -244,17 +246,18 @@ func (c *cb) runGRPC(ctx context.Context, svr *grpc.Server) error {
 	return svr.Serve(lis)
 }
 
+// Run starts the service
+// It will block until the service is stopped
+// It will return an error if the service fails to start
+// It will return nil if the service is stopped
+// It will return an error if the service fails to stop
+// It will return an error if the service fails to run
 func (c *cb) Run() error {
 	ctx := context.Background()
 	ctx, c.cancelFunc = context.WithCancel(ctx)
 	defer c.cancelFunc()
 
 	var err error
-
-	err = feature_flags.Initialize(c.config.AppName, c.config.FeatureFlagConfig)
-	if err != nil {
-		return err
-	}
 
 	c.grpcServer, err = c.initGRPC(ctx)
 	if err != nil {
@@ -288,6 +291,8 @@ func (c *cb) close() {
 	}
 }
 
+// Stop stops the server gracefully
+// It will wait for the duration specified in the config for the healthcheck to pass
 func (c *cb) Stop(dur time.Duration) error {
 	c.gracefulWait.Add(1) // tell runner that a graceful shutdow is in progress
 	defer c.gracefulWait.Done()
@@ -343,6 +348,11 @@ func timedCall(ctx context.Context, f func()) {
 }
 
 // New creates a new ColdBrew object
+// It takes a config object and returns a CB interface
+// The CB interface is used to start and stop the server
+// The CB interface also provides a way to add services to the server
+// The services are added using the AddService method
+// The services are started and stopped in the order they are added
 func New(c config.Config) CB {
 	impl := &cb{
 		config: c,

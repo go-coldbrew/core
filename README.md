@@ -8,9 +8,9 @@
 import "github.com/go-coldbrew/core"
 ```
 
-package core is the core module for cold brew and provides the base implementation for Cold Brew\.
+package core is the core module for cold brew and provides the base implementation for Cold Brew.
 
-The idea behind cold brew is simple\, we want to reuse as many good components that we can by providing only a thin wrapper around them if needed\.
+The idea behind cold brew is simple, we want to reuse as many good components that we can by providing only a thin wrapper around them if needed.
 
 ### The components in use by cold brew currently are
 
@@ -22,6 +22,20 @@ github.com/opentracing/opentracing-go
 github.com/newrelic/go-agent
 ```
 
+The core module provides the base implementation for Cold Brew. It provides the following features
+
+```
+- A base implementation for a gRPC server
+- A base implementation for a gRPC gateway
+- A base implementation for health check
+- A base implementation for metrics
+- A base implementation for a circuit breaker
+- A base implementation for a tracing
+- A base implementation for a new relic
+- A base implementation for a logger
+- A base implementation for a gRPC server reflection
+```
+
 ## Index
 
 - [type CB](<#type-cb>)
@@ -31,7 +45,9 @@ github.com/newrelic/go-agent
 - [type CBStopper](<#type-cbstopper>)
 
 
-## type [CB](<https://github.com/go-coldbrew/core/blob/main/types.go#L25-L30>)
+## type [CB](<https://github.com/go-coldbrew/core/blob/main/types.go#L40-L45>)
+
+CB is the interface that wraps the basic coldbrew methods. SetService sets the service. Run runs the service. SetOpenAPIHandler sets the OpenAPI handler. Stop stops the service.
 
 ```go
 type CB interface {
@@ -42,15 +58,17 @@ type CB interface {
 }
 ```
 
-### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L346>)
+### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L356>)
 
 ```go
 func New(c config.Config) CB
 ```
 
-New creates a new ColdBrew object
+New creates a new ColdBrew object It takes a config object and returns a CB interface The CB interface is used to start and stop the server The CB interface also provides a way to add services to the server The services are added using the AddService method The services are started and stopped in the order they are added
 
-## type [CBGracefulStopper](<https://github.com/go-coldbrew/core/blob/main/types.go#L17-L19>)
+## type [CBGracefulStopper](<https://github.com/go-coldbrew/core/blob/main/types.go#L24-L26>)
+
+CBGracefulStopper is the interface that wraps the graceful stop method. FailCheck checks if the service is ready to stop. FailCheck is called by the core package.
 
 ```go
 type CBGracefulStopper interface {
@@ -58,7 +76,9 @@ type CBGracefulStopper interface {
 }
 ```
 
-## type [CBService](<https://github.com/go-coldbrew/core/blob/main/types.go#L12-L15>)
+## type [CBService](<https://github.com/go-coldbrew/core/blob/main/types.go#L16-L19>)
+
+CBService is the interface that wraps the basic service methods. InitHTTP initializes the HTTP server. InitGRPC initializes the gRPC server. InitHTTP and InitGRPC are called by the core package.
 
 ```go
 type CBService interface {
@@ -67,7 +87,9 @@ type CBService interface {
 }
 ```
 
-## type [CBStopper](<https://github.com/go-coldbrew/core/blob/main/types.go#L21-L23>)
+## type [CBStopper](<https://github.com/go-coldbrew/core/blob/main/types.go#L31-L33>)
+
+CBStopper is the interface that wraps the stop method. Stop stops the service. Stop is called by the core package.
 
 ```go
 type CBStopper interface {

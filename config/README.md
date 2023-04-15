@@ -13,7 +13,9 @@ import "github.com/go-coldbrew/core/config"
 - [type Config](<#type-config>)
 
 
-## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L7-L79>)
+## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L31-L101>)
+
+Config is the configuration for the Coldbrew server It is populated from environment variables and has sensible defaults for all fields so that you can just use it as is without any configuration The following environment variables are supported and can be used to override the defaults for the fields LISTEN\_HOST \- Host to listen on, defaults to GRPC\_PORT \- GRPC Port, defaults to 9090 HTTP\_PORT \- HTTP Port, defaults to 9091 APP\_NAME \- Name of the Application ENVIRONMENT \- Environment e.g. Production / Integration / Development LOG\_LEVEL \- LogLevel to print, default to info JSON\_LOGS \- Should logs be emitted in json format, defaults to true DISABLE\_SWAGGER \- Should we disable swagger at /swagger/, defaults to false DISABLE\_DEBUG \- Should we disable go debug at /debug/, defaults to false DISABLE\_PROMETHEUS \- Should we disable prometheus at /metrics, defaults to false ENABLE\_PROMETHEUS\_GRPC\_HISTOGRAM \- Enables grpc request histograms in prometheus reporting NEW\_RELIC\_LICENSE\_KEY \- The License key for NewRelic metrics reporting NEW\_RELIC\_DISTRIBUTED\_TRACING \- Enable NewRelic Distributed Tracing NEW\_RELIC\_OPENTELEMETRY \- Enable new relic opentelemetry NEW\_RELIC\_OPENTELEMETRY\_SAMPLE \- Sampling ratio for NR opentelemetry SENTRY\_DSN \- DSN for reporting errors to sentry RELEASE\_NAME \- Name of this release DISABLE\_GRPC\_REFLECTION \- When set disable the GRPC reflecttion server which can be useful for tools like grpccurl, default false TRACE\_HEADER\_NAME \- Trace header, when this HTTP header is present CB will add the value to log/trace contexts HTTP\_HEADER\_PREFIX \- When we match this HTTP header prefix, we forward append the values to grpc metadata DO\_NOT\_LOG\_GRPC\_REFLECTION \- Should we log calls to GRPC reflection API, defaults to true DISABLE\_SIGNAL\_HANDLER \- Should we disable signal handler, defaults to false and CB handles all SIG\_INT/SIG\_TERM SHUTDOWN\_DURATION\_IN\_SECONDS \- Duration for which CB will wait for calls to complete before shutting down the server GRPC\_GRACEFUL\_DURATION\_IN\_SECONDS \- Duration for which CB will wait for healthcheck fail to be propagated before initiating server shutdown once shutdown is initiated all new calls will fail USE\_JSON\_BUILTIN\_MARSHALLER \- UseJSONBuiltinMarshaller switches marshaler for application/json to encoding/json
 
 ```go
 type Config struct {
@@ -86,8 +88,6 @@ type Config struct {
     // which the connection will be forcibly closed.
     // https://github.com/grpc/grpc-go/blob/v1.48.0/keepalive/keepalive.go#L50
     GRPCServerMaxConnectionAgeGraceInSeconds int `envconfig:"GRPC_SERVER_MAX_CONNECTION_AGE_GRACE_IN_SECONDS"`
-
-    FeatureFlagConfig ffConfig.Config
 }
 ```
 

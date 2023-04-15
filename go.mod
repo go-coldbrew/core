@@ -20,6 +20,7 @@ require (
 	github.com/jaegertracing/jaeger-lib v2.4.1+incompatible
 	github.com/newrelic/go-agent/v3 v3.18.0
 	github.com/opentracing/opentracing-go v1.2.0
+	github.com/princjef/gomarkdoc v0.4.1 // indirect
 	github.com/prometheus/client_golang v1.12.2
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
