@@ -32,6 +32,8 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
 )
 
+// setupNewRelic sets up the New Relic tracing and monitoring agent for the service
+// It uses the New Relic Go Agent to send traces to New Relic One APM and Insights
 func setupNewRelic(serviceName, apiKey string, tracing bool) {
 	if strings.TrimSpace(apiKey) == "" {
 		log.Info(context.Background(), "Not initializing NewRelic because token is empty")
@@ -52,6 +54,8 @@ func setupNewRelic(serviceName, apiKey string, tracing bool) {
 	log.Info(context.Background(), "NewRelic initialized for "+serviceName)
 }
 
+// setupLogger sets up the logger
+// It uses the coldbrew logger to log messages to stdout
 func setupLogger(logLevel string, jsonlogs bool) {
 	log.SetLogger(log.NewLogger(gokit.NewLogger(loggers.WithJSONLogs(jsonlogs))))
 
@@ -63,24 +67,31 @@ func setupLogger(logLevel string, jsonlogs bool) {
 	}
 }
 
+// setupSentry sets up the Sentry notifier
+// It uses the Sentry HTTP Transport to send errors to Sentry server
 func setupSentry(dsn string) {
 	if dsn != "" {
 		notifier.InitSentry(dsn)
 	}
 }
 
+// setupEnvironment sets the environment
 func setupEnvironment(env string) {
 	if env != "" {
 		notifier.SetEnvironment(env)
 	}
 }
 
+// setupReleaseName sets the release name
+// This is used to identify the release in Sentry
 func setupReleaseName(rel string) {
 	if rel != "" {
 		notifier.SetRelease(rel)
 	}
 }
 
+// setupJaeger sets up the Jaeger tracing
+// It uses the Jaeger Zipkin B3 HTTP Propagator to propagate the tracing headers to downstream services
 func setupJaeger(serviceName string) io.Closer {
 	conf, err := jaegerconfig.FromEnv()
 	if err != nil {
@@ -104,6 +115,8 @@ func setupJaeger(serviceName string) io.Closer {
 	return closer
 }
 
+// setupOpenTelemetry sets up the OpenTelemetry tracing
+// It uses the New Relic OTLP exporter to send traces to New Relic One APM and Insights
 func setupNROpenTelemetry(serviceName, license, version string, ratio float64) {
 	if serviceName == "" || license == "" {
 		log.Info(context.Background(), "msg", "not initializing NR opentelemetry tracing")
@@ -158,11 +171,14 @@ func setupNROpenTelemetry(serviceName, license, version string, ratio float64) {
 	log.Info(context.Background(), "msg", "Initialized NR opentelemetry tracing")
 }
 
+// setupHystrix sets up the hystrix metrics
+// This is a workaround for hystrix-go not supporting the prometheus registry
 func setupHystrix() {
 	promC := hystrixprometheus.NewPrometheusCollector("hystrix", nil, prometheus.DefBuckets)
 	metricCollector.Registry.Register(promC.Collector)
 }
 
+// configureInterceptors configures the interceptors package with the provided
 func configureInterceptors(DoNotLogGRPCReflection bool, traceHeaderName string) {
 	if DoNotLogGRPCReflection {
 		interceptors.FilterMethods = append(interceptors.FilterMethods, "grpc.reflection.v1alpha.ServerReflection")
@@ -172,10 +188,13 @@ func configureInterceptors(DoNotLogGRPCReflection bool, traceHeaderName string) 
 	}
 }
 
+// startSignalHandler starts a goroutine that listens for SIGTERM and SIGINT
 func startSignalHandler(c *cb, dur time.Duration) {
 	go signalWatcher(context.Background(), c, dur)
 }
 
+// signalWatcher is a goroutine that listens for SIGTERM and SIGINT signals
+// and calls Stop on the provided cb with the provided duration.
 func signalWatcher(ctx context.Context, c *cb, dur time.Duration) {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGTERM, syscall.SIGINT)

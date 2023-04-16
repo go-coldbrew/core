@@ -3,8 +3,8 @@ build:
 	go build ./...
 
 test:
-	go test ./...
+	go test ./... -race
 
 doc:
-	go get github.com/princjef/gomarkdoc/cmd/gomarkdoc
+	go install github.com/princjef/gomarkdoc/cmd/gomarkdoc@latest
 	gomarkdoc ./...
