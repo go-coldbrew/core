@@ -36,6 +36,8 @@ The core module provides the base implementation for Cold Brew. It provides the 
 - A base implementation for a gRPC server reflection
 ```
 
+The core module is the base module for cold brew and provides the base implementation for Cold Brew. It works in conjunction with the other modules to provide the full functionality of Cold Brew. To get started with Cold Brew, you can use cookiecutter to generate a new project from the template. The template can be found at https://github.com/go-coldbrew/cookiecutter-coldbrew
+
 ## Index
 
 - [type CB](<#type-cb>)
@@ -45,15 +47,22 @@ The core module provides the base implementation for Cold Brew. It provides the 
 - [type CBStopper](<#type-cbstopper>)
 
 
-## type [CB](<https://github.com/go-coldbrew/core/blob/main/types.go#L40-L45>)
+## type [CB](<https://github.com/go-coldbrew/core/blob/main/types.go#L42-L54>)
 
-CB is the interface that wraps the basic coldbrew methods. SetService sets the service. Run runs the service. SetOpenAPIHandler sets the OpenAPI handler. Stop stops the service.
+CB is the interface that wraps coldbrew methods.
 
 ```go
 type CB interface {
+    // SetService sets the service.
     SetService(CBService) error
+    // Run runs the service.
+    // Run is blocking. It returns an error if the service fails. Otherwise, it returns nil.
     Run() error
+    // SetOpenAPIHandler sets the OpenAPI handler.
     SetOpenAPIHandler(http.Handler)
+    // Stop stops the service.
+    // Stop is blocking. It returns an error if the service fails. Otherwise, it returns nil.
+    // duration is the duration to wait for the service to stop.
     Stop(time.Duration) error
 }
 ```
@@ -66,33 +75,43 @@ func New(c config.Config) CB
 
 New creates a new ColdBrew object It takes a config object and returns a CB interface The CB interface is used to start and stop the server The CB interface also provides a way to add services to the server The services are added using the AddService method The services are started and stopped in the order they are added
 
-## type [CBGracefulStopper](<https://github.com/go-coldbrew/core/blob/main/types.go#L24-L26>)
+## type [CBGracefulStopper](<https://github.com/go-coldbrew/core/blob/main/types.go#L28-L32>)
 
-CBGracefulStopper is the interface that wraps the graceful stop method. FailCheck checks if the service is ready to stop. FailCheck is called by the core package.
+CBGracefulStopper is the interface that wraps the graceful stop method.
 
 ```go
 type CBGracefulStopper interface {
+    // FailCheck set if the service is ready to stop.
+    // FailCheck is called by the core package.
     FailCheck(bool)
 }
 ```
 
-## type [CBService](<https://github.com/go-coldbrew/core/blob/main/types.go#L16-L19>)
+## type [CBService](<https://github.com/go-coldbrew/core/blob/main/types.go#L16-L25>)
 
-CBService is the interface that wraps the basic service methods. InitHTTP initializes the HTTP server. InitGRPC initializes the gRPC server. InitHTTP and InitGRPC are called by the core package.
+CBService is the interface that wraps service methods used in ColdBrew. InitHTTP initializes the HTTP server. InitGRPC initializes the gRPC server. InitHTTP and InitGRPC are called by the core package.
 
 ```go
 type CBService interface {
+    // InitHTTP initializes the HTTP server
+    // mux is the HTTP server mux to register the service.
+    // endpoint is the gRPC endpoint to connect.
+    // opts is the gRPC dial options used to connect to the endpoint.
     InitHTTP(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) error
+    // InitGRPC initializes the gRPC server
+    // server is the gRPC server to register the service.
     InitGRPC(ctx context.Context, server *grpc.Server) error
 }
 ```
 
-## type [CBStopper](<https://github.com/go-coldbrew/core/blob/main/types.go#L31-L33>)
+## type [CBStopper](<https://github.com/go-coldbrew/core/blob/main/types.go#L35-L39>)
 
-CBStopper is the interface that wraps the stop method. Stop stops the service. Stop is called by the core package.
+CBStopper is the interface that wraps the stop method.
 
 ```go
 type CBStopper interface {
+    // Stop stops the service.
+    // Stop is called by the core package.
     Stop()
 }
 ```
