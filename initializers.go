@@ -32,12 +32,15 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
 )
 
-// setupNewRelic sets up the New Relic tracing and monitoring agent for the service
+// SetupNewRelic sets up the New Relic tracing and monitoring agent for the service
 // It uses the New Relic Go Agent to send traces to New Relic One APM and Insights
-func setupNewRelic(serviceName, apiKey string, tracing bool) {
+// serviceName is the name of the service
+// apiKey is the New Relic license key
+// tracing is a boolean to enable or disable tracing
+func SetupNewRelic(serviceName, apiKey string, tracing bool) error {
 	if strings.TrimSpace(apiKey) == "" {
 		log.Info(context.Background(), "Not initializing NewRelic because token is empty")
-		return
+		return nil
 	}
 
 	app, err := newrelic.NewApplication(
@@ -48,43 +51,51 @@ func setupNewRelic(serviceName, apiKey string, tracing bool) {
 	)
 	if err != nil {
 		log.Error(context.Background(), "msg", "NewRelic could not be initialized", "err", err)
-		return
+		return err
 	}
 	nrutil.SetNewRelicApp(app)
 	log.Info(context.Background(), "NewRelic initialized for "+serviceName)
+	return nil
 }
 
-// setupLogger sets up the logger
+// SetupLogger sets up the logger
 // It uses the coldbrew logger to log messages to stdout
-func setupLogger(logLevel string, jsonlogs bool) {
+// logLevel is the log level to set for the logger
+// jsonlogs is a boolean to enable or disable json logs
+func SetupLogger(logLevel string, jsonlogs bool) error {
 	log.SetLogger(log.NewLogger(gokit.NewLogger(loggers.WithJSONLogs(jsonlogs))))
 
 	ll, err := loggers.ParseLevel(logLevel)
 	if err != nil {
 		log.Error(context.Background(), "err", "could not set log level", "level", logLevel)
-	} else {
-		log.SetLevel(ll)
+		return err
 	}
+	log.SetLevel(ll)
+	return nil
 }
 
-// setupSentry sets up the Sentry notifier
+// SetupSentry sets up the Sentry notifier
 // It uses the Sentry HTTP Transport to send errors to Sentry server
-func setupSentry(dsn string) {
+// dsn is the Sentry DSN to use for sending errors
+func SetupSentry(dsn string) {
 	if dsn != "" {
 		notifier.InitSentry(dsn)
 	}
 }
 
-// setupEnvironment sets the environment
-func setupEnvironment(env string) {
+// SetupEnvironment sets the environment
+// This is used to identify the environment in Sentry and New Relic
+// env is the environment to set for the service (e.g. prod, staging, dev)
+func SetupEnvironment(env string) {
 	if env != "" {
 		notifier.SetEnvironment(env)
 	}
 }
 
-// setupReleaseName sets the release name
+// SetupReleaseName sets the release name
 // This is used to identify the release in Sentry
-func setupReleaseName(rel string) {
+// rel is the release name to set for the service (e.g. v1.0.0)
+func SetupReleaseName(rel string) {
 	if rel != "" {
 		notifier.SetRelease(rel)
 	}
@@ -117,10 +128,14 @@ func setupJaeger(serviceName string) io.Closer {
 
 // setupOpenTelemetry sets up the OpenTelemetry tracing
 // It uses the New Relic OTLP exporter to send traces to New Relic One APM and Insights
-func setupNROpenTelemetry(serviceName, license, version string, ratio float64) {
+// serviceName is the name of the service
+// license is the New Relic license key
+// version is the version of the service
+// ratio is the sampling ratio to use for traces
+func SetupNROpenTelemetry(serviceName, license, version string, ratio float64) error {
 	if serviceName == "" || license == "" {
 		log.Info(context.Background(), "msg", "not initializing NR opentelemetry tracing")
-		return
+		return nil
 	}
 	var headers = map[string]string{
 		"api-key": license,
@@ -135,7 +150,7 @@ func setupNROpenTelemetry(serviceName, license, version string, ratio float64) {
 	otlpExporter, err := otlptrace.New(context.Background(), otlptracegrpc.NewClient(clientOpts...))
 	if err != nil {
 		log.Error(context.Background(), "msg", "creating OTLP trace exporter", "err", err)
-		return
+		return err
 	}
 
 	d := resource.Default()
@@ -148,13 +163,13 @@ func setupNROpenTelemetry(serviceName, license, version string, ratio float64) {
 	)
 	if err != nil {
 		log.Error(context.Background(), "msg", "creating OTLP resource", "err", err)
-		return
+		return err
 	}
 	r, err := resource.Merge(d, res)
 
 	if err != nil {
 		log.Error(context.Background(), "msg", "merging OTLP resource", "err", err)
-		return
+		return err
 	}
 
 	tracerProvider := sdktrace.NewTracerProvider(
@@ -169,17 +184,20 @@ func setupNROpenTelemetry(serviceName, license, version string, ratio float64) {
 	otel.SetTracerProvider(wrapperTracerProvider)
 	opentracing.SetGlobalTracer(bridgeTracer)
 	log.Info(context.Background(), "msg", "Initialized NR opentelemetry tracing")
+	return nil
 }
 
-// setupHystrix sets up the hystrix metrics
+// SetupHystrixPrometheus sets up the hystrix metrics
 // This is a workaround for hystrix-go not supporting the prometheus registry
-func setupHystrix() {
+func SetupHystrixPrometheus() {
 	promC := hystrixprometheus.NewPrometheusCollector("hystrix", nil, prometheus.DefBuckets)
 	metricCollector.Registry.Register(promC.Collector)
 }
 
-// configureInterceptors configures the interceptors package with the provided
-func configureInterceptors(DoNotLogGRPCReflection bool, traceHeaderName string) {
+// ConfigureInterceptors configures the interceptors package with the provided
+// DoNotLogGRPCReflection is a boolean that indicates whether to log the grpc.reflection.v1alpha.ServerReflection service calls in logs
+// traceHeaderName is the name of the header to use for tracing (e.g. X-Trace-Id) - if empty, defaults to X-Trace-Id
+func ConfigureInterceptors(DoNotLogGRPCReflection bool, traceHeaderName string) {
 	if DoNotLogGRPCReflection {
 		interceptors.FilterMethods = append(interceptors.FilterMethods, "grpc.reflection.v1alpha.ServerReflection")
 	}

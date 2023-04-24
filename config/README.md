@@ -13,39 +13,9 @@ import "github.com/go-coldbrew/core/config"
 - [type Config](<#type-config>)
 
 
-## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L32-L102>)
+## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L6-L78>)
 
-### Config is the configuration for the Coldbrew server
-It is populated from environment variables and has sensible defaults for all fields so that you can just use it as is without any configuration
-The following environment variables are supported and can be used to override the defaults for the fields
-
-```
-LISTEN_HOST - Host to listen on, defaults to
-GRPC_PORT - GRPC Port, defaults to 9090
-HTTP_PORT - HTTP Port, defaults to 9091
-APP_NAME - Name of the Application
-ENVIRONMENT - Environment e.g. Production / Integration / Development
-LOG_LEVEL - LogLevel to print, default to info
-JSON_LOGS - Should logs be emitted in json format, defaults to true
-DISABLE_SWAGGER - Should we disable swagger at /swagger/, defaults to false
-DISABLE_DEBUG - Should we disable go debug at /debug/, defaults to false
-DISABLE_PROMETHEUS - Should we disable prometheus at /metrics, defaults to false
-ENABLE_PROMETHEUS_GRPC_HISTOGRAM - Enables grpc request histograms in prometheus reporting
-NEW_RELIC_LICENSE_KEY - The License key for NewRelic metrics reporting
-NEW_RELIC_DISTRIBUTED_TRACING - Enable NewRelic Distributed Tracing
-NEW_RELIC_OPENTELEMETRY - Enable new relic opentelemetry
-NEW_RELIC_OPENTELEMETRY_SAMPLE - Sampling ratio for NR opentelemetry
-SENTRY_DSN - DSN for reporting errors to sentry
-RELEASE_NAME - Name of this release
-DISABLE_GRPC_REFLECTION - When set disable the GRPC reflecttion server which can be useful for tools like grpccurl, default false
-TRACE_HEADER_NAME - Trace header, when this HTTP header is present CB will add the value to log/trace contexts
-HTTP_HEADER_PREFIX - When we match this HTTP header prefix, we forward append the values to grpc metadata
-DO_NOT_LOG_GRPC_REFLECTION - Should we log calls to GRPC reflection API, defaults to true
-DISABLE_SIGNAL_HANDLER - Should we disable signal handler, defaults to false and CB handles all SIG_INT/SIG_TERM
-SHUTDOWN_DURATION_IN_SECONDS - Duration for which CB will wait for calls to complete before shutting down the server
-GRPC_GRACEFUL_DURATION_IN_SECONDS - Duration for which CB will wait for healthcheck fail to be propagated before initiating server shutdown once shutdown is initiated all new calls will fail
-USE_JSON_BUILTIN_MARSHALLER - UseJSONBuiltinMarshaller switches marshaler for application/json to encoding/json
-```
+Config is the configuration for the Coldbrew server It is populated from environment variables and has sensible defaults for all fields so that you can just use it as is without any configuration The following environment variables are supported and can be used to override the defaults for the fields
 
 ```go
 type Config struct {
@@ -79,6 +49,8 @@ type Config struct {
     NewRelicOpentelemetry bool `envconfig:"NEW_RELIC_OPENTELEMETRY" default:"true"`
     // Sampling ratio for NR opentelemetry
     NewRelicOpentelemetrySample float64 `envconfig:"NEW_RELIC_OPENTELEMETRY_SAMPLE" default:"0.2"`
+    // The name of the application in NewRelic
+    NewRelicAppname string `envconfig:"NEW_RELIC_APPNAME" default:""`
     // DSN for reporting errors to sentry
     SentryDSN string `envconfig:"SENTRY_DSN" default:""`
     // Name of this release
