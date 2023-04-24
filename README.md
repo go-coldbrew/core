@@ -40,12 +40,84 @@ The core module is the base module for cold brew and provides the base implement
 
 ## Index
 
+- [func ConfigureInterceptors(DoNotLogGRPCReflection bool, traceHeaderName string)](<#func-configureinterceptors>)
+- [func SetupEnvironment(env string)](<#func-setupenvironment>)
+- [func SetupHystrixPrometheus()](<#func-setuphystrixprometheus>)
+- [func SetupLogger(logLevel string, jsonlogs bool) error](<#func-setuplogger>)
+- [func SetupNROpenTelemetry(serviceName, license, version string, ratio float64) error](<#func-setupnropentelemetry>)
+- [func SetupNewRelic(serviceName, apiKey string, tracing bool) error](<#func-setupnewrelic>)
+- [func SetupReleaseName(rel string)](<#func-setupreleasename>)
+- [func SetupSentry(dsn string)](<#func-setupsentry>)
 - [type CB](<#type-cb>)
   - [func New(c config.Config) CB](<#func-new>)
 - [type CBGracefulStopper](<#type-cbgracefulstopper>)
 - [type CBService](<#type-cbservice>)
 - [type CBStopper](<#type-cbstopper>)
 
+
+## func [ConfigureInterceptors](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L200>)
+
+```go
+func ConfigureInterceptors(DoNotLogGRPCReflection bool, traceHeaderName string)
+```
+
+ConfigureInterceptors configures the interceptors package with the provided DoNotLogGRPCReflection is a boolean that indicates whether to log the grpc.reflection.v1alpha.ServerReflection service calls in logs traceHeaderName is the name of the header to use for tracing \(e.g. X\-Trace\-Id\) \- if empty, defaults to X\-Trace\-Id
+
+## func [SetupEnvironment](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L89>)
+
+```go
+func SetupEnvironment(env string)
+```
+
+SetupEnvironment sets the environment This is used to identify the environment in Sentry and New Relic env is the environment to set for the service \(e.g. prod, staging, dev\)
+
+## func [SetupHystrixPrometheus](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L192>)
+
+```go
+func SetupHystrixPrometheus()
+```
+
+SetupHystrixPrometheus sets up the hystrix metrics This is a workaround for hystrix\-go not supporting the prometheus registry
+
+## func [SetupLogger](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L65>)
+
+```go
+func SetupLogger(logLevel string, jsonlogs bool) error
+```
+
+SetupLogger sets up the logger It uses the coldbrew logger to log messages to stdout logLevel is the log level to set for the logger jsonlogs is a boolean to enable or disable json logs
+
+## func [SetupNROpenTelemetry](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L135>)
+
+```go
+func SetupNROpenTelemetry(serviceName, license, version string, ratio float64) error
+```
+
+setupOpenTelemetry sets up the OpenTelemetry tracing It uses the New Relic OTLP exporter to send traces to New Relic One APM and Insights serviceName is the name of the service license is the New Relic license key version is the version of the service ratio is the sampling ratio to use for traces
+
+## func [SetupNewRelic](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L40>)
+
+```go
+func SetupNewRelic(serviceName, apiKey string, tracing bool) error
+```
+
+SetupNewRelic sets up the New Relic tracing and monitoring agent for the service It uses the New Relic Go Agent to send traces to New Relic One APM and Insights serviceName is the name of the service apiKey is the New Relic license key tracing is a boolean to enable or disable tracing
+
+## func [SetupReleaseName](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L98>)
+
+```go
+func SetupReleaseName(rel string)
+```
+
+SetupReleaseName sets the release name This is used to identify the release in Sentry rel is the release name to set for the service \(e.g. v1.0.0\)
+
+## func [SetupSentry](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L80>)
+
+```go
+func SetupSentry(dsn string)
+```
+
+SetupSentry sets up the Sentry notifier It uses the Sentry HTTP Transport to send errors to Sentry server dsn is the Sentry DSN to use for sending errors
 
 ## type [CB](<https://github.com/go-coldbrew/core/blob/main/types.go#L42-L54>)
 
@@ -67,7 +139,7 @@ type CB interface {
 }
 ```
 
-### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L356>)
+### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L363>)
 
 ```go
 func New(c config.Config) CB

@@ -55,18 +55,23 @@ func (c *cb) SetOpenAPIHandler(handler http.Handler) {
 	c.openAPIHandler = handler
 }
 
+// processConfig processes the config and sets up the logger, newrelic, sentry, environment, release name, jaeger, hystrix prometheus and signal handler
 func (c *cb) processConfig() {
-	setupLogger(c.config.LogLevel, c.config.JSONLogs)
-	setupNewRelic(c.config.AppName, c.config.NewRelicLicenseKey, c.config.NewRelicDistributedTracing)
-	setupSentry(c.config.SentryDSN)
-	setupEnvironment(c.config.Environment)
-	setupReleaseName(c.config.ReleaseName)
+	SetupLogger(c.config.LogLevel, c.config.JSONLogs)
+	nrName := c.config.AppName
+	if nrName == "" {
+		nrName = c.config.AppName
+	}
+	SetupNewRelic(nrName, c.config.NewRelicLicenseKey, c.config.NewRelicDistributedTracing)
+	SetupSentry(c.config.SentryDSN)
+	SetupEnvironment(c.config.Environment)
+	SetupReleaseName(c.config.ReleaseName)
 	cls := setupJaeger(c.config.AppName)
 	if cls != nil {
 		c.closers = append(c.closers, cls)
 	}
-	setupHystrix()
-	configureInterceptors(c.config.DoNotLogGRPCReflection, c.config.TraceHeaderName)
+	SetupHystrixPrometheus()
+	ConfigureInterceptors(c.config.DoNotLogGRPCReflection, c.config.TraceHeaderName)
 	if !c.config.DisableSignalHandler {
 		dur := time.Second * 10
 		if c.config.ShutdownDurationInSeconds > 0 {
@@ -78,13 +83,15 @@ func (c *cb) processConfig() {
 		grpc_prometheus.EnableHandlingTimeHistogram()
 	}
 	if c.config.NewRelicOpentelemetry {
-		setupNROpenTelemetry(c.config.AppName, c.config.NewRelicLicenseKey, c.config.ReleaseName, c.config.NewRelicOpentelemetrySample)
+		SetupNROpenTelemetry(nrName, c.config.NewRelicLicenseKey, c.config.ReleaseName, c.config.NewRelicOpentelemetrySample)
 	}
 }
 
 // https://grpc-ecosystem.github.io/grpc-gateway/docs/operations/tracing/#opentracing-support
 var grpcGatewayTag = opentracing.Tag{Key: string(ext.Component), Value: "grpc-gateway"}
 
+// tracingWrapper is a middleware that creates a new span for each incoming request.
+// It also adds the span to the context so it can be used by other middlewares or handlers to add additional tags.
 func tracingWrapper(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		parentSpanContext, err := opentracing.GlobalTracer().Extract(
