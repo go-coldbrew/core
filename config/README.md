@@ -13,7 +13,7 @@ import "github.com/go-coldbrew/core/config"
 - [type Config](<#type-config>)
 
 
-## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L6-L78>)
+## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L6-L80>)
 
 Config is the configuration for the Coldbrew server It is populated from environment variables and has sensible defaults for all fields so that you can just use it as is without any configuration The following environment variables are supported and can be used to override the defaults for the fields
 
@@ -35,6 +35,8 @@ type Config struct {
     JSONLogs bool `envconfig:"JSON_LOGS" default:"true"`
     // Should we disable swagger at /swagger/, defaults to false
     DisableSwagger bool `envconfig:"DISABLE_SWAGGER" default:"false"`
+    // SwaggerURL is the URL at which swagger is served, defaults to /swagger/
+    SwaggerURL string `envconfig:"SWAGGER_URL" default:"/swagger/"`
     // Should we disable go debug at /debug/, defaults to false
     DisableDebug bool `envconfig:"DISABLE_DEBUG" default:"false"`
     // Should we disable prometheus at /metrics, defaults to false
