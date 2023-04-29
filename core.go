@@ -121,6 +121,7 @@ func tracingWrapper(h http.Handler) http.Handler {
 	})
 }
 
+// getCustomHeaderMatcher returns a matcher that matches the given header and prefix
 func getCustomHeaderMatcher(prefix, header string) func(string) (string, bool) {
 	prefix = strings.ToLower(prefix)
 	header = strings.ToLower(header)
@@ -173,8 +174,8 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 	gwServer := &http.Server{
 		Addr: gatewayAddr,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if !c.config.DisableSwagger && c.openAPIHandler != nil && strings.HasPrefix(r.URL.Path, "/swagger/") {
-				http.StripPrefix("/swagger/", c.openAPIHandler).ServeHTTP(w, r)
+			if !c.config.DisableSwagger && c.openAPIHandler != nil && strings.HasPrefix(r.URL.Path, c.config.SwaggerURL) {
+				http.StripPrefix(c.config.SwaggerURL, c.openAPIHandler).ServeHTTP(w, r)
 				return
 			} else if !c.config.DisableDebug && strings.HasPrefix(r.URL.Path, "/debug/pprof/cmdline") {
 				pprof.Cmdline(w, r)
