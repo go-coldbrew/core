@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"os/signal"
@@ -30,6 +31,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
+	"go.uber.org/automaxprocs/maxprocs"
 )
 
 // SetupNewRelic sets up the New Relic tracing and monitoring agent for the service
@@ -137,11 +139,11 @@ func SetupNROpenTelemetry(serviceName, license, version string, ratio float64) e
 		log.Info(context.Background(), "msg", "not initializing NR opentelemetry tracing")
 		return nil
 	}
-	var headers = map[string]string{
+	headers := map[string]string{
 		"api-key": license,
 	}
 
-	var clientOpts = []otlptracegrpc.Option{
+	clientOpts := []otlptracegrpc.Option{
 		otlptracegrpc.WithEndpoint("otlp.nr-data.net:4317"),
 		otlptracegrpc.WithHeaders(headers),
 		otlptracegrpc.WithCompressor("gzip"),
@@ -166,7 +168,6 @@ func SetupNROpenTelemetry(serviceName, license, version string, ratio float64) e
 		return err
 	}
 	r, err := resource.Merge(d, res)
-
 	if err != nil {
 		log.Error(context.Background(), "msg", "merging OTLP resource", "err", err)
 		return err
@@ -203,6 +204,20 @@ func ConfigureInterceptors(DoNotLogGRPCReflection bool, traceHeaderName string) 
 	}
 	if traceHeaderName != "" {
 		notifier.SetTraceHeaderName(traceHeaderName)
+	}
+}
+
+// SetupAutoMaxProcs sets up the GOMAXPROCS to match Linux container CPU quota
+// This is used to set the GOMAXPROCS to the number of CPUs allocated to the container
+func SetupAutoMaxProcs() {
+	// Automatically set GOMAXPROCS to match Linux container CPU quota
+	// https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/
+	logger := func(format string, v ...interface{}) {
+		log.Info(context.Background(), "automaxprocs", fmt.Sprintf(format, v...))
+	}
+	_, err := maxprocs.Set(maxprocs.Logger(logger))
+	if err != nil {
+		log.Error(context.Background(), "msg", "automaxprocs", "err", err)
 	}
 }
 
