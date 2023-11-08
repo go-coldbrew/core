@@ -40,6 +40,8 @@ The core module is the base module for cold brew and provides the base implement
 
 ## Index
 
+- [Constants](<#constants>)
+- [Variables](<#variables>)
 - [func ConfigureInterceptors(DoNotLogGRPCReflection bool, traceHeaderName string)](<#func-configureinterceptors>)
 - [func SetupEnvironment(env string)](<#func-setupenvironment>)
 - [func SetupHystrixPrometheus()](<#func-setuphystrixprometheus>)
@@ -49,13 +51,29 @@ The core module is the base module for cold brew and provides the base implement
 - [func SetupReleaseName(rel string)](<#func-setupreleasename>)
 - [func SetupSentry(dsn string)](<#func-setupsentry>)
 - [type CB](<#type-cb>)
-  - [func New(c config.Config) CB](<#func-new>)
 - [type CBGracefulStopper](<#type-cbgracefulstopper>)
 - [type CBService](<#type-cbservice>)
 - [type CBStopper](<#type-cbstopper>)
 
 
-## func [ConfigureInterceptors](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L200>)
+## Constants
+
+```go
+const (
+    // DefaultShutdownDurationInSeconds is the default shutdown duration in seconds.
+    DefaultShutdownDurationInSeconds = 15
+)
+```
+
+## Variables
+
+ErrNoService is returned when no service is set.
+
+```go
+var ErrNoService = errors.New("no service is set")
+```
+
+## func [ConfigureInterceptors](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L199>)
 
 ```go
 func ConfigureInterceptors(DoNotLogGRPCReflection bool, traceHeaderName string)
@@ -71,7 +89,7 @@ func SetupEnvironment(env string)
 
 SetupEnvironment sets the environment This is used to identify the environment in Sentry and New Relic env is the environment to set for the service \(e.g. prod, staging, dev\)
 
-## func [SetupHystrixPrometheus](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L192>)
+## func [SetupHystrixPrometheus](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L191>)
 
 ```go
 func SetupHystrixPrometheus()
@@ -138,14 +156,6 @@ type CB interface {
     Stop(time.Duration) error
 }
 ```
-
-### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L364>)
-
-```go
-func New(c config.Config) CB
-```
-
-New creates a new ColdBrew object It takes a config object and returns a CB interface The CB interface is used to start and stop the server The CB interface also provides a way to add services to the server The services are added using the AddService method The services are started and stopped in the order they are added
 
 ## type [CBGracefulStopper](<https://github.com/go-coldbrew/core/blob/main/types.go#L28-L32>)
 

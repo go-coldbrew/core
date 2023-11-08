@@ -137,11 +137,11 @@ func SetupNROpenTelemetry(serviceName, license, version string, ratio float64) e
 		log.Info(context.Background(), "msg", "not initializing NR opentelemetry tracing")
 		return nil
 	}
-	var headers = map[string]string{
+	headers := map[string]string{
 		"api-key": license,
 	}
 
-	var clientOpts = []otlptracegrpc.Option{
+	clientOpts := []otlptracegrpc.Option{
 		otlptracegrpc.WithEndpoint("otlp.nr-data.net:4317"),
 		otlptracegrpc.WithHeaders(headers),
 		otlptracegrpc.WithCompressor("gzip"),
@@ -166,7 +166,6 @@ func SetupNROpenTelemetry(serviceName, license, version string, ratio float64) e
 		return err
 	}
 	r, err := resource.Merge(d, res)
-
 	if err != nil {
 		log.Error(context.Background(), "msg", "merging OTLP resource", "err", err)
 		return err
@@ -219,8 +218,8 @@ func signalWatcher(ctx context.Context, c *cb, dur time.Duration) {
 	log.Info(ctx, "signal watcher started")
 	for sig := range signals {
 		log.Info(ctx, "signal: shutdown on "+sig.String())
-		c.Stop(dur)
-		log.Info(ctx, "signal: shutdown completed "+sig.String())
+		err := c.Stop(dur)
+		log.Info(ctx, "signal: shutdown completed "+sig.String(), "err", err)
 		break
 	}
 }

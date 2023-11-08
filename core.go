@@ -18,16 +18,29 @@ import (
 	"github.com/go-coldbrew/log"
 	"github.com/go-coldbrew/log/loggers"
 	"github.com/go-coldbrew/options"
-	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
-	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
+	grpcOpentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
+	grpcPrometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/reflection"
 )
+
+const (
+	// DefaultShutdownDurationInSeconds is the default shutdown duration in seconds.
+	DefaultShutdownDurationInSeconds = 15
+)
+
+// ErrNoService is returned when no service is set.
+var ErrNoService = errors.New("no service is set")
+
+// CB should be implemented by the service.
+var _ CB = (*cb)(nil)
 
 type cb struct {
 	svc            []CBService
@@ -42,48 +55,68 @@ type cb struct {
 
 func (c *cb) SetService(svc CBService) error {
 	if svc == nil {
-		return errors.New("service is nil")
+		return ErrNoService
 	}
+
 	c.svc = append(c.svc, svc)
+
 	return nil
 }
 
 // SetOpenAPIHandler sets the openapi handler
 // This is used to serve the openapi spec
-// This is optional
+// This is optional.
 func (c *cb) SetOpenAPIHandler(handler http.Handler) {
 	c.openAPIHandler = handler
 }
 
-// processConfig processes the config and sets up the logger, newrelic, sentry, environment, release name, jaeger, hystrix prometheus and signal handler
+// processConfig processes the config and sets up the logger, newrelic, sentry,
+// environment, release name, jaeger, hystrix prometheus and signal handler.
 func (c *cb) processConfig() {
-	SetupLogger(c.config.LogLevel, c.config.JSONLogs)
+	ctx := context.Background()
+	err := SetupLogger(c.config.LogLevel, c.config.JSONLogs)
+	if err != nil {
+		log.Error(ctx, "msg", "Error setting up logger", "err", err)
+	}
+
 	nrName := c.config.AppName
 	if nrName == "" {
 		nrName = c.config.AppName
 	}
-	SetupNewRelic(nrName, c.config.NewRelicLicenseKey, c.config.NewRelicDistributedTracing)
+
+	err = SetupNewRelic(nrName, c.config.NewRelicLicenseKey, c.config.NewRelicDistributedTracing)
+	if err != nil {
+		log.Error(ctx, "msg", "Error setting up New Relic", "err", err)
+	}
 	SetupSentry(c.config.SentryDSN)
 	SetupEnvironment(c.config.Environment)
 	SetupReleaseName(c.config.ReleaseName)
+	SetupHystrixPrometheus()
+	ConfigureInterceptors(c.config.DoNotLogGRPCReflection, c.config.TraceHeaderName)
+
 	cls := setupJaeger(c.config.AppName)
 	if cls != nil {
 		c.closers = append(c.closers, cls)
 	}
-	SetupHystrixPrometheus()
-	ConfigureInterceptors(c.config.DoNotLogGRPCReflection, c.config.TraceHeaderName)
+
 	if !c.config.DisableSignalHandler {
-		dur := time.Second * 10
-		if c.config.ShutdownDurationInSeconds > 0 {
-			dur = time.Second * time.Duration(c.config.ShutdownDurationInSeconds)
+		dur := time.Second * time.Duration(c.config.ShutdownDurationInSeconds)
+		if c.config.ShutdownDurationInSeconds <= 0 {
+			dur = time.Second * DefaultShutdownDurationInSeconds
 		}
+
 		startSignalHandler(c, dur)
 	}
+
 	if c.config.EnablePrometheusGRPCHistogram {
-		grpc_prometheus.EnableHandlingTimeHistogram()
+		grpcPrometheus.EnableHandlingTimeHistogram()
 	}
+
 	if c.config.NewRelicOpentelemetry {
-		SetupNROpenTelemetry(nrName, c.config.NewRelicLicenseKey, c.config.ReleaseName, c.config.NewRelicOpentelemetrySample)
+		err := SetupNROpenTelemetry(nrName, c.config.NewRelicLicenseKey, c.config.ReleaseName, c.config.NewRelicOpentelemetrySample)
+		if err != nil {
+			log.Error(ctx, "msg", "Error setting up New Relic OpenTelemetry", "err", err)
+		}
 	}
 }
 
@@ -92,39 +125,41 @@ var grpcGatewayTag = opentracing.Tag{Key: string(ext.Component), Value: "grpc-ga
 
 // tracingWrapper is a middleware that creates a new span for each incoming request.
 // It also adds the span to the context so it can be used by other middlewares or handlers to add additional tags.
-func tracingWrapper(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func tracingWrapper(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(writer http.ResponseWriter, req *http.Request) {
 		parentSpanContext, err := opentracing.GlobalTracer().Extract(
 			opentracing.HTTPHeaders,
-			opentracing.HTTPHeadersCarrier(r.Header))
+			opentracing.HTTPHeadersCarrier(req.Header))
 		if err == nil || err == opentracing.ErrSpanContextNotFound {
-			if interceptors.FilterMethodsFunc(r.Context(), r.URL.Path) {
+			if interceptors.FilterMethodsFunc(req.Context(), req.URL.Path) {
 				serverSpan := opentracing.GlobalTracer().StartSpan(
 					"ServeHTTP",
-					// this is magical, it attaches the new span to the parent parentSpanContext, and creates an unparented one if empty.
+					// this is magical, it attaches the new span to the parent parentSpanContext,
+					// and creates an unparented one if empty.
 					ext.RPCServerOption(parentSpanContext),
 					grpcGatewayTag,
-					opentracing.Tag{Key: string(ext.HTTPUrl), Value: r.URL.Path},
-					opentracing.Tag{Key: string(ext.HTTPMethod), Value: r.Method},
+					opentracing.Tag{Key: string(ext.HTTPUrl), Value: req.URL.Path},
+					opentracing.Tag{Key: string(ext.HTTPMethod), Value: req.Method},
 				)
-				r = r.WithContext(opentracing.ContextWithSpan(r.Context(), serverSpan))
+				req = req.WithContext(opentracing.ContextWithSpan(req.Context(), serverSpan))
 				defer serverSpan.Finish()
 			}
 		}
-		_, han := interceptors.NRHttpTracer("", h.ServeHTTP)
+		_, han := interceptors.NRHttpTracer("", handler.ServeHTTP)
 		// add this info to log
-		ctx := r.Context()
+		ctx := req.Context()
 		ctx = options.AddToOptions(ctx, "", "")
-		ctx = loggers.AddToLogContext(ctx, "httpPath", r.URL.Path)
-		r = r.WithContext(ctx)
-		han(w, r)
+		ctx = loggers.AddToLogContext(ctx, "httpPath", req.URL.Path)
+		req = req.WithContext(ctx)
+		han(writer, req)
 	})
 }
 
-// getCustomHeaderMatcher returns a matcher that matches the given header and prefix
+// getCustomHeaderMatcher returns a matcher that matches the given header and prefix.
 func getCustomHeaderMatcher(prefix, header string) func(string) (string, bool) {
 	prefix = strings.ToLower(prefix)
 	header = strings.ToLower(header)
+
 	return func(key string) (string, bool) {
 		key = strings.ToLower(key)
 		if key == header {
@@ -132,6 +167,7 @@ func getCustomHeaderMatcher(prefix, header string) func(string) (string, bool) {
 		} else if len(prefix) > 0 && strings.HasPrefix(key, prefix) {
 			return key, true
 		}
+
 		return runtime.DefaultHeaderMatcher(key)
 	}
 }
@@ -146,6 +182,17 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 		runtime.WithIncomingHeaderMatcher(getCustomHeaderMatcher(c.config.HTTPHeaderPrefix, c.config.TraceHeaderName)),
 		runtime.WithMarshalerOption("application/proto", pMar),
 		runtime.WithMarshalerOption("application/protobuf", pMar),
+		runtime.WithMetadata(func(ctx context.Context, r *http.Request) metadata.MD {
+			meta := make(map[string]string)
+			if method, ok := runtime.RPCMethod(ctx); ok {
+				meta["method"] = method
+			}
+			if pattern, ok := runtime.HTTPPathPattern(ctx); ok {
+				meta["pattern"] = pattern
+			}
+
+			return metadata.New(meta)
+		}),
 	}
 
 	if c.config.UseJSONBuiltinMarshaller {
@@ -154,11 +201,12 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 
 	mux := runtime.NewServeMux(muxOpts...)
 
-	opts := []grpc.DialOption{grpc.WithInsecure(),
+	opts := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithUnaryInterceptor(
 			interceptors.DefaultClientInterceptor(
-				grpc_opentracing.WithTraceHeaderName(c.config.TraceHeaderName),
-				grpc_opentracing.WithFilterFunc(interceptors.FilterMethodsFunc),
+				grpcOpentracing.WithTraceHeaderName(c.config.TraceHeaderName),
+				grpcOpentracing.WithFilterFunc(interceptors.FilterMethodsFunc),
 				interceptors.WithoutHystrix(),
 			),
 		),
@@ -176,43 +224,53 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if !c.config.DisableSwagger && c.openAPIHandler != nil && strings.HasPrefix(r.URL.Path, c.config.SwaggerURL) {
 				http.StripPrefix(c.config.SwaggerURL, c.openAPIHandler).ServeHTTP(w, r)
+
 				return
 			} else if !c.config.DisableDebug && strings.HasPrefix(r.URL.Path, "/debug/pprof/cmdline") {
 				pprof.Cmdline(w, r)
+
 				return
 			} else if !c.config.DisableDebug && strings.HasPrefix(r.URL.Path, "/debug/pprof/profile") {
 				pprof.Profile(w, r)
+
 				return
 			} else if !c.config.DisableDebug && strings.HasPrefix(r.URL.Path, "/debug/pprof/symbol") {
 				pprof.Symbol(w, r)
+
 				return
 			} else if !c.config.DisableDebug && strings.HasPrefix(r.URL.Path, "/debug/pprof/trace") {
 				pprof.Trace(w, r)
+
 				return
 			} else if !c.config.DisableDebug && strings.HasPrefix(r.URL.Path, "/debug/pprof/") {
 				pprof.Index(w, r)
+
 				return
 			} else if !c.config.DisablePormetheus && strings.HasPrefix(r.URL.Path, "/metrics") {
 				promhttp.Handler().ServeHTTP(w, r)
+
 				return
 			}
 			gziphandler.GzipHandler(tracingWrapper(mux)).ServeHTTP(w, r)
 		}),
 	}
+
 	log.Info(ctx, "Starting HTTP server on ", gatewayAddr)
+
 	return gwServer, nil
 }
 
-func (c *cb) runHTTP(ctx context.Context, svr *http.Server) error {
+func (c *cb) runHTTP(_ context.Context, svr *http.Server) error {
 	return svr.ListenAndServe()
 }
 
 func (c *cb) getGRPCServerOptions() []grpc.ServerOption {
-	so := make([]grpc.ServerOption, 0, 0)
-	so = append(so,
+	serverOptions := make([]grpc.ServerOption, 0)
+	serverOptions = append(serverOptions,
 		grpc.ChainUnaryInterceptor(interceptors.DefaultInterceptors()...),
 		grpc.ChainStreamInterceptor(interceptors.DefaultStreamInterceptors()...),
 	)
+
 	if c.config.GRPCServerMaxConnectionAgeGraceInSeconds > 0 ||
 		c.config.GRPCServerMaxConnectionAgeInSeconds > 0 ||
 		c.config.GRPCServerMaxConnectionIdleInSeconds > 0 {
@@ -220,15 +278,19 @@ func (c *cb) getGRPCServerOptions() []grpc.ServerOption {
 		if c.config.GRPCServerMaxConnectionIdleInSeconds > 0 {
 			option.MaxConnectionIdle = time.Duration(c.config.GRPCServerMaxConnectionIdleInSeconds) * time.Second
 		}
+
 		if c.config.GRPCServerMaxConnectionAgeInSeconds > 0 {
 			option.MaxConnectionAge = time.Duration(c.config.GRPCServerMaxConnectionAgeInSeconds) * time.Second
 		}
+
 		if c.config.GRPCServerMaxConnectionAgeGraceInSeconds > 0 {
 			option.MaxConnectionAgeGrace = time.Duration(c.config.GRPCServerMaxConnectionAgeGraceInSeconds) * time.Second
 		}
-		so = append(so, grpc.KeepaliveParams(option))
+
+		serverOptions = append(serverOptions, grpc.KeepaliveParams(option))
 	}
-	return so
+
+	return serverOptions
 }
 
 func (c *cb) initGRPC(ctx context.Context) (*grpc.Server, error) {
@@ -238,19 +300,24 @@ func (c *cb) initGRPC(ctx context.Context) (*grpc.Server, error) {
 			return nil, err
 		}
 	}
+
 	return grpcServer, nil
 }
 
 func (c *cb) runGRPC(ctx context.Context, svr *grpc.Server) error {
 	grpcServerEndpoint := fmt.Sprintf("%s:%d", c.config.ListenHost, c.config.GRPCPort)
+
 	lis, err := net.Listen("tcp", grpcServerEndpoint)
 	if err != nil {
 		return fmt.Errorf("failed to listen: %v", err)
 	}
+
 	if !c.config.DisableGRPCReflection {
 		reflection.Register(svr)
 	}
+
 	log.Info(ctx, "Starting GRPC server on ", grpcServerEndpoint)
+
 	return svr.Serve(lis)
 }
 
@@ -259,9 +326,10 @@ func (c *cb) runGRPC(ctx context.Context, svr *grpc.Server) error {
 // It will return an error if the service fails to start
 // It will return nil if the service is stopped
 // It will return an error if the service fails to stop
-// It will return an error if the service fails to run
+// It will return an error if the service fails to run.
 func (c *cb) Run() error {
 	ctx := context.Background()
+
 	ctx, c.cancelFunc = context.WithCancel(ctx)
 	defer c.cancelFunc()
 
@@ -278,15 +346,20 @@ func (c *cb) Run() error {
 	}
 
 	errChan := make(chan error, 2)
+
 	go func() {
 		errChan <- c.runGRPC(ctx, c.grpcServer)
 	}()
+
 	go func() {
 		errChan <- c.runHTTP(ctx, c.httpServer)
 	}()
+
 	err = <-errChan
+
 	c.gracefulWait.Wait() // if graceful shutdown is in progress wait for it to finish
 	c.close()
+
 	return err
 }
 
@@ -300,13 +373,16 @@ func (c *cb) close() {
 }
 
 // Stop stops the server gracefully
-// It will wait for the duration specified in the config for the healthcheck to pass
+// It will wait for the duration specified in the config for the healthcheck to pass.
 func (c *cb) Stop(dur time.Duration) error {
 	c.gracefulWait.Add(1) // tell runner that a graceful shutdow is in progress
 	defer c.gracefulWait.Done()
+
 	ctx, cancel := context.WithTimeout(context.Background(), dur)
+
 	defer func() {
 		cancel()
+
 		if c.cancelFunc != nil {
 			c.cancelFunc()
 		}
@@ -317,26 +393,37 @@ func (c *cb) Stop(dur time.Duration) error {
 			s.FailCheck(true)
 		}
 	}
+
 	if c.config.HealthcheckWaitDurationInSeconds > 0 {
 		d := time.Second * time.Duration(c.config.HealthcheckWaitDurationInSeconds)
 		log.Info(context.Background(), "msg", "graceful shutdown timer started", "duration", d)
 		time.Sleep(d)
 		log.Info(context.Background(), "msg", "graceful shutdown timer finished", "duration", d)
 	}
-	log.Info(context.Background(), "msg", "Server shut down started, bye bye")
+
+	log.Info(context.Background(), "msg", "Server shut down started, bye")
+
 	if c.httpServer != nil {
-		go c.httpServer.Shutdown(ctx)
+		go func(ctx context.Context) {
+			err := c.httpServer.Shutdown(ctx)
+			if err != nil {
+				log.Error(ctx, "msg", "http server shutdown failed", "err", err)
+			}
+		}(ctx)
 	}
+
 	if c.grpcServer != nil {
 		timedCall(ctx, c.grpcServer.GracefulStop)
 		c.grpcServer.Stop()
 	}
+
 	for _, svc := range c.svc {
 		// call stopper to stop services
 		if s, ok := svc.(CBStopper); ok {
 			s.Stop()
 		}
 	}
+
 	return nil
 }
 
@@ -349,9 +436,9 @@ func timedCall(ctx context.Context, f func()) {
 
 	select {
 	case <-done:
-		log.Info(context.Background(), "grpc graceful shutdown complete")
+		log.Info(ctx, "grpc graceful shutdown complete")
 	case <-ctx.Done():
-		log.Info(context.Background(), "grpc graceful shutdown failed, forcing shutdown")
+		log.Info(ctx, "grpc graceful shutdown failed, forcing shutdown")
 	}
 }
 
@@ -360,12 +447,13 @@ func timedCall(ctx context.Context, f func()) {
 // The CB interface is used to start and stop the server
 // The CB interface also provides a way to add services to the server
 // The services are added using the AddService method
-// The services are started and stopped in the order they are added
-func New(c config.Config) CB {
-	impl := &cb{
+// The services are started and stopped in the order they are added.
+func New(c config.Config) *cb {
+	impl := &cb{ // nolint:exhaustivestruct
 		config: c,
-		svc:    make([]CBService, 0, 0),
+		svc:    make([]CBService, 0),
 	}
 	impl.processConfig()
+
 	return impl
 }
