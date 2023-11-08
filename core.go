@@ -25,6 +25,7 @@ import (
 	"github.com/opentracing/opentracing-go/ext"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
 )
@@ -61,6 +62,9 @@ func (c *cb) processConfig() {
 	nrName := c.config.AppName
 	if nrName == "" {
 		nrName = c.config.AppName
+	}
+	if !c.config.DisableAutoMaxProcs {
+		SetupAutoMaxProcs()
 	}
 	SetupNewRelic(nrName, c.config.NewRelicLicenseKey, c.config.NewRelicDistributedTracing)
 	SetupSentry(c.config.SentryDSN)
@@ -154,7 +158,8 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 
 	mux := runtime.NewServeMux(muxOpts...)
 
-	opts := []grpc.DialOption{grpc.WithInsecure(),
+	opts := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithUnaryInterceptor(
 			interceptors.DefaultClientInterceptor(
 				grpc_opentracing.WithTraceHeaderName(c.config.TraceHeaderName),
@@ -199,7 +204,7 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 			gziphandler.GzipHandler(tracingWrapper(mux)).ServeHTTP(w, r)
 		}),
 	}
-	log.Info(ctx, "Starting HTTP server on ", gatewayAddr)
+	log.Info(ctx, "msg", "Starting HTTP server", "address", gatewayAddr)
 	return gwServer, nil
 }
 
@@ -208,7 +213,7 @@ func (c *cb) runHTTP(ctx context.Context, svr *http.Server) error {
 }
 
 func (c *cb) getGRPCServerOptions() []grpc.ServerOption {
-	so := make([]grpc.ServerOption, 0, 0)
+	so := make([]grpc.ServerOption, 0)
 	so = append(so,
 		grpc.ChainUnaryInterceptor(interceptors.DefaultInterceptors()...),
 		grpc.ChainStreamInterceptor(interceptors.DefaultStreamInterceptors()...),
@@ -250,7 +255,7 @@ func (c *cb) runGRPC(ctx context.Context, svr *grpc.Server) error {
 	if !c.config.DisableGRPCReflection {
 		reflection.Register(svr)
 	}
-	log.Info(ctx, "Starting GRPC server on ", grpcServerEndpoint)
+	log.Info(ctx, "msg", "Starting GRPC server", "address", grpcServerEndpoint)
 	return svr.Serve(lis)
 }
 
@@ -364,7 +369,7 @@ func timedCall(ctx context.Context, f func()) {
 func New(c config.Config) CB {
 	impl := &cb{
 		config: c,
-		svc:    make([]CBService, 0, 0),
+		svc:    make([]CBService, 0),
 	}
 	impl.processConfig()
 	return impl
