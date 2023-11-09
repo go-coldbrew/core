@@ -234,8 +234,8 @@ func signalWatcher(ctx context.Context, c *cb, dur time.Duration) {
 	log.Info(ctx, "signal watcher started")
 	for sig := range signals {
 		log.Info(ctx, "signal: shutdown on "+sig.String())
-		c.Stop(dur)
-		log.Info(ctx, "signal: shutdown completed "+sig.String())
+		err := c.Stop(dur)
+		log.Info(ctx, "signal: shutdown completed "+sig.String(), "err", err)
 		break
 	}
 }
