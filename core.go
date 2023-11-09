@@ -88,6 +88,11 @@ func (c *cb) processConfig() {
 	if err != nil {
 		log.Error(ctx, "msg", "Error setting up New Relic", "err", err)
 	}
+
+	if !c.config.DisableAutoMaxProcs {
+		SetupAutoMaxProcs()
+	}
+
 	SetupSentry(c.config.SentryDSN)
 	SetupEnvironment(c.config.Environment)
 	SetupReleaseName(c.config.ReleaseName)
@@ -255,8 +260,7 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 		}),
 	}
 
-	log.Info(ctx, "Starting HTTP server on ", gatewayAddr)
-
+	log.Info(ctx, "msg", "Starting HTTP server", "address", gatewayAddr)
 	return gwServer, nil
 }
 
@@ -316,8 +320,7 @@ func (c *cb) runGRPC(ctx context.Context, svr *grpc.Server) error {
 		reflection.Register(svr)
 	}
 
-	log.Info(ctx, "Starting GRPC server on ", grpcServerEndpoint)
-
+	log.Info(ctx, "msg", "Starting GRPC server", "address", grpcServerEndpoint)
 	return svr.Serve(lis)
 }
 

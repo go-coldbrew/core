@@ -77,4 +77,8 @@ type Config struct {
 	// which the connection will be forcibly closed.
 	// https://github.com/grpc/grpc-go/blob/v1.48.0/keepalive/keepalive.go#L50
 	GRPCServerMaxConnectionAgeGraceInSeconds int `envconfig:"GRPC_SERVER_MAX_CONNECTION_AGE_GRACE_IN_SECONDS"`
+
+	// DisableAutoMaxProcs disables the automatic setting of GOMAXPROCS
+	// This is useful when running in a container where the container runtime sets GOMAXPROCS for you already
+	DisableAutoMaxProcs bool `envconfig:"DISABLE_AUTO_MAX_PROCS" default:"false"`
 }

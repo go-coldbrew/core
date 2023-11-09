@@ -13,7 +13,7 @@ import "github.com/go-coldbrew/core/config"
 - [type Config](<#type-config>)
 
 
-## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L6-L80>)
+## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L6-L84>)
 
 Config is the configuration for the Coldbrew server It is populated from environment variables and has sensible defaults for all fields so that you can just use it as is without any configuration The following environment variables are supported and can be used to override the defaults for the fields
 
@@ -92,6 +92,10 @@ type Config struct {
     // which the connection will be forcibly closed.
     // https://github.com/grpc/grpc-go/blob/v1.48.0/keepalive/keepalive.go#L50
     GRPCServerMaxConnectionAgeGraceInSeconds int `envconfig:"GRPC_SERVER_MAX_CONNECTION_AGE_GRACE_IN_SECONDS"`
+
+    // DisableAutoMaxProcs disables the automatic setting of GOMAXPROCS
+    // This is useful when running in a container where the container runtime sets GOMAXPROCS for you already
+    DisableAutoMaxProcs bool `envconfig:"DISABLE_AUTO_MAX_PROCS" default:"false"`
 }
 ```
 
