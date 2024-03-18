@@ -46,8 +46,12 @@ type Config struct {
 	DisableGRPCReflection bool `envconfig:"DISABLE_GRPC_REFLECTION" default:"false"`
 	// Trace header, when this HTTP header is present CB will add the value to log/trace contexts
 	TraceHeaderName string `envconfig:"TRACE_HEADER_NAME" default:"x-trace-id"`
-	// When we match this HTTP header prefix, we forward append the values to grpc metadata
+	// [Deprecated] - please use HTTPHeaderPrefixes instead
 	HTTPHeaderPrefix string `envconfig:"HTTP_HEADER_PREFIX" default:""`
+	// When we match one of the HTTP header prefix configured in this list,
+	// we forward append the values to grpc metadata. If the deprecated HTTPHeaderPrefix
+	// is set, it will only be used if this field is not configured
+	HTTPHeaderPrefixes []string `envconfig:"HTTP_HEADER_PREFIXES" default:""`
 	// Should we log calls to GRPC reflection API, defaults to true
 	DoNotLogGRPCReflection bool `envconfig:"DO_NOT_LOG_GRPC_REFLECTION" default:"true"`
 	// Should we disable signal handler, defaults to false and CB handles all SIG_INT/SIG_TERM

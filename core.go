@@ -126,16 +126,21 @@ func tracingWrapper(h http.Handler) http.Handler {
 }
 
 // getCustomHeaderMatcher returns a matcher that matches the given header and prefix
-func getCustomHeaderMatcher(prefix, header string) func(string) (string, bool) {
-	prefix = strings.ToLower(prefix)
+func getCustomHeaderMatcher(prefixes []string, header string) func(string) (string, bool) {
 	header = strings.ToLower(header)
 	return func(key string) (string, bool) {
 		key = strings.ToLower(key)
+
 		if key == header {
 			return key, true
-		} else if len(prefix) > 0 && strings.HasPrefix(key, prefix) {
-			return key, true
+		} else if len(prefixes) > 0 {
+			for _, prefix := range prefixes {
+				if len(prefix) > 0 && strings.HasPrefix(key, strings.ToLower(prefix)) {
+					return key, true
+				}
+			}
 		}
+
 		return runtime.DefaultHeaderMatcher(key)
 	}
 }
@@ -146,8 +151,15 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 	grpcServerEndpoint := fmt.Sprintf("%s:%d", c.config.ListenHost, c.config.GRPCPort)
 
 	pMar := &runtime.ProtoMarshaller{}
+
+	allowedHttpHeaderPrefixes := c.config.HTTPHeaderPrefixes
+	// maintaining backward compatibility
+	if len(c.config.HTTPHeaderPrefix) > 0 && len(allowedHttpHeaderPrefixes) == 0 {
+		allowedHttpHeaderPrefixes = []string{c.config.HTTPHeaderPrefix}
+	}
+
 	muxOpts := []runtime.ServeMuxOption{
-		runtime.WithIncomingHeaderMatcher(getCustomHeaderMatcher(c.config.HTTPHeaderPrefix, c.config.TraceHeaderName)),
+		runtime.WithIncomingHeaderMatcher(getCustomHeaderMatcher(allowedHttpHeaderPrefixes, c.config.TraceHeaderName)),
 		runtime.WithMarshalerOption("application/proto", pMar),
 		runtime.WithMarshalerOption("application/protobuf", pMar),
 	}
