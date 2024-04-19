@@ -29,7 +29,7 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.9.0
 	go.opentelemetry.io/otel/sdk v1.9.0
 	go.uber.org/automaxprocs v1.5.3
-	golang.org/x/net v0.7.0 // indirect
+	golang.org/x/net v0.23.0 // indirect
 	google.golang.org/genproto v0.0.0-20220802133213-ce4fa296bf78 // indirect
 	google.golang.org/grpc v1.48.0
 )
