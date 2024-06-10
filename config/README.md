@@ -16,7 +16,7 @@ import "github.com/go-coldbrew/core/config"
 
 
 <a name="Config"></a>
-## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L6-L84>)
+## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L6-L95>)
 
 Config is the configuration for the Coldbrew server It is populated from environment variables and has sensible defaults for all fields so that you can just use it as is without any configuration The following environment variables are supported and can be used to override the defaults for the fields
 
@@ -64,8 +64,12 @@ type Config struct {
     DisableGRPCReflection bool `envconfig:"DISABLE_GRPC_REFLECTION" default:"false"`
     // Trace header, when this HTTP header is present CB will add the value to log/trace contexts
     TraceHeaderName string `envconfig:"TRACE_HEADER_NAME" default:"x-trace-id"`
-    // When we match this HTTP header prefix, we forward append the values to grpc metadata
+    // [Deprecated] - please use HTTPHeaderPrefixes instead
     HTTPHeaderPrefix string `envconfig:"HTTP_HEADER_PREFIX" default:""`
+    // When we match one of the HTTP header prefix configured in this list,
+    // we forward append the values to grpc metadata. If the deprecated HTTPHeaderPrefix
+    // is set, it will only be used if this field is not configured
+    HTTPHeaderPrefixes []string `envconfig:"HTTP_HEADER_PREFIXES" default:""`
     // Should we log calls to GRPC reflection API, defaults to true
     DoNotLogGRPCReflection bool `envconfig:"DO_NOT_LOG_GRPC_REFLECTION" default:"true"`
     // Should we disable signal handler, defaults to false and CB handles all SIG_INT/SIG_TERM
@@ -99,6 +103,13 @@ type Config struct {
     // DisableAutoMaxProcs disables the automatic setting of GOMAXPROCS
     // This is useful when running in a container where the container runtime sets GOMAXPROCS for you already
     DisableAutoMaxProcs bool `envconfig:"DISABLE_AUTO_MAX_PROCS" default:"false"`
+
+    // GRPCTLSKeyFile and GRPCTLSCertFile are the paths to the key and cert files for the GRPC server
+    // If these are set, the server will be started with TLS enabled
+    GRPCTLSKeyFile string `envconfig:"GRPC_TLS_KEY_FILE"`
+    // GRPCTLSCertFile an GRPCTLSKeyFile are the paths to the key and cert files for the GRPC server
+    // If these are set, the server will be started with TLS enabled
+    GRPCTLSCertFile string `envconfig:"GRPC_TLS_CERT_FILE"`
 }
 ```
 

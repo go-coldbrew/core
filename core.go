@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -25,6 +26,7 @@ import (
 	"github.com/opentracing/opentracing-go/ext"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
@@ -39,6 +41,7 @@ type cb struct {
 	httpServer     *http.Server
 	cancelFunc     context.CancelFunc
 	gracefulWait   sync.WaitGroup
+	creds          credentials.TransportCredentials
 }
 
 func (c *cb) SetService(svc CBService) error {
@@ -170,8 +173,13 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 
 	mux := runtime.NewServeMux(muxOpts...)
 
+	creds := c.creds
+	if creds == nil {
+		creds = insecure.NewCredentials()
+	}
+
 	opts := []grpc.DialOption{
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithTransportCredentials(creds),
 		grpc.WithUnaryInterceptor(
 			interceptors.DefaultClientInterceptor(
 				grpc_opentracing.WithTraceHeaderName(c.config.TraceHeaderName),
@@ -220,7 +228,7 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 	return gwServer, nil
 }
 
-func (c *cb) runHTTP(ctx context.Context, svr *http.Server) error {
+func (c *cb) runHTTP(_ context.Context, svr *http.Server) error {
 	return svr.ListenAndServe()
 }
 
@@ -248,8 +256,33 @@ func (c *cb) getGRPCServerOptions() []grpc.ServerOption {
 	return so
 }
 
+func loadTLSCredentials(certFile, keyFile string) (credentials.TransportCredentials, error) {
+	// Load server's certificate and private key
+	serverCert, err := tls.LoadX509KeyPair(certFile, keyFile)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create the credentials and return it
+	config := &tls.Config{
+		Certificates: []tls.Certificate{serverCert},
+		ClientAuth:   tls.NoClientCert,
+	}
+
+	return credentials.NewTLS(config), nil
+}
+
 func (c *cb) initGRPC(ctx context.Context) (*grpc.Server, error) {
-	grpcServer := grpc.NewServer(c.getGRPCServerOptions()...)
+	so := c.getGRPCServerOptions()
+	if c.config.GRPCTLSCertFile != "" && c.config.GRPCTLSKeyFile != "" {
+		creds, err := loadTLSCredentials(c.config.GRPCTLSCertFile, c.config.GRPCTLSKeyFile)
+		if err != nil {
+			return nil, err
+		}
+		c.creds = creds
+		so = append(so, grpc.Creds(creds))
+	}
+	grpcServer := grpc.NewServer(so...)
 	for _, s := range c.svc {
 		if err := s.InitGRPC(ctx, grpcServer); err != nil {
 			return nil, err
