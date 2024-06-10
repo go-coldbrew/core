@@ -85,4 +85,11 @@ type Config struct {
 	// DisableAutoMaxProcs disables the automatic setting of GOMAXPROCS
 	// This is useful when running in a container where the container runtime sets GOMAXPROCS for you already
 	DisableAutoMaxProcs bool `envconfig:"DISABLE_AUTO_MAX_PROCS" default:"false"`
+
+	// GRPCTLSKeyFile and GRPCTLSCertFile are the paths to the key and cert files for the GRPC server
+	// If these are set, the server will be started with TLS enabled
+	GRPCTLSKeyFile string `envconfig:"GRPC_TLS_KEY_FILE"`
+	// GRPCTLSCertFile an GRPCTLSKeyFile are the paths to the key and cert files for the GRPC server
+	// If these are set, the server will be started with TLS enabled
+	GRPCTLSCertFile string `envconfig:"GRPC_TLS_CERT_FILE"`
 }
