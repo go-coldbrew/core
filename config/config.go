@@ -92,4 +92,7 @@ type Config struct {
 	// GRPCTLSCertFile an GRPCTLSKeyFile are the paths to the key and cert files for the GRPC server
 	// If these are set, the server will be started with TLS enabled
 	GRPCTLSCertFile string `envconfig:"GRPC_TLS_CERT_FILE"`
+	// GRPCTLSInsecureSkipVerify is used to skip verification of the server's certificate chain and host name
+	// Only set this to true if you are sure you want to disable TLS verification for the server
+	GRPCTLSInsecureSkipVerify bool `envconfig:"GRPC_TLS_INSECURE_SKIP_VERIFY" default:"false"`
 }
