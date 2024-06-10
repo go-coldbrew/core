@@ -256,7 +256,7 @@ func (c *cb) getGRPCServerOptions() []grpc.ServerOption {
 	return so
 }
 
-func loadTLSCredentials(certFile, keyFile string) (credentials.TransportCredentials, error) {
+func loadTLSCredentials(certFile, keyFile string, insecureSkipVerify bool) (credentials.TransportCredentials, error) {
 	// Load server's certificate and private key
 	serverCert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
@@ -265,8 +265,9 @@ func loadTLSCredentials(certFile, keyFile string) (credentials.TransportCredenti
 
 	// Create the credentials and return it
 	config := &tls.Config{
-		Certificates: []tls.Certificate{serverCert},
-		ClientAuth:   tls.NoClientCert,
+		Certificates:       []tls.Certificate{serverCert},
+		ClientAuth:         tls.NoClientCert,
+		InsecureSkipVerify: insecureSkipVerify,
 	}
 
 	return credentials.NewTLS(config), nil
@@ -275,7 +276,7 @@ func loadTLSCredentials(certFile, keyFile string) (credentials.TransportCredenti
 func (c *cb) initGRPC(ctx context.Context) (*grpc.Server, error) {
 	so := c.getGRPCServerOptions()
 	if c.config.GRPCTLSCertFile != "" && c.config.GRPCTLSKeyFile != "" {
-		creds, err := loadTLSCredentials(c.config.GRPCTLSCertFile, c.config.GRPCTLSKeyFile)
+		creds, err := loadTLSCredentials(c.config.GRPCTLSCertFile, c.config.GRPCTLSKeyFile, c.config.GRPCTLSInsecureSkipVerify)
 		if err != nil {
 			return nil, err
 		}
