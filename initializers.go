@@ -32,6 +32,8 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
 	"go.uber.org/automaxprocs/maxprocs"
+	"google.golang.org/grpc/encoding"
+	"google.golang.org/protobuf/proto"
 )
 
 // SetupNewRelic sets up the New Relic tracing and monitoring agent for the service
@@ -238,4 +240,45 @@ func signalWatcher(ctx context.Context, c *cb, dur time.Duration) {
 		log.Info(ctx, "signal: shutdown completed "+sig.String())
 		break
 	}
+}
+
+// InitializeVTProto initializes the vtproto package for use with the service
+//
+// https://github.com/planetscale/vtprotobuf?tab=readme-ov-file#mixing-protobuf-implementations-with-grpc
+func InitializeVTProto() {
+	encoding.RegisterCodec(vtprotoCodec{})
+}
+
+type vtprotoCodec struct{}
+
+type vtprotoMessage interface {
+	MarshalVT() ([]byte, error)
+	UnmarshalVT([]byte) error
+}
+
+func (vtprotoCodec) Marshal(v any) ([]byte, error) {
+	switch v := v.(type) {
+	case vtprotoMessage:
+		return v.MarshalVT()
+	case proto.Message:
+		return proto.Marshal(v)
+	default:
+		return nil, fmt.Errorf("failed to marshal, message is %T, must satisfy the vtprotoMessage interface or want proto.Message", v)
+	}
+}
+
+func (vtprotoCodec) Unmarshal(data []byte, v any) error {
+	switch v := v.(type) {
+	case vtprotoMessage:
+		return v.UnmarshalVT(data)
+	case proto.Message:
+		return proto.Unmarshal(data, v)
+	default:
+		return fmt.Errorf("failed to unmarshal, message is %T, must satisfy the vtprotoMessage interface or want proto.Message", v)
+	}
+}
+
+func (vtprotoCodec) Name() string {
+	// name registered for the proto compressor
+	return "proto"
 }

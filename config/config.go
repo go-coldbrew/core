@@ -95,4 +95,7 @@ type Config struct {
 	// GRPCTLSInsecureSkipVerify is used to skip verification of the server's certificate chain and host name
 	// Only set this to true if you are sure you want to disable TLS verification for the server
 	GRPCTLSInsecureSkipVerify bool `envconfig:"GRPC_TLS_INSECURE_SKIP_VERIFY" default:"false"`
+	// DisableVTProtobuf disables the use of the vtprotobuf marshaller and unmarshaller for GRPC
+	// https://github.com/planetscale/vtprotobuf
+	DisableVTProtobuf bool `envconfig:"DISABLE_VT_PROTOBUF" default:"false"`
 }

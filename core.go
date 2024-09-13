@@ -62,6 +62,10 @@ func (c *cb) SetOpenAPIHandler(handler http.Handler) {
 // processConfig processes the config and sets up the logger, newrelic, sentry, environment, release name, jaeger, hystrix prometheus and signal handler
 func (c *cb) processConfig() {
 	SetupLogger(c.config.LogLevel, c.config.JSONLogs)
+
+	if !c.config.DisableVTProtobuf {
+		InitializeVTProto()
+	}
 	nrName := c.config.AppName
 	if nrName == "" {
 		nrName = c.config.AppName

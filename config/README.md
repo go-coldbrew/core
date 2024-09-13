@@ -16,7 +16,7 @@ import "github.com/go-coldbrew/core/config"
 
 
 <a name="Config"></a>
-## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L6-L98>)
+## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L6-L101>)
 
 Config is the configuration for the Coldbrew server It is populated from environment variables and has sensible defaults for all fields so that you can just use it as is without any configuration The following environment variables are supported and can be used to override the defaults for the fields
 
@@ -113,6 +113,9 @@ type Config struct {
     // GRPCTLSInsecureSkipVerify is used to skip verification of the server's certificate chain and host name
     // Only set this to true if you are sure you want to disable TLS verification for the server
     GRPCTLSInsecureSkipVerify bool `envconfig:"GRPC_TLS_INSECURE_SKIP_VERIFY" default:"false"`
+    // DisableVTProtobuf disables the use of the vtprotobuf marshaller and unmarshaller for GRPC
+    // https://github.com/planetscale/vtprotobuf
+    DisableVTProtobuf bool `envconfig:"DISABLE_VT_PROTOBUF" default:"false"`
 }
 ```
 
