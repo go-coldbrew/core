@@ -18,6 +18,7 @@ import (
 	"github.com/go-coldbrew/log/loggers"
 	"github.com/go-coldbrew/log/loggers/gokit"
 	nrutil "github.com/go-coldbrew/tracing/newrelic"
+	protov1 "github.com/golang/protobuf/proto" //nolint:staticcheck
 	jprom "github.com/jaegertracing/jaeger-lib/metrics/prometheus"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/opentracing/opentracing-go"
@@ -236,8 +237,8 @@ func signalWatcher(ctx context.Context, c *cb, dur time.Duration) {
 	log.Info(ctx, "signal watcher started")
 	for sig := range signals {
 		log.Info(ctx, "signal: shutdown on "+sig.String())
-		c.Stop(dur)
-		log.Info(ctx, "signal: shutdown completed "+sig.String())
+		err := c.Stop(dur)
+		log.Info(ctx, "signal: shutdown completed "+sig.String(), "err", err)
 		break
 	}
 }
@@ -262,6 +263,8 @@ func (vtprotoCodec) Marshal(v any) ([]byte, error) {
 		return v.MarshalVT()
 	case proto.Message:
 		return proto.Marshal(v)
+	case protov1.Message:
+		return proto.Marshal(protov1.MessageV2(v))
 	default:
 		return nil, fmt.Errorf("failed to marshal, message is %T, must satisfy the vtprotoMessage interface or want proto.Message", v)
 	}
@@ -273,6 +276,8 @@ func (vtprotoCodec) Unmarshal(data []byte, v any) error {
 		return v.UnmarshalVT(data)
 	case proto.Message:
 		return proto.Unmarshal(data, v)
+	case protov1.Message:
+		return protov1.Unmarshal(data, v)
 	default:
 		return fmt.Errorf("failed to unmarshal, message is %T, must satisfy the vtprotoMessage interface or want proto.Message", v)
 	}
