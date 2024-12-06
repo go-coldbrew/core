@@ -257,30 +257,46 @@ type vtprotoMessage interface {
 	UnmarshalVT([]byte) error
 }
 
-func (vtprotoCodec) Marshal(v any) ([]byte, error) {
+func (vtprotoCodec) Marshal(v any) (data []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error(context.Background(), "msg", "failed to marshal", "err", r)
+			err = fmt.Errorf("failed to marshal, err: %v", r)
+			notifier.NotifyOnPanic(err, r)
+		}
+	}()
 	switch v := v.(type) {
 	case vtprotoMessage:
-		return v.MarshalVT()
+		data, err = v.MarshalVT()
 	case proto.Message:
-		return proto.Marshal(v)
+		data, err = proto.Marshal(v)
 	case protov1.Message:
-		return proto.Marshal(protov1.MessageV2(v))
+		data, err = proto.Marshal(protov1.MessageV2(v))
 	default:
 		return nil, fmt.Errorf("failed to marshal, message is %T, must satisfy the vtprotoMessage interface or want proto.Message", v)
 	}
+	return
 }
 
-func (vtprotoCodec) Unmarshal(data []byte, v any) error {
+func (vtprotoCodec) Unmarshal(data []byte, v any) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error(context.Background(), "msg", "failed to marshal", "err", r)
+			err = fmt.Errorf("failed to unmarshal, err: %v", r)
+			notifier.NotifyOnPanic(err, r)
+		}
+	}()
 	switch v := v.(type) {
 	case vtprotoMessage:
-		return v.UnmarshalVT(data)
+		err = v.UnmarshalVT(data)
 	case proto.Message:
-		return proto.Unmarshal(data, v)
+		err = proto.Unmarshal(data, v)
 	case protov1.Message:
-		return protov1.Unmarshal(data, v)
+		err = protov1.Unmarshal(data, v)
 	default:
-		return fmt.Errorf("failed to unmarshal, message is %T, must satisfy the vtprotoMessage interface or want proto.Message", v)
+		err = fmt.Errorf("failed to unmarshal, message is %T, must satisfy the vtprotoMessage interface or want proto.Message", v)
 	}
+	return
 }
 
 func (vtprotoCodec) Name() string {
