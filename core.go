@@ -28,6 +28,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	_ "google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
 )
@@ -94,7 +95,12 @@ func (c *cb) processConfig() {
 		grpc_prometheus.EnableHandlingTimeHistogram()
 	}
 	if c.config.NewRelicOpentelemetry {
-		SetupNROpenTelemetry(nrName, c.config.NewRelicLicenseKey, c.config.ReleaseName, c.config.NewRelicOpentelemetrySample)
+		SetupNROpenTelemetry(
+			nrName,
+			c.config.NewRelicLicenseKey,
+			c.config.ReleaseName,
+			c.config.NewRelicOpentelemetrySample,
+		)
 	}
 }
 
@@ -166,13 +172,18 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 	}
 
 	muxOpts := []runtime.ServeMuxOption{
-		runtime.WithIncomingHeaderMatcher(getCustomHeaderMatcher(allowedHttpHeaderPrefixes, c.config.TraceHeaderName)),
+		runtime.WithIncomingHeaderMatcher(
+			getCustomHeaderMatcher(allowedHttpHeaderPrefixes, c.config.TraceHeaderName),
+		),
 		runtime.WithMarshalerOption("application/proto", pMar),
 		runtime.WithMarshalerOption("application/protobuf", pMar),
 	}
 
 	if c.config.UseJSONBuiltinMarshaller {
-		muxOpts = append(muxOpts, runtime.WithMarshalerOption(c.config.JSONBuiltinMarshallerMime, &runtime.JSONBuiltin{}))
+		muxOpts = append(
+			muxOpts,
+			runtime.WithMarshalerOption(c.config.JSONBuiltinMarshallerMime, &runtime.JSONBuiltin{}),
+		)
 	}
 
 	mux := runtime.NewServeMux(muxOpts...)
@@ -203,7 +214,8 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 	gwServer := &http.Server{
 		Addr: gatewayAddr,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if !c.config.DisableSwagger && c.openAPIHandler != nil && strings.HasPrefix(r.URL.Path, c.config.SwaggerURL) {
+			if !c.config.DisableSwagger && c.openAPIHandler != nil &&
+				strings.HasPrefix(r.URL.Path, c.config.SwaggerURL) {
 				http.StripPrefix(c.config.SwaggerURL, c.openAPIHandler).ServeHTTP(w, r)
 				return
 			} else if !c.config.DisableDebug && strings.HasPrefix(r.URL.Path, "/debug/pprof/cmdline") {
@@ -247,20 +259,29 @@ func (c *cb) getGRPCServerOptions() []grpc.ServerOption {
 		c.config.GRPCServerMaxConnectionIdleInSeconds > 0 {
 		option := keepalive.ServerParameters{}
 		if c.config.GRPCServerMaxConnectionIdleInSeconds > 0 {
-			option.MaxConnectionIdle = time.Duration(c.config.GRPCServerMaxConnectionIdleInSeconds) * time.Second
+			option.MaxConnectionIdle = time.Duration(
+				c.config.GRPCServerMaxConnectionIdleInSeconds,
+			) * time.Second
 		}
 		if c.config.GRPCServerMaxConnectionAgeInSeconds > 0 {
-			option.MaxConnectionAge = time.Duration(c.config.GRPCServerMaxConnectionAgeInSeconds) * time.Second
+			option.MaxConnectionAge = time.Duration(
+				c.config.GRPCServerMaxConnectionAgeInSeconds,
+			) * time.Second
 		}
 		if c.config.GRPCServerMaxConnectionAgeGraceInSeconds > 0 {
-			option.MaxConnectionAgeGrace = time.Duration(c.config.GRPCServerMaxConnectionAgeGraceInSeconds) * time.Second
+			option.MaxConnectionAgeGrace = time.Duration(
+				c.config.GRPCServerMaxConnectionAgeGraceInSeconds,
+			) * time.Second
 		}
 		so = append(so, grpc.KeepaliveParams(option))
 	}
 	return so
 }
 
-func loadTLSCredentials(certFile, keyFile string, insecureSkipVerify bool) (credentials.TransportCredentials, error) {
+func loadTLSCredentials(
+	certFile, keyFile string,
+	insecureSkipVerify bool,
+) (credentials.TransportCredentials, error) {
 	// Load server's certificate and private key
 	serverCert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
@@ -280,7 +301,11 @@ func loadTLSCredentials(certFile, keyFile string, insecureSkipVerify bool) (cred
 func (c *cb) initGRPC(ctx context.Context) (*grpc.Server, error) {
 	so := c.getGRPCServerOptions()
 	if c.config.GRPCTLSCertFile != "" && c.config.GRPCTLSKeyFile != "" {
-		creds, err := loadTLSCredentials(c.config.GRPCTLSCertFile, c.config.GRPCTLSKeyFile, c.config.GRPCTLSInsecureSkipVerify)
+		creds, err := loadTLSCredentials(
+			c.config.GRPCTLSCertFile,
+			c.config.GRPCTLSKeyFile,
+			c.config.GRPCTLSInsecureSkipVerify,
+		)
 		if err != nil {
 			return nil, err
 		}
