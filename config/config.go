@@ -98,4 +98,8 @@ type Config struct {
 	// DisableVTProtobuf disables the use of the vtprotobuf marshaller and unmarshaller for GRPC
 	// https://github.com/planetscale/vtprotobuf
 	DisableVTProtobuf bool `envconfig:"DISABLE_VT_PROTOBUF" default:"false"`
+	// GRPCMaxSendMsgSize and GRPCMaxRecvMsgSize are the maximum message
+	// sizes for sending and receiving messages over GRPC
+	GRPCMaxSendMsgSize int `envconfig:"GRPC_MAX_SEND_MSG_SIZE" default:"4194304"` // 4MB
+	GRPCMaxRecvMsgSize int `envconfig:"GRPC_MAX_RECV_MSG_SIZE" default:"4194304"` // 4MB
 }
