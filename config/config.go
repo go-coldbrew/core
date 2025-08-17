@@ -100,6 +100,6 @@ type Config struct {
 	DisableVTProtobuf bool `envconfig:"DISABLE_VT_PROTOBUF" default:"false"`
 	// GRPCMaxSendMsgSize and GRPCMaxRecvMsgSize are the maximum message
 	// sizes for sending and receiving messages over GRPC
-	GRPCMaxSendMsgSize int `envconfig:"GRPC_MAX_SEND_MSG_SIZE" default:"4194304"` // 4MB
+	GRPCMaxSendMsgSize int `envconfig:"GRPC_MAX_SEND_MSG_SIZE" default:"0"`       // Unlimited
 	GRPCMaxRecvMsgSize int `envconfig:"GRPC_MAX_RECV_MSG_SIZE" default:"4194304"` // 4MB
 }
