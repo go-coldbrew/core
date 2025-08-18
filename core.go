@@ -203,6 +203,17 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 			),
 		),
 	}
+	// Mirror configured limits on the client side used by the gateway.
+	if c.config.GRPCMaxRecvMsgSize > 0 {
+		opts = append(opts,
+			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(c.config.GRPCMaxRecvMsgSize)),
+		)
+	}
+	if c.config.GRPCMaxSendMsgSize > 0 {
+		opts = append(opts,
+			grpc.WithDefaultCallOptions(grpc.MaxCallSendMsgSize(c.config.GRPCMaxSendMsgSize)),
+		)
+	}
 	for _, s := range c.svc {
 		if err := s.InitHTTP(ctx, mux, grpcServerEndpoint, opts); err != nil {
 			return nil, err
@@ -254,6 +265,16 @@ func (c *cb) getGRPCServerOptions() []grpc.ServerOption {
 		grpc.ChainUnaryInterceptor(interceptors.DefaultInterceptors()...),
 		grpc.ChainStreamInterceptor(interceptors.DefaultStreamInterceptors()...),
 	)
+
+	// Add message size limits if configured
+	if c.config.GRPCMaxRecvMsgSize > 0 {
+		so = append(so, grpc.MaxRecvMsgSize(c.config.GRPCMaxRecvMsgSize))
+	}
+
+	if c.config.GRPCMaxSendMsgSize > 0 {
+		so = append(so, grpc.MaxSendMsgSize(c.config.GRPCMaxSendMsgSize))
+	}
+
 	if c.config.GRPCServerMaxConnectionAgeGraceInSeconds > 0 ||
 		c.config.GRPCServerMaxConnectionAgeInSeconds > 0 ||
 		c.config.GRPCServerMaxConnectionIdleInSeconds > 0 {
