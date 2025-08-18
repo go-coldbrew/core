@@ -203,6 +203,17 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 			),
 		),
 	}
+	// Mirror configured limits on the client side used by the gateway.
+	if c.config.GRPCMaxRecvMsgSize > 0 {
+		opts = append(opts,
+			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(c.config.GRPCMaxRecvMsgSize)),
+		)
+	}
+	if c.config.GRPCMaxSendMsgSize > 0 {
+		opts = append(opts,
+			grpc.WithDefaultCallOptions(grpc.MaxCallSendMsgSize(c.config.GRPCMaxSendMsgSize)),
+		)
+	}
 	for _, s := range c.svc {
 		if err := s.InitHTTP(ctx, mux, grpcServerEndpoint, opts); err != nil {
 			return nil, err
