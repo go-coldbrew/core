@@ -34,6 +34,7 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
 	"go.uber.org/automaxprocs/maxprocs"
 	"google.golang.org/grpc/encoding"
+	_ "google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -199,7 +200,11 @@ type OTLPConfig struct {
 //	err := SetupOpenTelemetry(config)
 func SetupOpenTelemetry(config OTLPConfig) error {
 	if config.ServiceName == "" || config.Endpoint == "" {
-		log.Info(context.Background(), "msg", "not initializing opentelemetry tracing: missing serviceName or endpoint")
+		log.Info(
+			context.Background(),
+			"msg",
+			"not initializing opentelemetry tracing: missing serviceName or endpoint",
+		)
 		return nil
 	}
 
@@ -247,9 +252,14 @@ func SetupOpenTelemetry(config OTLPConfig) error {
 		log.Error(context.Background(), "msg", "merging OTLP resource", "err", err)
 		return err
 	}
+	// Clamp/Default sampling ratio
+	ratio := config.SamplingRatio
+	if ratio <= 0 || ratio > 1 {
+		ratio = 0.2
+	}
 
 	tracerProvider := sdktrace.NewTracerProvider(
-		sdktrace.WithSampler(sdktrace.ParentBased(sdktrace.TraceIDRatioBased(config.SamplingRatio))),
+		sdktrace.WithSampler(sdktrace.ParentBased(sdktrace.TraceIDRatioBased(ratio))),
 		sdktrace.WithBatcher(otlpExporter),
 		sdktrace.WithResource(r),
 	)
@@ -280,6 +290,10 @@ func SetupOpenTelemetry(config OTLPConfig) error {
 //   - version: the version of the service
 //   - ratio: the sampling ratio to use for traces (0.0 to 1.0)
 func SetupNROpenTelemetry(serviceName, license, version string, ratio float64) error {
+	if strings.TrimSpace(license) == "" {
+		log.Info(context.Background(), "msg", "not initializing opentelemetry (nr): missing license key")
+		return nil
+	}
 	// Use the generic SetupOpenTelemetry with New Relic specific configuration
 	config := OTLPConfig{
 		Endpoint:             "otlp.nr-data.net:4317",
@@ -305,7 +319,10 @@ func SetupHystrixPrometheus() {
 // traceHeaderName is the name of the header to use for tracing (e.g. X-Trace-Id) - if empty, defaults to X-Trace-Id
 func ConfigureInterceptors(DoNotLogGRPCReflection bool, traceHeaderName string) {
 	if DoNotLogGRPCReflection {
-		interceptors.FilterMethods = append(interceptors.FilterMethods, "grpc.reflection.v1alpha.ServerReflection")
+		interceptors.FilterMethods = append(
+			interceptors.FilterMethods,
+			"grpc.reflection.v1alpha.ServerReflection",
+		)
 	}
 	if traceHeaderName != "" {
 		notifier.SetTraceHeaderName(traceHeaderName)
