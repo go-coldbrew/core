@@ -131,25 +131,97 @@ func setupJaeger(serviceName string) io.Closer {
 	return closer
 }
 
-// setupOpenTelemetry sets up the OpenTelemetry tracing
-// It uses the New Relic OTLP exporter to send traces to New Relic One APM and Insights
-// serviceName is the name of the service
-// license is the New Relic license key
-// version is the version of the service
-// ratio is the sampling ratio to use for traces
-func SetupNROpenTelemetry(serviceName, license, version string, ratio float64) error {
-	if serviceName == "" || license == "" {
-		log.Info(context.Background(), "msg", "not initializing NR opentelemetry tracing")
+// OTLPConfig holds configuration for OpenTelemetry OTLP exporter
+//
+// This struct provides a flexible way to configure OpenTelemetry tracing
+// with any OTLP-compatible backend (e.g., Jaeger, Honeycomb, New Relic, etc.)
+type OTLPConfig struct {
+	// Endpoint is the OTLP gRPC endpoint to send traces to
+	// Examples: "localhost:4317", "otlp.nr-data.net:4317", "api.honeycomb.io:443"
+	Endpoint string
+
+	// Headers are custom headers to send with each request
+	// Examples:
+	//   New Relic: {"api-key": "your-license-key"}
+	//   Honeycomb: {"x-honeycomb-team": "your-api-key"}
+	Headers map[string]string
+
+	// ServiceName is the name of the service sending traces
+	ServiceName string
+
+	// ServiceVersion is the version of the service
+	ServiceVersion string
+
+	// SamplingRatio is the ratio of traces to sample (0.0 to 1.0)
+	// 1.0 means sample all traces, 0.1 means sample 10% of traces
+	SamplingRatio float64
+
+	// Compression specifies the compression type (e.g., "gzip", "none")
+	// If empty, defaults to "gzip"
+	Compression string
+
+	// UseOpenTracingBridge determines whether to set up OpenTracing compatibility bridge
+	// This allows using OpenTracing instrumentation with OpenTelemetry
+	UseOpenTracingBridge bool
+
+	// Insecure disables TLS verification for the connection
+	// Only use this for local development or testing
+	Insecure bool
+}
+
+// SetupOpenTelemetry sets up OpenTelemetry tracing with a generic OTLP exporter
+//
+// This function provides a flexible way to configure OpenTelemetry tracing
+// with any OTLP-compatible backend. It sets up the trace provider, configures
+// sampling, and optionally sets up an OpenTracing bridge for compatibility.
+//
+// Example usage with Jaeger:
+//
+//	config := OTLPConfig{
+//	    Endpoint:             "localhost:4317",
+//	    ServiceName:          "my-service",
+//	    ServiceVersion:       "v1.0.0",
+//	    SamplingRatio:        0.1,
+//	    UseOpenTracingBridge: true,
+//	    Insecure:            true,  // for local development
+//	}
+//	err := SetupOpenTelemetry(config)
+//
+// Example usage with Honeycomb:
+//
+//	config := OTLPConfig{
+//	    Endpoint:       "api.honeycomb.io:443",
+//	    Headers:        map[string]string{"x-honeycomb-team": "your-api-key"},
+//	    ServiceName:    "my-service",
+//	    ServiceVersion: "v1.0.0",
+//	    SamplingRatio:  0.2,
+//	}
+//	err := SetupOpenTelemetry(config)
+func SetupOpenTelemetry(config OTLPConfig) error {
+	if config.ServiceName == "" || config.Endpoint == "" {
+		log.Info(context.Background(), "msg", "not initializing opentelemetry tracing: missing serviceName or endpoint")
 		return nil
 	}
-	headers := map[string]string{
-		"api-key": license,
+
+	// Default compression to gzip if not specified
+	if config.Compression == "" {
+		config.Compression = "gzip"
 	}
 
+	// Build client options
 	clientOpts := []otlptracegrpc.Option{
-		otlptracegrpc.WithEndpoint("otlp.nr-data.net:4317"),
-		otlptracegrpc.WithHeaders(headers),
-		otlptracegrpc.WithCompressor("gzip"),
+		otlptracegrpc.WithEndpoint(config.Endpoint),
+		otlptracegrpc.WithHeaders(config.Headers),
+	}
+
+	// Add compression if specified
+	if config.Compression != "none" {
+		clientOpts = append(clientOpts, otlptracegrpc.WithCompressor(config.Compression))
+	}
+
+	// Add insecure option if needed
+	if config.Insecure {
+		clientOpts = append(clientOpts, otlptracegrpc.WithInsecure())
 	}
 
 	otlpExporter, err := otlptrace.New(context.Background(), otlptracegrpc.NewClient(clientOpts...))
@@ -162,8 +234,8 @@ func SetupNROpenTelemetry(serviceName, license, version string, ratio float64) e
 	res, err := resource.New(context.Background(),
 		resource.WithAttributes(
 			// the service name used to display traces in backends
-			semconv.ServiceNameKey.String(serviceName),
-			semconv.ServiceVersionKey.String(version),
+			semconv.ServiceNameKey.String(config.ServiceName),
+			semconv.ServiceVersionKey.String(config.ServiceVersion),
 		),
 	)
 	if err != nil {
@@ -177,18 +249,48 @@ func SetupNROpenTelemetry(serviceName, license, version string, ratio float64) e
 	}
 
 	tracerProvider := sdktrace.NewTracerProvider(
-		sdktrace.WithSampler(sdktrace.ParentBased(sdktrace.TraceIDRatioBased(ratio))), // sample 20%
+		sdktrace.WithSampler(sdktrace.ParentBased(sdktrace.TraceIDRatioBased(config.SamplingRatio))),
 		sdktrace.WithBatcher(otlpExporter),
 		sdktrace.WithResource(r),
 	)
-	otelTracer := tracerProvider.Tracer("")
-	// Use the bridgeTracer as your OpenTracing tracer.
-	bridgeTracer, wrapperTracerProvider := otelBridge.NewTracerPair(otelTracer)
 
-	otel.SetTracerProvider(wrapperTracerProvider)
-	opentracing.SetGlobalTracer(bridgeTracer)
-	log.Info(context.Background(), "msg", "Initialized NR opentelemetry tracing")
+	if config.UseOpenTracingBridge {
+		otelTracer := tracerProvider.Tracer("")
+		// Use the bridgeTracer as your OpenTracing tracer.
+		bridgeTracer, wrapperTracerProvider := otelBridge.NewTracerPair(otelTracer)
+
+		otel.SetTracerProvider(wrapperTracerProvider)
+		opentracing.SetGlobalTracer(bridgeTracer)
+	} else {
+		otel.SetTracerProvider(tracerProvider)
+	}
+
+	log.Info(context.Background(), "msg", "Initialized opentelemetry tracing", "endpoint", config.Endpoint)
 	return nil
+}
+
+// SetupNROpenTelemetry sets up OpenTelemetry tracing with New Relic
+//
+// This function configures OpenTelemetry to send traces to New Relic's OTLP endpoint.
+// It's a convenience wrapper around SetupOpenTelemetry with New Relic-specific configuration.
+//
+// Parameters:
+//   - serviceName: the name of the service
+//   - license: the New Relic license key
+//   - version: the version of the service
+//   - ratio: the sampling ratio to use for traces (0.0 to 1.0)
+func SetupNROpenTelemetry(serviceName, license, version string, ratio float64) error {
+	// Use the generic SetupOpenTelemetry with New Relic specific configuration
+	config := OTLPConfig{
+		Endpoint:             "otlp.nr-data.net:4317",
+		Headers:              map[string]string{"api-key": license},
+		ServiceName:          serviceName,
+		ServiceVersion:       version,
+		SamplingRatio:        ratio,
+		Compression:          "gzip",
+		UseOpenTracingBridge: true,
+	}
+	return SetupOpenTelemetry(config)
 }
 
 // SetupHystrixPrometheus sets up the hystrix metrics
