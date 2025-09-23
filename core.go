@@ -68,11 +68,13 @@ func parseHeaders(headerString string) map[string]string {
 		return headers
 	}
 
-	pairs := strings.Split(headerString, ",")
-	for _, pair := range pairs {
+	pairs := strings.SplitSeq(headerString, ",")
+	for pair := range pairs {
 		kv := strings.SplitN(strings.TrimSpace(pair), "=", 2)
 		if len(kv) == 2 {
 			headers[strings.TrimSpace(kv[0])] = strings.TrimSpace(kv[1])
+		} else {
+			log.Warn(context.Background(), "msg", "Ignoring malformed header pair Expected format 'key=value'", "pair", pair)
 		}
 	}
 	return headers
@@ -125,19 +127,22 @@ func (c *cb) processConfig() {
 			SamplingRatio:        c.config.OTLPSamplingRatio,
 			Compression:          c.config.OTLPCompression,
 			UseOpenTracingBridge: c.config.OTLPUseOpenTracingBridge,
-			Insecure:            c.config.OTLPInsecure,
+			Insecure:             c.config.OTLPInsecure,
 		}
 		if err := SetupOpenTelemetry(otlpConfig); err != nil {
 			log.Error(context.Background(), "msg", "Failed to setup custom OTLP", "err", err)
 		}
 	} else if c.config.NewRelicOpentelemetry {
 		// Fall back to New Relic OpenTelemetry if no custom OTLP is configured
-		SetupNROpenTelemetry(
+		 err := SetupNROpenTelemetry(
 			nrName,
 			c.config.NewRelicLicenseKey,
 			c.config.ReleaseName,
 			c.config.NewRelicOpentelemetrySample,
 		)
+		if err != nil {
+			log.Error(context.Background(), "msg", "Failed to setup New Relic OpenTelemetry", "err", err)
+		}
 	}
 }
 
@@ -432,7 +437,10 @@ func (c *cb) close() {
 	for _, closer := range c.closers {
 		if closer != nil {
 			log.Info(context.Background(), "closing", closer)
-			closer.Close()
+			err := closer.Close()
+			if err != nil {
+				log.Error(context.Background(), "msg", "Failed to close resource", "err", err, "resource", closer)
+			}
 		}
 	}
 }
@@ -463,7 +471,12 @@ func (c *cb) Stop(dur time.Duration) error {
 	}
 	log.Info(context.Background(), "msg", "Server shut down started, bye bye")
 	if c.httpServer != nil {
-		go c.httpServer.Shutdown(ctx)
+		go func(ctx context.Context, c *cb) {
+			err := c.httpServer.Shutdown(ctx)
+			if err != nil {
+				log.Error(context.Background(), "msg", "http server shutdown error", "err", err)
+			}
+		}(ctx, c) // shutdown http server gracefully
 	}
 	if c.grpcServer != nil {
 		timedCall(ctx, c.grpcServer.GracefulStop)
