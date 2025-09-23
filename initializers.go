@@ -255,7 +255,7 @@ func SetupOpenTelemetry(config OTLPConfig) error {
 	)
 
 	if config.UseOpenTracingBridge {
-		otelTracer := tracerProvider.Tracer("")
+		otelTracer := tracerProvider.Tracer(config.ServiceName)
 		// Use the bridgeTracer as your OpenTracing tracer.
 		bridgeTracer, wrapperTracerProvider := otelBridge.NewTracerPair(otelTracer)
 
