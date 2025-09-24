@@ -60,6 +60,26 @@ func (c *cb) SetOpenAPIHandler(handler http.Handler) {
 	c.openAPIHandler = handler
 }
 
+// parseHeaders parses a comma-separated string of key=value pairs into a map
+// Example: "key1=value1,key2=value2" -> map[string]string{"key1": "value1", "key2": "value2"}
+func parseHeaders(headerString string) map[string]string {
+	headers := make(map[string]string)
+	if headerString == "" {
+		return headers
+	}
+
+	pairs := strings.SplitSeq(headerString, ",")
+	for pair := range pairs {
+		kv := strings.SplitN(strings.TrimSpace(pair), "=", 2)
+		if len(kv) == 2 {
+			headers[strings.TrimSpace(kv[0])] = strings.TrimSpace(kv[1])
+		} else {
+			log.Warn(context.Background(), "msg", "Ignoring malformed header pair Expected format 'key=value'", "pair", pair)
+		}
+	}
+	return headers
+}
+
 // processConfig processes the config and sets up the logger, newrelic, sentry, environment, release name, jaeger, hystrix prometheus and signal handler
 func (c *cb) processConfig() {
 	SetupLogger(c.config.LogLevel, c.config.JSONLogs)
@@ -94,13 +114,35 @@ func (c *cb) processConfig() {
 	if c.config.EnablePrometheusGRPCHistogram {
 		grpc_prometheus.EnableHandlingTimeHistogram()
 	}
-	if c.config.NewRelicOpentelemetry {
-		SetupNROpenTelemetry(
+
+	// Setup OpenTelemetry - custom OTLP takes precedence over New Relic
+	if c.config.OTLPEndpoint != "" {
+		// Use custom OTLP configuration
+		headers := parseHeaders(c.config.OTLPHeaders)
+		otlpConfig := OTLPConfig{
+			Endpoint:             c.config.OTLPEndpoint,
+			Headers:              headers,
+			ServiceName:          c.config.AppName,
+			ServiceVersion:       c.config.ReleaseName,
+			SamplingRatio:        c.config.OTLPSamplingRatio,
+			Compression:          c.config.OTLPCompression,
+			UseOpenTracingBridge: c.config.OTLPUseOpenTracingBridge,
+			Insecure:             c.config.OTLPInsecure,
+		}
+		if err := SetupOpenTelemetry(otlpConfig); err != nil {
+			log.Error(context.Background(), "msg", "Failed to setup custom OTLP", "err", err)
+		}
+	} else if c.config.NewRelicOpentelemetry {
+		// Fall back to New Relic OpenTelemetry if no custom OTLP is configured
+		 err := SetupNROpenTelemetry(
 			nrName,
 			c.config.NewRelicLicenseKey,
 			c.config.ReleaseName,
 			c.config.NewRelicOpentelemetrySample,
 		)
+		if err != nil {
+			log.Error(context.Background(), "msg", "Failed to setup New Relic OpenTelemetry", "err", err)
+		}
 	}
 }
 
@@ -395,7 +437,10 @@ func (c *cb) close() {
 	for _, closer := range c.closers {
 		if closer != nil {
 			log.Info(context.Background(), "closing", closer)
-			closer.Close()
+			err := closer.Close()
+			if err != nil {
+				log.Error(context.Background(), "msg", "Failed to close resource", "err", err, "resource", closer)
+			}
 		}
 	}
 }
@@ -426,7 +471,12 @@ func (c *cb) Stop(dur time.Duration) error {
 	}
 	log.Info(context.Background(), "msg", "Server shut down started, bye bye")
 	if c.httpServer != nil {
-		go c.httpServer.Shutdown(ctx)
+		go func(ctx context.Context, c *cb) {
+			err := c.httpServer.Shutdown(ctx)
+			if err != nil {
+				log.Error(context.Background(), "msg", "http server shutdown error", "err", err)
+			}
+		}(ctx, c) // shutdown http server gracefully
 	}
 	if c.grpcServer != nil {
 		timedCall(ctx, c.grpcServer.GracefulStop)

@@ -102,4 +102,28 @@ type Config struct {
 	// sizes for sending and receiving messages over GRPC
 	GRPCMaxSendMsgSize int `envconfig:"GRPC_MAX_SEND_MSG_SIZE" default:"2147483647"` // Unlimited
 	GRPCMaxRecvMsgSize int `envconfig:"GRPC_MAX_RECV_MSG_SIZE" default:"4194304"`    // 4MB
+
+	// Custom OpenTelemetry OTLP Configuration
+	// When OTLPEndpoint is set, it takes precedence over NewRelic OpenTelemetry configuration
+
+	// OTLPEndpoint is the OTLP gRPC endpoint to send traces to
+	// Examples: "localhost:4317", "api.honeycomb.io:443", "otel-collector:4317"
+	// When set, this takes precedence over NewRelic OpenTelemetry configuration
+	OTLPEndpoint string `envconfig:"OTLP_ENDPOINT" default:""`
+	// OTLPHeaders are custom headers to send with each OTLP request
+	// Format: "key1=value1,key2=value2" (comma-separated key=value pairs)
+	// Example: "x-honeycomb-team=your-api-key" or "api-key=your-key,dataset=your-dataset"
+	OTLPHeaders string `envconfig:"OTLP_HEADERS" default:""`
+	// OTLPCompression specifies the compression type for OTLP requests
+	// Options: "gzip", "none". Defaults to "gzip" if not specified
+	OTLPCompression string `envconfig:"OTLP_COMPRESSION" default:"gzip"`
+	// OTLPInsecure disables TLS verification for OTLP connection
+	// Only use this for local development or testing with self-signed certificates
+	OTLPInsecure bool `envconfig:"OTLP_INSECURE" default:"false"`
+	// OTLPSamplingRatio is the ratio of traces to sample (0.0 to 1.0)
+	// 1.0 means sample all traces, 0.1 means sample 10% of traces
+	OTLPSamplingRatio float64 `envconfig:"OTLP_SAMPLING_RATIO" default:"0.2"`
+	// OTLPUseOpenTracingBridge determines whether to set up OpenTracing compatibility bridge
+	// This allows using existing OpenTracing instrumentation with OpenTelemetry
+	OTLPUseOpenTracingBridge bool `envconfig:"OTLP_USE_OPENTRACING_BRIDGE" default:"true"`
 }

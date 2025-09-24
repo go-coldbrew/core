@@ -48,6 +48,7 @@ The core module is the base module for cold brew and provides the base implement
 - [func SetupLogger\(logLevel string, jsonlogs bool\) error](<#SetupLogger>)
 - [func SetupNROpenTelemetry\(serviceName, license, version string, ratio float64\) error](<#SetupNROpenTelemetry>)
 - [func SetupNewRelic\(serviceName, apiKey string, tracing bool\) error](<#SetupNewRelic>)
+- [func SetupOpenTelemetry\(config OTLPConfig\) error](<#SetupOpenTelemetry>)
 - [func SetupReleaseName\(rel string\)](<#SetupReleaseName>)
 - [func SetupSentry\(dsn string\)](<#SetupSentry>)
 - [type CB](<#CB>)
@@ -55,10 +56,11 @@ The core module is the base module for cold brew and provides the base implement
 - [type CBGracefulStopper](<#CBGracefulStopper>)
 - [type CBService](<#CBService>)
 - [type CBStopper](<#CBStopper>)
+- [type OTLPConfig](<#OTLPConfig>)
 
 
 <a name="ConfigureInterceptors"></a>
-## func [ConfigureInterceptors](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L204>)
+## func [ConfigureInterceptors](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L306>)
 
 ```go
 func ConfigureInterceptors(DoNotLogGRPCReflection bool, traceHeaderName string)
@@ -67,7 +69,7 @@ func ConfigureInterceptors(DoNotLogGRPCReflection bool, traceHeaderName string)
 ConfigureInterceptors configures the interceptors package with the provided DoNotLogGRPCReflection is a boolean that indicates whether to log the grpc.reflection.v1alpha.ServerReflection service calls in logs traceHeaderName is the name of the header to use for tracing \(e.g. X\-Trace\-Id\) \- if empty, defaults to X\-Trace\-Id
 
 <a name="InitializeVTProto"></a>
-## func [InitializeVTProto](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L249>)
+## func [InitializeVTProto](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L351>)
 
 ```go
 func InitializeVTProto()
@@ -78,7 +80,7 @@ InitializeVTProto initializes the vtproto package for use with the service
 https://github.com/planetscale/vtprotobuf?tab=readme-ov-file#mixing-protobuf-implementations-with-grpc
 
 <a name="SetupAutoMaxProcs"></a>
-## func [SetupAutoMaxProcs](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L215>)
+## func [SetupAutoMaxProcs](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L317>)
 
 ```go
 func SetupAutoMaxProcs()
@@ -96,7 +98,7 @@ func SetupEnvironment(env string)
 SetupEnvironment sets the environment This is used to identify the environment in Sentry and New Relic env is the environment to set for the service \(e.g. prod, staging, dev\)
 
 <a name="SetupHystrixPrometheus"></a>
-## func [SetupHystrixPrometheus](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L196>)
+## func [SetupHystrixPrometheus](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L298>)
 
 ```go
 func SetupHystrixPrometheus()
@@ -114,13 +116,22 @@ func SetupLogger(logLevel string, jsonlogs bool) error
 SetupLogger sets up the logger It uses the coldbrew logger to log messages to stdout logLevel is the log level to set for the logger jsonlogs is a boolean to enable or disable json logs
 
 <a name="SetupNROpenTelemetry"></a>
-## func [SetupNROpenTelemetry](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L140>)
+## func [SetupNROpenTelemetry](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L282>)
 
 ```go
 func SetupNROpenTelemetry(serviceName, license, version string, ratio float64) error
 ```
 
-setupOpenTelemetry sets up the OpenTelemetry tracing It uses the New Relic OTLP exporter to send traces to New Relic One APM and Insights serviceName is the name of the service license is the New Relic license key version is the version of the service ratio is the sampling ratio to use for traces
+SetupNROpenTelemetry sets up OpenTelemetry tracing with New Relic
+
+This function configures OpenTelemetry to send traces to New Relic's OTLP endpoint. It's a convenience wrapper around SetupOpenTelemetry with New Relic\-specific configuration.
+
+Parameters:
+
+- serviceName: the name of the service
+- license: the New Relic license key
+- version: the version of the service
+- ratio: the sampling ratio to use for traces \(0.0 to 1.0\)
 
 <a name="SetupNewRelic"></a>
 ## func [SetupNewRelic](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L45>)
@@ -130,6 +141,44 @@ func SetupNewRelic(serviceName, apiKey string, tracing bool) error
 ```
 
 SetupNewRelic sets up the New Relic tracing and monitoring agent for the service It uses the New Relic Go Agent to send traces to New Relic One APM and Insights serviceName is the name of the service apiKey is the New Relic license key tracing is a boolean to enable or disable tracing
+
+<a name="SetupOpenTelemetry"></a>
+## func [SetupOpenTelemetry](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L200>)
+
+```go
+func SetupOpenTelemetry(config OTLPConfig) error
+```
+
+SetupOpenTelemetry sets up OpenTelemetry tracing with a generic OTLP exporter
+
+This function provides a flexible way to configure OpenTelemetry tracing with any OTLP\-compatible backend. It sets up the trace provider, configures sampling, and optionally sets up an OpenTracing bridge for compatibility.
+
+Example usage with Jaeger:
+
+```
+config := OTLPConfig{
+    Endpoint:             "localhost:4317",
+    ServiceName:          "my-service",
+    ServiceVersion:       "v1.0.0",
+    SamplingRatio:        0.1,
+    UseOpenTracingBridge: true,
+    Insecure:            true,  // for local development
+}
+err := SetupOpenTelemetry(config)
+```
+
+Example usage with Honeycomb:
+
+```
+config := OTLPConfig{
+    Endpoint:       "api.honeycomb.io:443",
+    Headers:        map[string]string{"x-honeycomb-team": "your-api-key"},
+    ServiceName:    "my-service",
+    ServiceVersion: "v1.0.0",
+    SamplingRatio:  0.2,
+}
+err := SetupOpenTelemetry(config)
+```
 
 <a name="SetupReleaseName"></a>
 ## func [SetupReleaseName](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L103>)
@@ -171,7 +220,7 @@ type CB interface {
 ```
 
 <a name="New"></a>
-### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L444>)
+### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L502>)
 
 ```go
 func New(c config.Config) CB
@@ -220,6 +269,49 @@ type CBStopper interface {
     // Stop stops the service.
     // Stop is called by the core package.
     Stop()
+}
+```
+
+<a name="OTLPConfig"></a>
+## type [OTLPConfig](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L138-L170>)
+
+OTLPConfig holds configuration for OpenTelemetry OTLP exporter
+
+This struct provides a flexible way to configure OpenTelemetry tracing with any OTLP\-compatible backend \(e.g., Jaeger, Honeycomb, New Relic, etc.\)
+
+```go
+type OTLPConfig struct {
+    // Endpoint is the OTLP gRPC endpoint to send traces to
+    // Examples: "localhost:4317", "otlp.nr-data.net:4317", "api.honeycomb.io:443"
+    Endpoint string
+
+    // Headers are custom headers to send with each request
+    // Examples:
+    //   New Relic: {"api-key": "your-license-key"}
+    //   Honeycomb: {"x-honeycomb-team": "your-api-key"}
+    Headers map[string]string
+
+    // ServiceName is the name of the service sending traces
+    ServiceName string
+
+    // ServiceVersion is the version of the service
+    ServiceVersion string
+
+    // SamplingRatio is the ratio of traces to sample (0.0 to 1.0)
+    // 1.0 means sample all traces, 0.1 means sample 10% of traces
+    SamplingRatio float64
+
+    // Compression specifies the compression type (e.g., "gzip", "none")
+    // If empty, defaults to "gzip"
+    Compression string
+
+    // UseOpenTracingBridge determines whether to set up OpenTracing compatibility bridge
+    // This allows using OpenTracing instrumentation with OpenTelemetry
+    UseOpenTracingBridge bool
+
+    // Insecure disables TLS verification for the connection
+    // Only use this for local development or testing
+    Insecure bool
 }
 ```
 
