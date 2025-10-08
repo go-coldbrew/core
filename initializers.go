@@ -54,6 +54,7 @@ func SetupNewRelic(serviceName, apiKey string, tracing bool) error {
 		newrelic.ConfigAppName(serviceName),
 		newrelic.ConfigLicense(apiKey),
 		newrelic.ConfigFromEnvironment(),
+		newrelic.ConfigDistributedTracerEnabled(tracing),
 	)
 	if err != nil {
 		log.Error(context.Background(), "msg", "NewRelic could not be initialized", "err", err)
