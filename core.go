@@ -94,7 +94,7 @@ func (c *cb) processConfig() {
 	if !c.config.DisableAutoMaxProcs {
 		SetupAutoMaxProcs()
 	}
-	if c.config.NewRelicDistributedTracing {
+	if c.config.DisableNewRelic {
 		err := SetupNewRelic(nrName, c.config.NewRelicLicenseKey, c.config.NewRelicDistributedTracing)
 		if err != nil {
 			log.Error(context.Background(), "Error setting up NewRelic tracing", "error", err)
