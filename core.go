@@ -117,7 +117,11 @@ func (c *cb) processConfig() {
 		startSignalHandler(c, dur)
 	}
 	if c.config.EnablePrometheusGRPCHistogram {
-		grpc_prometheus.EnableHandlingTimeHistogram()
+		if len(c.config.PrometheusGRPCHistogramBuckets) > 0 {
+			grpc_prometheus.EnableHandlingTimeHistogram(grpc_prometheus.WithHistogramBuckets(c.config.PrometheusGRPCHistogramBuckets))
+		} else {
+			grpc_prometheus.EnableHandlingTimeHistogram()
+		}
 	}
 
 	// Setup OpenTelemetry - custom OTLP takes precedence over New Relic

@@ -28,6 +28,10 @@ type Config struct {
 	DisablePormetheus bool `envconfig:"DISABLE_PROMETHEUS" default:"false"`
 	// Enables grpc request histograms in prometheus reporting
 	EnablePrometheusGRPCHistogram bool `envconfig:"ENABLE_PROMETHEUS_GRPC_HISTOGRAM" default:"true"`
+	// PrometheusGRPCHistogramBuckets specifies custom histogram buckets for gRPC request latency metrics
+	// Format: comma-separated float values in seconds (e.g., "0.005,0.01,0.025,0.05,0.1,0.25,0.5,1,2.5,5,10")
+	// If empty, uses the default buckets from go-grpc-prometheus
+	PrometheusGRPCHistogramBuckets []float64 `envconfig:"PROMETHEUS_GRPC_HISTOGRAM_BUCKETS" default:""`
 	// The License key for NewRelic metrics reporting
 	NewRelicLicenseKey string `envconfig:"NEW_RELIC_LICENSE_KEY" default:""`
 	// When set to true, disables all NewRelic reporting
