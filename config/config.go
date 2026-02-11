@@ -34,8 +34,6 @@ type Config struct {
 	PrometheusGRPCHistogramBuckets []float64 `envconfig:"PROMETHEUS_GRPC_HISTOGRAM_BUCKETS" default:""`
 	// The License key for NewRelic metrics reporting
 	NewRelicLicenseKey string `envconfig:"NEW_RELIC_LICENSE_KEY" default:""`
-	// When set to true, disables all NewRelic reporting
-	DisableNewRelic bool `envconfig:"DISABLE_NEW_RELIC" default:"false"`
 	// Enable NewRelic Distributed Tracing
 	NewRelicDistributedTracing bool `envconfig:"NEW_RELIC_DISTRIBUTED_TRACING" default:"true"`
 	// Enable new relic opentelemetry

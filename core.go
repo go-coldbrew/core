@@ -94,12 +94,7 @@ func (c *cb) processConfig() {
 	if !c.config.DisableAutoMaxProcs {
 		SetupAutoMaxProcs()
 	}
-	if !c.config.DisableNewRelic {
-		err := SetupNewRelic(nrName, c.config.NewRelicLicenseKey, c.config.NewRelicDistributedTracing)
-		if err != nil {
-			log.Error(context.Background(), "Error setting up NewRelic tracing", "error", err)
-		}
-	}
+	SetupNewRelic(nrName, c.config.NewRelicLicenseKey, c.config.NewRelicDistributedTracing)
 	SetupSentry(c.config.SentryDSN)
 	SetupEnvironment(c.config.Environment)
 	SetupReleaseName(c.config.ReleaseName)
@@ -143,7 +138,7 @@ func (c *cb) processConfig() {
 		}
 	} else if c.config.NewRelicOpentelemetry {
 		// Fall back to New Relic OpenTelemetry if no custom OTLP is configured
-		err := SetupNROpenTelemetry(
+		 err := SetupNROpenTelemetry(
 			nrName,
 			c.config.NewRelicLicenseKey,
 			c.config.ReleaseName,
