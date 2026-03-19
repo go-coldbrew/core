@@ -108,8 +108,12 @@ func SetupReleaseName(rel string) {
 	}
 }
 
-// setupJaeger sets up the Jaeger tracing
-// It uses the Jaeger Zipkin B3 HTTP Propagator to propagate the tracing headers to downstream services
+// setupJaeger sets up the Jaeger tracing.
+// It uses the Jaeger Zipkin B3 HTTP Propagator to propagate the tracing headers to downstream services.
+//
+// Deprecated: The Jaeger client (github.com/uber/jaeger-client-go) is EOL.
+// Use SetupOpenTelemetry or SetupNROpenTelemetry instead, which support
+// OTLP-compatible backends including Jaeger's OTLP receiver.
 func setupJaeger(serviceName string) io.Closer {
 	conf, err := jaegerconfig.FromEnv()
 	if err != nil {
