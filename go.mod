@@ -22,14 +22,14 @@ require (
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/uber/jaeger-client-go v2.30.0+incompatible
-	go.opentelemetry.io/otel v1.38.0
+	go.opentelemetry.io/otel v1.39.0
 	go.opentelemetry.io/otel/bridge/opentracing v1.38.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.38.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.38.0
-	go.opentelemetry.io/otel/sdk v1.38.0
+	go.opentelemetry.io/otel/sdk v1.39.0
 	go.uber.org/automaxprocs v1.6.0
-	google.golang.org/grpc v1.75.1
-	google.golang.org/protobuf v1.36.9
+	google.golang.org/grpc v1.79.3
+	google.golang.org/protobuf v1.36.10
 )
 
 require (
@@ -54,15 +54,15 @@ require (
 	github.com/stvp/rollbar v0.5.1 // indirect
 	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
-	go.opentelemetry.io/otel/metric v1.38.0 // indirect
-	go.opentelemetry.io/otel/trace v1.38.0 // indirect
+	go.opentelemetry.io/otel/metric v1.39.0 // indirect
+	go.opentelemetry.io/otel/trace v1.39.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.8.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
-	golang.org/x/net v0.44.0 // indirect
-	golang.org/x/sys v0.36.0 // indirect
-	golang.org/x/text v0.29.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20250922171735-9219d122eba9 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250922171735-9219d122eba9 // indirect
+	golang.org/x/net v0.48.0 // indirect
+	golang.org/x/sys v0.39.0 // indirect
+	golang.org/x/text v0.32.0 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20251202230838-ff82c1b0f217 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20251202230838-ff82c1b0f217 // indirect
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
 )
