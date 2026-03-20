@@ -6,11 +6,11 @@ require (
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/afex/hystrix-go v0.0.0-20180502004556-fa1af6a1f4f5
 	github.com/go-coldbrew/errors v0.2.1
-	github.com/go-coldbrew/hystrixprometheus v0.1.1
-	github.com/go-coldbrew/interceptors v0.1.9
-	github.com/go-coldbrew/log v0.2.4
-	github.com/go-coldbrew/options v0.2.3
-	github.com/go-coldbrew/tracing v0.0.6
+	github.com/go-coldbrew/hystrixprometheus v0.1.2
+	github.com/go-coldbrew/interceptors v0.1.10
+	github.com/go-coldbrew/log v0.2.5
+	github.com/go-coldbrew/options v0.2.4
+	github.com/go-coldbrew/tracing v0.0.7
 	github.com/golang/protobuf v1.5.4
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
@@ -42,7 +42,7 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/newrelic/csec-go-agent v0.3.0 // indirect
+	github.com/newrelic/csec-go-agent v1.6.0 // indirect
 	github.com/newrelic/go-agent/v3/integrations/nrgrpc v1.4.7 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
