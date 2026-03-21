@@ -16,7 +16,7 @@ import "github.com/go-coldbrew/core/config"
 
 
 <a name="Config"></a>
-## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L6-L129>)
+## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L6-L137>)
 
 Config is the configuration for the Coldbrew server It is populated from environment variables and has sensible defaults for all fields so that you can just use it as is without any configuration The following environment variables are supported and can be used to override the defaults for the fields
 
@@ -42,12 +42,20 @@ type Config struct {
     SwaggerURL string `envconfig:"SWAGGER_URL" default:"/swagger/"`
     // Should we disable go debug at /debug/, defaults to false
     DisableDebug bool `envconfig:"DISABLE_DEBUG" default:"false"`
-    // Should we disable prometheus at /metrics, defaults to false
+    // DisablePrometheus controls whether prometheus metrics are disabled at /metrics, defaults to false
+    DisablePrometheus bool `envconfig:"DISABLE_PROMETHEUS" default:"false"`
+    // Deprecated: Use DisablePrometheus instead.
     DisablePormetheus bool `envconfig:"DISABLE_PROMETHEUS" default:"false"`
     // Enables grpc request histograms in prometheus reporting
     EnablePrometheusGRPCHistogram bool `envconfig:"ENABLE_PROMETHEUS_GRPC_HISTOGRAM" default:"true"`
+    // PrometheusGRPCHistogramBuckets specifies custom histogram buckets for gRPC request latency metrics
+    // Format: comma-separated float values in seconds (e.g., "0.005,0.01,0.025,0.05,0.1,0.25,0.5,1,2.5,5,10")
+    // If empty, uses the default buckets from go-grpc-prometheus
+    PrometheusGRPCHistogramBuckets []float64 `envconfig:"PROMETHEUS_GRPC_HISTOGRAM_BUCKETS" default:""`
     // The License key for NewRelic metrics reporting
     NewRelicLicenseKey string `envconfig:"NEW_RELIC_LICENSE_KEY" default:""`
+    // When set to true, disables all NewRelic reporting
+    DisableNewRelic bool `envconfig:"DISABLE_NEW_RELIC" default:"false"`
     // Enable NewRelic Distributed Tracing
     NewRelicDistributedTracing bool `envconfig:"NEW_RELIC_DISTRIBUTED_TRACING" default:"true"`
     // Enable new relic opentelemetry
