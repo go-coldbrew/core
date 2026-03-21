@@ -12,7 +12,7 @@ import (
 
 	metricCollector "github.com/afex/hystrix-go/hystrix/metric_collector"
 	"github.com/go-coldbrew/errors/notifier"
-	"github.com/go-coldbrew/hystrixprometheus"
+	"github.com/go-coldbrew/hystrixprometheus" //nolint:staticcheck // deprecated but still in use
 	"github.com/go-coldbrew/interceptors"
 	"github.com/go-coldbrew/log"
 	"github.com/go-coldbrew/log/loggers"

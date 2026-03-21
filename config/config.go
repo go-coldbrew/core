@@ -24,7 +24,9 @@ type Config struct {
 	SwaggerURL string `envconfig:"SWAGGER_URL" default:"/swagger/"`
 	// Should we disable go debug at /debug/, defaults to false
 	DisableDebug bool `envconfig:"DISABLE_DEBUG" default:"false"`
-	// Should we disable prometheus at /metrics, defaults to false
+	// DisablePrometheus controls whether prometheus metrics are disabled at /metrics, defaults to false
+	DisablePrometheus bool `envconfig:"DISABLE_PROMETHEUS" default:"false"`
+	// Deprecated: Use DisablePrometheus instead.
 	DisablePormetheus bool `envconfig:"DISABLE_PROMETHEUS" default:"false"`
 	// Enables grpc request histograms in prometheus reporting
 	EnablePrometheusGRPCHistogram bool `envconfig:"ENABLE_PROMETHEUS_GRPC_HISTOGRAM" default:"true"`

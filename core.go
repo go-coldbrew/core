@@ -82,7 +82,9 @@ func parseHeaders(headerString string) map[string]string {
 
 // processConfig processes the config and sets up the logger, newrelic, sentry, environment, release name, jaeger, hystrix prometheus and signal handler
 func (c *cb) processConfig() {
-	SetupLogger(c.config.LogLevel, c.config.JSONLogs)
+	if err := SetupLogger(c.config.LogLevel, c.config.JSONLogs); err != nil {
+		log.Error(context.Background(), "msg", "failed to setup logger", "err", err)
+	}
 
 	if !c.config.DisableVTProtobuf {
 		InitializeVTProto()
@@ -295,7 +297,7 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 			} else if !c.config.DisableDebug && strings.HasPrefix(r.URL.Path, "/debug/pprof/") {
 				pprof.Index(w, r)
 				return
-			} else if !c.config.DisablePormetheus && strings.HasPrefix(r.URL.Path, "/metrics") {
+			} else if !(c.config.DisablePrometheus || c.config.DisablePormetheus) && strings.HasPrefix(r.URL.Path, "/metrics") { //nolint:staticcheck // intentional use of deprecated field for backward compatibility
 				promhttp.Handler().ServeHTTP(w, r)
 				return
 			}
