@@ -149,16 +149,16 @@ func TestGetCustomHeaderMatcher(t *testing.T) {
 
 	t.Run("non-matching header falls back to default matcher", func(t *testing.T) {
 		t.Parallel()
-		// "Content-Type" is a standard header handled by DefaultHeaderMatcher
+		// "Content-Type" is handled by DefaultHeaderMatcher
 		key, matched := matcher("Content-Type")
-		// DefaultHeaderMatcher allows standard gRPC-gateway headers
-		// We just verify it doesn't panic and returns some result
-		_ = key
-		_ = matched
-		// Also test a completely unknown header
+		if !matched {
+			t.Fatal("expected Content-Type to be matched by default matcher")
+		}
+		if key == "" {
+			t.Fatal("expected non-empty key for Content-Type")
+		}
+		// Unknown non-prefixed header should not match
 		_, matched2 := matcher("X-Unknown-Non-Prefixed")
-		// This should not match our prefix or trace header, falls back to default
-		// DefaultHeaderMatcher will return false for non-standard headers
 		if matched2 {
 			t.Fatal("expected non-matching header to not match")
 		}
