@@ -297,7 +297,7 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 			} else if !c.config.DisableDebug && strings.HasPrefix(r.URL.Path, "/debug/pprof/") {
 				pprof.Index(w, r)
 				return
-			} else if !c.config.DisablePrometheus && strings.HasPrefix(r.URL.Path, "/metrics") {
+			} else if !(c.config.DisablePrometheus || c.config.DisablePormetheus) && strings.HasPrefix(r.URL.Path, "/metrics") { //nolint:staticcheck // intentional use of deprecated field for backward compatibility
 				promhttp.Handler().ServeHTTP(w, r)
 				return
 			}

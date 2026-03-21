@@ -27,7 +27,7 @@ type Config struct {
 	// DisablePrometheus controls whether prometheus metrics are disabled at /metrics, defaults to false
 	DisablePrometheus bool `envconfig:"DISABLE_PROMETHEUS" default:"false"`
 	// Deprecated: Use DisablePrometheus instead.
-	DisablePormetheus bool `envconfig:"-"`
+	DisablePormetheus bool `envconfig:"DISABLE_PROMETHEUS" default:"false"`
 	// Enables grpc request histograms in prometheus reporting
 	EnablePrometheusGRPCHistogram bool `envconfig:"ENABLE_PROMETHEUS_GRPC_HISTOGRAM" default:"true"`
 	// PrometheusGRPCHistogramBuckets specifies custom histogram buckets for gRPC request latency metrics
