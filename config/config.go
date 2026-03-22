@@ -135,3 +135,35 @@ type Config struct {
 	// This allows using existing OpenTracing instrumentation with OpenTelemetry
 	OTLPUseOpenTracingBridge bool `envconfig:"OTLP_USE_OPENTRACING_BRIDGE" default:"true"`
 }
+
+// Validate checks the configuration for common misconfigurations and returns
+// a list of warning messages. It does not return an error to avoid breaking
+// existing services — warnings are meant to be logged at startup.
+func (c Config) Validate() []string {
+	var warnings []string
+
+	if c.GRPCPort < 1 || c.GRPCPort > 65535 {
+		warnings = append(warnings, "GRPCPort is out of valid range (1-65535)")
+	}
+	if c.HTTPPort < 1 || c.HTTPPort > 65535 {
+		warnings = append(warnings, "HTTPPort is out of valid range (1-65535)")
+	}
+	if c.GRPCPort == c.HTTPPort && c.GRPCPort != 0 {
+		warnings = append(warnings, "GRPCPort and HTTPPort are the same, this will cause a port conflict")
+	}
+	if c.NewRelicOpentelemetrySample < 0 || c.NewRelicOpentelemetrySample > 1.0 {
+		warnings = append(warnings, "NewRelicOpentelemetrySample should be between 0.0 and 1.0")
+	}
+	if c.OTLPSamplingRatio < 0 || c.OTLPSamplingRatio > 1.0 {
+		warnings = append(warnings, "OTLPSamplingRatio should be between 0.0 and 1.0")
+	}
+	if (c.GRPCTLSCertFile == "") != (c.GRPCTLSKeyFile == "") {
+		warnings = append(warnings, "GRPCTLSCertFile and GRPCTLSKeyFile must both be set or both be empty")
+	}
+	if c.ShutdownDurationInSeconds > 0 && c.HealthcheckWaitDurationInSeconds > 0 &&
+		c.HealthcheckWaitDurationInSeconds >= c.ShutdownDurationInSeconds {
+		warnings = append(warnings, "HealthcheckWaitDurationInSeconds should be less than ShutdownDurationInSeconds")
+	}
+
+	return warnings
+}

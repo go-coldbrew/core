@@ -439,6 +439,13 @@ func (c *cb) Run() error {
 		errChan <- c.runHTTP(ctx, c.httpServer)
 	}()
 	err = <-errChan
+	// One server failed — stop the other to ensure clean shutdown
+	if c.grpcServer != nil {
+		c.grpcServer.Stop()
+	}
+	if c.httpServer != nil {
+		c.httpServer.Close()
+	}
 	c.gracefulWait.Wait() // if graceful shutdown is in progress wait for it to finish
 	c.close()
 	return err
@@ -482,12 +489,9 @@ func (c *cb) Stop(dur time.Duration) error {
 	}
 	log.Info(context.Background(), "msg", "Server shut down started, bye bye")
 	if c.httpServer != nil {
-		go func(ctx context.Context, c *cb) {
-			err := c.httpServer.Shutdown(ctx)
-			if err != nil {
-				log.Error(context.Background(), "msg", "http server shutdown error", "err", err)
-			}
-		}(ctx, c) // shutdown http server gracefully
+		if err := c.httpServer.Shutdown(ctx); err != nil {
+			log.Error(context.Background(), "msg", "http server shutdown error", "err", err)
+		}
 	}
 	if c.grpcServer != nil {
 		timedCall(ctx, c.grpcServer.GracefulStop)
@@ -524,6 +528,11 @@ func timedCall(ctx context.Context, f func()) {
 // The services are added using the AddService method
 // The services are started and stopped in the order they are added
 func New(c config.Config) CB {
+	if warnings := c.Validate(); len(warnings) > 0 {
+		for _, w := range warnings {
+			log.Warn(context.Background(), "msg", "config validation warning", "warning", w)
+		}
+	}
 	impl := &cb{
 		config: c,
 		svc:    make([]CBService, 0),

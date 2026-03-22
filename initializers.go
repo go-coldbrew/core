@@ -115,6 +115,7 @@ func SetupReleaseName(rel string) {
 // Use SetupOpenTelemetry or SetupNROpenTelemetry instead, which support
 // OTLP-compatible backends including Jaeger's OTLP receiver.
 func setupJaeger(serviceName string) io.Closer {
+	log.Warn(context.Background(), "msg", "Jaeger client is deprecated and EOL. Please migrate to SetupOpenTelemetry or SetupNROpenTelemetry with OTLP-compatible backends.")
 	conf, err := jaegerconfig.FromEnv()
 	if err != nil {
 		log.Info(context.Background(), "msg", "could not initialize jaeger", "err", err)
