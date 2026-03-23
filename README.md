@@ -38,7 +38,7 @@ cd YourApp
 make run
 ```
 
-Your service starts with gRPC on `:9090`, HTTP gateway on `:9091`, Prometheus metrics at `/metrics`, and health checks at `/healthz`.
+Your service starts with gRPC on `:9090`, HTTP gateway on `:9091`, Prometheus metrics at `/metrics`, and health checks at `/healthcheck` and `/readycheck`.
 
 ## Documentation
 
