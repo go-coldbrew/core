@@ -441,7 +441,7 @@ func (c *cb) Run() error {
 	err = <-errChan
 	// Stop the peer server only on unexpected failures to avoid racing
 	// with an in-progress graceful shutdown.
-	if !errors.Is(err, http.ErrServerClosed) {
+	if err != nil && !errors.Is(err, http.ErrServerClosed) && !errors.Is(err, grpc.ErrServerStopped) {
 		if c.grpcServer != nil {
 			c.grpcServer.Stop()
 		}
@@ -537,7 +537,7 @@ func New(c config.Config) CB {
 	}
 	impl.processConfig()
 	// Log validation warnings after processConfig so the logger is configured
-	if warnings := c.Validate(); len(warnings) > 0 {
+	if warnings := impl.config.Validate(); len(warnings) > 0 {
 		for _, w := range warnings {
 			log.Warn(context.Background(), "msg", "config validation warning", "warning", w)
 		}
