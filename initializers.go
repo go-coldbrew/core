@@ -258,9 +258,10 @@ func SetupOpenTelemetry(config OTLPConfig) error {
 		log.Error(context.Background(), "msg", "merging OTLP resource", "err", err)
 		return err
 	}
-	// Clamp/Default sampling ratio
+	// Default sampling ratio only when not explicitly set (negative)
+	// 0 is a valid value meaning "sample nothing"
 	ratio := config.SamplingRatio
-	if ratio <= 0 || ratio > 1 {
+	if ratio < 0 || ratio > 1 {
 		ratio = 0.2
 	}
 
