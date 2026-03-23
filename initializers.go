@@ -120,6 +120,11 @@ func setupJaeger(serviceName string) io.Closer {
 		log.Info(context.Background(), "msg", "could not initialize jaeger", "err", err)
 		return nil
 	}
+	if conf.ServiceName == "" && serviceName == "" {
+		// Jaeger not configured, skip initialization
+		return nil
+	}
+	log.Warn(context.Background(), "msg", "Jaeger client is deprecated and EOL. Please migrate to SetupOpenTelemetry or SetupNROpenTelemetry with OTLP-compatible backends.")
 	conf.ServiceName = serviceName
 	zipkinPropagator := zipkin.NewZipkinB3HTTPHeaderPropagator()
 	jaegerTracer, closer, err := conf.NewTracer(
@@ -257,9 +262,10 @@ func SetupOpenTelemetry(config OTLPConfig) error {
 		log.Error(context.Background(), "msg", "merging OTLP resource", "err", err)
 		return err
 	}
-	// Clamp/Default sampling ratio
+	// Default sampling ratio when not explicitly set (negative) or invalid (> 1).
+	// 0 is a valid value meaning "sample nothing".
 	ratio := config.SamplingRatio
-	if ratio <= 0 || ratio > 1 {
+	if ratio < 0 || ratio > 1 {
 		ratio = 0.2
 	}
 
