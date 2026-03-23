@@ -26,6 +26,9 @@ func TestValidatePortZero(t *testing.T) {
 		if strings.Contains(w, "Port") && strings.Contains(w, "range") {
 			t.Errorf("port 0 should be valid, got warning: %s", w)
 		}
+		if strings.Contains(w, "port conflict") {
+			t.Errorf("port 0 should not warn about conflict, got warning: %s", w)
+		}
 	}
 }
 
@@ -51,8 +54,18 @@ func TestValidateSamplingRatio(t *testing.T) {
 		OTLPSamplingRatio:          -0.1,
 	}
 	warnings := c.Validate()
-	if len(warnings) < 2 {
-		t.Errorf("expected at least 2 warnings for invalid sampling ratios, got %d: %v", len(warnings), warnings)
+	foundNR := false
+	foundOTLP := false
+	for _, w := range warnings {
+		if strings.Contains(w, "NewRelicOpentelemetrySample") {
+			foundNR = true
+		}
+		if strings.Contains(w, "OTLPSamplingRatio") {
+			foundOTLP = true
+		}
+	}
+	if !foundNR || !foundOTLP {
+		t.Errorf("expected warnings for both sampling fields, got: %v", warnings)
 	}
 }
 
