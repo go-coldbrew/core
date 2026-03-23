@@ -5,11 +5,11 @@ go 1.25.0
 require (
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/afex/hystrix-go v0.0.0-20180502004556-fa1af6a1f4f5
-	github.com/go-coldbrew/errors v0.2.1
+	github.com/go-coldbrew/errors v0.2.2
 	github.com/go-coldbrew/hystrixprometheus v0.1.2
-	github.com/go-coldbrew/interceptors v0.1.10
-	github.com/go-coldbrew/log v0.2.5
-	github.com/go-coldbrew/options v0.2.4
+	github.com/go-coldbrew/interceptors v0.1.11
+	github.com/go-coldbrew/log v0.2.6
+	github.com/go-coldbrew/options v0.2.5
 	github.com/go-coldbrew/tracing v0.0.7
 	github.com/golang/protobuf v1.5.4
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
@@ -31,18 +31,25 @@ require (
 )
 
 require (
+	github.com/HdrHistogram/hdrhistogram-go v1.2.0 // indirect
+	github.com/adhocore/gronx v1.19.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/certifi/gocertifi v0.0.0-20210507211836-431795d63e8d // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/dlclark/regexp2 v1.9.0 // indirect
+	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/getsentry/raven-go v0.2.0 // indirect
 	github.com/go-kit/log v0.2.1 // indirect
 	github.com/go-logfmt/logfmt v0.6.1 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/gopherjs/gopherjs v1.20.1 // indirect
+	github.com/gorilla/websocket v1.5.0 // indirect
+	github.com/jtolds/gls v4.20.0+incompatible // indirect
+	github.com/k2io/hookingo v1.0.6 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/newrelic/csec-go-agent v1.6.0 // indirect
 	github.com/newrelic/go-agent/v3/integrations/nrgrpc v1.4.7 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
@@ -63,4 +70,5 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20260319201613-d00831a3d3e7 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260319201613-d00831a3d3e7 // indirect
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
+	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 )
