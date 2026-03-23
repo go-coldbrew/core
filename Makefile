@@ -7,9 +7,7 @@ test:
 
 doc:
 	go install github.com/princjef/gomarkdoc/cmd/gomarkdoc@latest
-	gomarkdoc ./... > README_API.md
-	cat README_PREAMBLE.md README_API.md > README.md
-	rm README_API.md
+	gomarkdoc ./...
 
 lint:
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
