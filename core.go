@@ -439,12 +439,15 @@ func (c *cb) Run() error {
 		errChan <- c.runHTTP(ctx, c.httpServer)
 	}()
 	err = <-errChan
-	// One server failed — stop the other to ensure clean shutdown
-	if c.grpcServer != nil {
-		c.grpcServer.Stop()
-	}
-	if c.httpServer != nil {
-		c.httpServer.Close()
+	// Stop the peer server only on unexpected failures to avoid racing
+	// with an in-progress graceful shutdown.
+	if !errors.Is(err, http.ErrServerClosed) {
+		if c.grpcServer != nil {
+			c.grpcServer.Stop()
+		}
+		if c.httpServer != nil {
+			c.httpServer.Close()
+		}
 	}
 	c.gracefulWait.Wait() // if graceful shutdown is in progress wait for it to finish
 	c.close()
@@ -528,15 +531,16 @@ func timedCall(ctx context.Context, f func()) {
 // The services are added using the AddService method
 // The services are started and stopped in the order they are added
 func New(c config.Config) CB {
-	if warnings := c.Validate(); len(warnings) > 0 {
-		for _, w := range warnings {
-			log.Warn(context.Background(), "msg", "config validation warning", "warning", w)
-		}
-	}
 	impl := &cb{
 		config: c,
 		svc:    make([]CBService, 0),
 	}
 	impl.processConfig()
+	// Log validation warnings after processConfig so the logger is configured
+	if warnings := c.Validate(); len(warnings) > 0 {
+		for _, w := range warnings {
+			log.Warn(context.Background(), "msg", "config validation warning", "warning", w)
+		}
+	}
 	return impl
 }

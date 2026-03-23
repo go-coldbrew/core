@@ -142,11 +142,11 @@ type Config struct {
 func (c Config) Validate() []string {
 	var warnings []string
 
-	if c.GRPCPort < 1 || c.GRPCPort > 65535 {
-		warnings = append(warnings, "GRPCPort is out of valid range (1-65535)")
+	if c.GRPCPort < 0 || c.GRPCPort > 65535 {
+		warnings = append(warnings, "GRPCPort is out of valid range (0-65535)")
 	}
-	if c.HTTPPort < 1 || c.HTTPPort > 65535 {
-		warnings = append(warnings, "HTTPPort is out of valid range (1-65535)")
+	if c.HTTPPort < 0 || c.HTTPPort > 65535 {
+		warnings = append(warnings, "HTTPPort is out of valid range (0-65535)")
 	}
 	if c.GRPCPort == c.HTTPPort && c.GRPCPort != 0 {
 		warnings = append(warnings, "GRPCPort and HTTPPort are the same, this will cause a port conflict")
