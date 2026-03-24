@@ -1,6 +1,6 @@
 module github.com/go-coldbrew/core
 
-go 1.25.0
+go 1.25.8
 
 require (
 	github.com/NYTimes/gziphandler v1.1.1
