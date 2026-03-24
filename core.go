@@ -19,7 +19,6 @@ import (
 	"github.com/go-coldbrew/log/loggers"
 	"github.com/go-coldbrew/options"
 	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
-	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/klauspost/compress/gzhttp"
 	"github.com/opentracing/opentracing-go"
@@ -119,11 +118,7 @@ func (c *cb) processConfig() {
 		startSignalHandler(c, dur)
 	}
 	if c.config.EnablePrometheusGRPCHistogram {
-		if len(c.config.PrometheusGRPCHistogramBuckets) > 0 {
-			grpc_prometheus.EnableHandlingTimeHistogram(grpc_prometheus.WithHistogramBuckets(c.config.PrometheusGRPCHistogramBuckets))
-		} else {
-			grpc_prometheus.EnableHandlingTimeHistogram()
-		}
+		interceptors.EnablePrometheusHandlingTimeHistogram(c.config.PrometheusGRPCHistogramBuckets)
 	}
 
 	// Setup OpenTelemetry - custom OTLP takes precedence over New Relic
