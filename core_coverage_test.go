@@ -346,9 +346,17 @@ func TestProcessConfig_WithShutdownDuration(t *testing.T) {
 		DisableNewRelic:           true,
 		DisableAutoMaxProcs:       true,
 		DisableVTProtobuf:         true,
+		DisableSignalHandler:      true,
 		ShutdownDurationInSeconds: 5,
 	}}
 	c.processConfig()
+}
+
+func TestSetupHystrixPrometheus_CalledTwice(t *testing.T) {
+	// Regression test: calling SetupHystrixPrometheus multiple times
+	// must not panic (sync.Once guards duplicate Prometheus registration).
+	SetupHystrixPrometheus()
+	SetupHystrixPrometheus()
 }
 
 // --- Group 4: Init Server Functions ---
