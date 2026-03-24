@@ -103,7 +103,7 @@ For full documentation, visit https://docs.coldbrew.cloud
 
 
 <a name="ConfigureInterceptors"></a>
-## func [ConfigureInterceptors](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L331>)
+## func [ConfigureInterceptors](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L338>)
 
 ```go
 func ConfigureInterceptors(DoNotLogGRPCReflection bool, traceHeaderName string)
@@ -112,7 +112,7 @@ func ConfigureInterceptors(DoNotLogGRPCReflection bool, traceHeaderName string)
 ConfigureInterceptors configures the interceptors package with the provided DoNotLogGRPCReflection is a boolean that indicates whether to log the grpc.reflection.v1alpha.ServerReflection service calls in logs traceHeaderName is the name of the header to use for tracing \(e.g. X\-Trace\-Id\) \- if empty, defaults to X\-Trace\-Id
 
 <a name="InitializeVTProto"></a>
-## func [InitializeVTProto](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L379>)
+## func [InitializeVTProto](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L386>)
 
 ```go
 func InitializeVTProto()
@@ -123,7 +123,7 @@ InitializeVTProto initializes the vtproto package for use with the service
 https://github.com/planetscale/vtprotobuf?tab=readme-ov-file#mixing-protobuf-implementations-with-grpc
 
 <a name="SetupAutoMaxProcs"></a>
-## func [SetupAutoMaxProcs](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L345>)
+## func [SetupAutoMaxProcs](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L352>)
 
 ```go
 func SetupAutoMaxProcs()
@@ -132,7 +132,7 @@ func SetupAutoMaxProcs()
 SetupAutoMaxProcs sets up the GOMAXPROCS to match Linux container CPU quota This is used to set the GOMAXPROCS to the number of CPUs allocated to the container
 
 <a name="SetupEnvironment"></a>
-## func [SetupEnvironment](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L96>)
+## func [SetupEnvironment](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L97>)
 
 ```go
 func SetupEnvironment(env string)
@@ -141,16 +141,16 @@ func SetupEnvironment(env string)
 SetupEnvironment sets the environment This is used to identify the environment in Sentry and New Relic env is the environment to set for the service \(e.g. prod, staging, dev\)
 
 <a name="SetupHystrixPrometheus"></a>
-## func [SetupHystrixPrometheus](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L323>)
+## func [SetupHystrixPrometheus](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L328>)
 
 ```go
 func SetupHystrixPrometheus()
 ```
 
-SetupHystrixPrometheus sets up the hystrix metrics This is a workaround for hystrix\-go not supporting the prometheus registry
+SetupHystrixPrometheus sets up the hystrix metrics This is a workaround for hystrix\-go not supporting the prometheus registry It uses sync.Once to ensure the Prometheus collectors are only registered once, since duplicate registration panics.
 
 <a name="SetupLogger"></a>
-## func [SetupLogger](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L72>)
+## func [SetupLogger](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L73>)
 
 ```go
 func SetupLogger(logLevel string, jsonlogs bool) error
@@ -159,7 +159,7 @@ func SetupLogger(logLevel string, jsonlogs bool) error
 SetupLogger sets up the logger It uses the coldbrew logger to log messages to stdout logLevel is the log level to set for the logger jsonlogs is a boolean to enable or disable json logs
 
 <a name="SetupNROpenTelemetry"></a>
-## func [SetupNROpenTelemetry](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L303>)
+## func [SetupNROpenTelemetry](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L304>)
 
 ```go
 func SetupNROpenTelemetry(serviceName, license, version string, ratio float64) error
@@ -177,7 +177,7 @@ Parameters:
 - ratio: the sampling ratio to use for traces \(0.0 to 1.0\)
 
 <a name="SetupNewRelic"></a>
-## func [SetupNewRelic](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L46>)
+## func [SetupNewRelic](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L47>)
 
 ```go
 func SetupNewRelic(serviceName, apiKey string, tracing bool) error
@@ -186,7 +186,7 @@ func SetupNewRelic(serviceName, apiKey string, tracing bool) error
 SetupNewRelic sets up the New Relic tracing and monitoring agent for the service It uses the New Relic Go Agent to send traces to New Relic One APM and Insights serviceName is the name of the service apiKey is the New Relic license key tracing is a boolean to enable or disable tracing
 
 <a name="SetupOpenTelemetry"></a>
-## func [SetupOpenTelemetry](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L211>)
+## func [SetupOpenTelemetry](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L212>)
 
 ```go
 func SetupOpenTelemetry(config OTLPConfig) error
@@ -224,7 +224,7 @@ err := SetupOpenTelemetry(config)
 ```
 
 <a name="SetupReleaseName"></a>
-## func [SetupReleaseName](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L105>)
+## func [SetupReleaseName](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L106>)
 
 ```go
 func SetupReleaseName(rel string)
@@ -233,7 +233,7 @@ func SetupReleaseName(rel string)
 SetupReleaseName sets the release name This is used to identify the release in Sentry rel is the release name to set for the service \(e.g. v1.0.0\)
 
 <a name="SetupSentry"></a>
-## func [SetupSentry](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L87>)
+## func [SetupSentry](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L88>)
 
 ```go
 func SetupSentry(dsn string)
@@ -316,7 +316,7 @@ type CBStopper interface {
 ```
 
 <a name="OTLPConfig"></a>
-## type [OTLPConfig](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L149-L181>)
+## type [OTLPConfig](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L150-L182>)
 
 OTLPConfig holds configuration for OpenTelemetry OTLP exporter
 

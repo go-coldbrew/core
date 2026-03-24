@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -318,11 +319,17 @@ func SetupNROpenTelemetry(serviceName, license, version string, ratio float64) e
 	return SetupOpenTelemetry(config)
 }
 
+var hystrixOnce sync.Once
+
 // SetupHystrixPrometheus sets up the hystrix metrics
 // This is a workaround for hystrix-go not supporting the prometheus registry
+// It uses sync.Once to ensure the Prometheus collectors are only registered once,
+// since duplicate registration panics.
 func SetupHystrixPrometheus() {
-	promC := hystrixprometheus.NewPrometheusCollector("hystrix", nil, prometheus.DefBuckets)
-	metricCollector.Registry.Register(promC.Collector)
+	hystrixOnce.Do(func() {
+		promC := hystrixprometheus.NewPrometheusCollector("hystrix", nil, prometheus.DefBuckets)
+		metricCollector.Registry.Register(promC.Collector)
+	})
 }
 
 // ConfigureInterceptors configures the interceptors package with the provided
