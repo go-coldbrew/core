@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -752,7 +753,7 @@ func TestRunFullLifecycle(t *testing.T) {
 	}
 
 	err := <-errCh
-	if err != nil && err != http.ErrServerClosed && err.Error() != "grpc: the server has been stopped" {
+	if err != nil && !errors.Is(err, http.ErrServerClosed) && !errors.Is(err, grpc.ErrServerStopped) {
 		t.Fatalf("unexpected Run error: %v", err)
 	}
 }
