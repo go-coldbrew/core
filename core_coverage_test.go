@@ -24,15 +24,22 @@ type testService struct {
 	initGRPCCalled  bool
 	stopCalled      bool
 	failCheckCalled bool
+	ready           chan struct{} // closed when InitGRPC is called; nil if unused
 }
 
 func (s *testService) InitHTTP(_ context.Context, _ *runtime.ServeMux, _ string, _ []grpc.DialOption) error {
-	s.initHTTPCalled = true
+	if s.ready == nil {
+		s.initHTTPCalled = true
+	}
 	return nil
 }
 
 func (s *testService) InitGRPC(_ context.Context, _ *grpc.Server) error {
-	s.initGRPCCalled = true
+	if s.ready != nil {
+		close(s.ready)
+	} else {
+		s.initGRPCCalled = true
+	}
 	return nil
 }
 
@@ -97,9 +104,9 @@ func TestTimedCall_TimesOut(t *testing.T) {
 	defer cancel()
 
 	timedCall(ctx, func() {
-		time.Sleep(5 * time.Second)
+		time.Sleep(200 * time.Millisecond)
 	})
-	// Should return without hanging
+	// Should return without hanging — context expires before the sleep completes
 }
 
 func TestClose_WithClosers(t *testing.T) {
@@ -738,7 +745,7 @@ func TestRunFullLifecycle(t *testing.T) {
 		t.Skip("skipping full lifecycle test in short mode")
 	}
 
-	svc := &testService{}
+	svc := &testService{ready: make(chan struct{})}
 	instance := New(config.Config{
 		GRPCPort:             0,
 		HTTPPort:             0,
@@ -754,7 +761,15 @@ func TestRunFullLifecycle(t *testing.T) {
 		errCh <- instance.Run()
 	}()
 
-	time.Sleep(300 * time.Millisecond)
+	// Wait for InitGRPC to be called, signaling the server is starting.
+	// The short sleep after lets Run() finish assigning c.grpcServer/c.httpServer
+	// before Stop() reads them (a pre-existing race in core's field assignment).
+	select {
+	case <-svc.ready:
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out waiting for server to start")
+	}
+	time.Sleep(100 * time.Millisecond)
 
 	if err := instance.Stop(2 * time.Second); err != nil {
 		t.Fatalf("Stop failed: %v", err)
