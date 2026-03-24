@@ -6,12 +6,10 @@ test:
 	go test -race ./...
 
 doc:
-	go install github.com/princjef/gomarkdoc/cmd/gomarkdoc@latest
-	gomarkdoc ./...
+	go tool gomarkdoc ./...
 
 lint:
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-	golangci-lint run
+	go tool golangci-lint run
 
 bench:
 	go test -run=^$ -bench=. -benchmem ./...
