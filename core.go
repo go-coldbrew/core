@@ -13,7 +13,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/NYTimes/gziphandler"
 	"github.com/go-coldbrew/core/config"
 	"github.com/go-coldbrew/interceptors"
 	"github.com/go-coldbrew/log"
@@ -22,6 +21,7 @@ import (
 	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/klauspost/compress/gzhttp"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -275,6 +275,8 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 
 	// Start HTTP server (and proxy calls to gRPC server endpoint)
 	gatewayAddr := fmt.Sprintf("%s:%d", c.config.ListenHost, c.config.HTTPPort)
+	promHandler := promhttp.Handler()
+	gzipHandler := gzhttp.GzipHandler(tracingWrapper(mux))
 	gwServer := &http.Server{
 		Addr: gatewayAddr,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -298,10 +300,10 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 				pprof.Index(w, r)
 				return
 			} else if !(c.config.DisablePrometheus || c.config.DisablePormetheus) && strings.HasPrefix(r.URL.Path, "/metrics") { //nolint:staticcheck // intentional use of deprecated field for backward compatibility
-				promhttp.Handler().ServeHTTP(w, r)
+				promHandler.ServeHTTP(w, r)
 				return
 			}
-			gziphandler.GzipHandler(tracingWrapper(mux)).ServeHTTP(w, r)
+			gzipHandler.ServeHTTP(w, r)
 		}),
 	}
 	log.Info(ctx, "msg", "Starting HTTP server", "address", gatewayAddr)
