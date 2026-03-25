@@ -3,7 +3,6 @@ module github.com/go-coldbrew/core
 go 1.25.8
 
 require (
-	github.com/NYTimes/gziphandler v1.1.1
 	github.com/afex/hystrix-go v0.0.0-20180502004556-fa1af6a1f4f5
 	github.com/go-coldbrew/errors v0.2.2
 	github.com/go-coldbrew/hystrixprometheus v0.1.2
@@ -16,6 +15,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.28.0
 	github.com/jaegertracing/jaeger-lib v2.4.1+incompatible
+	github.com/klauspost/compress v1.18.5
 	github.com/newrelic/go-agent/v3 v3.42.0
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/prometheus/client_golang v1.23.2
