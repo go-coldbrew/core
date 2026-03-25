@@ -275,6 +275,8 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 
 	// Start HTTP server (and proxy calls to gRPC server endpoint)
 	gatewayAddr := fmt.Sprintf("%s:%d", c.config.ListenHost, c.config.HTTPPort)
+	promHandler := promhttp.Handler()
+	gzipHandler := gziphandler.GzipHandler(tracingWrapper(mux))
 	gwServer := &http.Server{
 		Addr: gatewayAddr,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -298,10 +300,10 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 				pprof.Index(w, r)
 				return
 			} else if !(c.config.DisablePrometheus || c.config.DisablePormetheus) && strings.HasPrefix(r.URL.Path, "/metrics") { //nolint:staticcheck // intentional use of deprecated field for backward compatibility
-				promhttp.Handler().ServeHTTP(w, r)
+				promHandler.ServeHTTP(w, r)
 				return
 			}
-			gziphandler.GzipHandler(tracingWrapper(mux)).ServeHTTP(w, r)
+			gzipHandler.ServeHTTP(w, r)
 		}),
 	}
 	log.Info(ctx, "msg", "Starting HTTP server", "address", gatewayAddr)
