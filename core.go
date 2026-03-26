@@ -33,8 +33,11 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-// This is a compile-time assertion to ensure that this version of core
-// is compatible with the interceptors package it is being compiled against.
+// SupportPackageIsVersion1 is a compile-time assertion constant.
+// Downstream packages reference this to enforce version compatibility.
+const SupportPackageIsVersion1 = true
+
+// Compile-time version compatibility checks.
 const _ = interceptors.SupportPackageIsVersion1
 
 type cb struct {
