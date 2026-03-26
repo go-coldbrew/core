@@ -83,6 +83,7 @@ For full documentation, visit https://docs.coldbrew.cloud
 
 ## Index
 
+- [Constants](<#constants>)
 - [func ConfigureInterceptors\(DoNotLogGRPCReflection bool, traceHeaderName string\)](<#ConfigureInterceptors>)
 - [func InitializeVTProto\(\)](<#InitializeVTProto>)
 - [func SetupAutoMaxProcs\(\)](<#SetupAutoMaxProcs>)
@@ -101,6 +102,14 @@ For full documentation, visit https://docs.coldbrew.cloud
 - [type CBStopper](<#CBStopper>)
 - [type OTLPConfig](<#OTLPConfig>)
 
+
+## Constants
+
+<a name="SupportPackageIsVersion1"></a>SupportPackageIsVersion1 is a compile\-time assertion constant. Downstream packages reference this to enforce version compatibility.
+
+```go
+const SupportPackageIsVersion1 = true
+```
 
 <a name="ConfigureInterceptors"></a>
 ## func [ConfigureInterceptors](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L338>)
@@ -263,7 +272,7 @@ type CB interface {
 ```
 
 <a name="New"></a>
-### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L533>)
+### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L548>)
 
 ```go
 func New(c config.Config) CB
