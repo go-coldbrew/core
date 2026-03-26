@@ -108,8 +108,6 @@ require (
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
 	github.com/go-git/go-billy/v5 v5.8.0 // indirect
 	github.com/go-git/go-git/v5 v5.17.0 // indirect
-	github.com/go-kit/log v0.2.1 // indirect
-	github.com/go-logfmt/logfmt v0.6.1 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-toolsmith/astcast v1.1.0 // indirect
@@ -302,3 +300,5 @@ tool (
 	github.com/princjef/gomarkdoc/cmd/gomarkdoc
 	golang.org/x/vuln/cmd/govulncheck
 )
+
+replace github.com/go-coldbrew/log => ../log

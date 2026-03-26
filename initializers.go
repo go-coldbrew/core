@@ -17,7 +17,7 @@ import (
 	"github.com/go-coldbrew/interceptors"
 	"github.com/go-coldbrew/log"
 	"github.com/go-coldbrew/log/loggers"
-	"github.com/go-coldbrew/log/loggers/gokit"
+	cbslog "github.com/go-coldbrew/log/loggers/slog"
 	nrutil "github.com/go-coldbrew/tracing/newrelic"
 	protov1 "github.com/golang/protobuf/proto" //nolint:staticcheck
 	jprom "github.com/jaegertracing/jaeger-lib/metrics/prometheus"
@@ -71,7 +71,7 @@ func SetupNewRelic(serviceName, apiKey string, tracing bool) error {
 // logLevel is the log level to set for the logger
 // jsonlogs is a boolean to enable or disable json logs
 func SetupLogger(logLevel string, jsonlogs bool) error {
-	log.SetLogger(log.NewLogger(gokit.NewLogger(loggers.WithJSONLogs(jsonlogs))))
+	log.SetLogger(log.NewLogger(cbslog.NewLogger(loggers.WithJSONLogs(jsonlogs))))
 
 	ll, err := loggers.ParseLevel(logLevel)
 	if err != nil {
