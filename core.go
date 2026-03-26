@@ -33,6 +33,10 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
+// This is a compile-time assertion to ensure that this version of core
+// is compatible with the interceptors package it is being compiled against.
+const _ = interceptors.SupportPackageIsVersion1
+
 type cb struct {
 	svc            []CBService
 	openAPIHandler http.Handler
