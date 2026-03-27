@@ -7,7 +7,7 @@ require (
 	github.com/go-coldbrew/errors v0.2.5
 	github.com/go-coldbrew/hystrixprometheus v0.1.2
 	github.com/go-coldbrew/interceptors v0.1.12
-	github.com/go-coldbrew/log v0.2.7
+	github.com/go-coldbrew/log v0.2.8
 	github.com/go-coldbrew/options v0.2.6
 	github.com/go-coldbrew/tracing v0.0.7
 	github.com/golang/protobuf v1.5.4
@@ -301,5 +301,3 @@ tool (
 	github.com/princjef/gomarkdoc/cmd/gomarkdoc
 	golang.org/x/vuln/cmd/govulncheck
 )
-
-replace github.com/go-coldbrew/log => ../log
