@@ -87,7 +87,7 @@ func parseHeaders(headerString string) map[string]string {
 	return headers
 }
 
-// processConfig processes the config and sets up the logger, newrelic, sentry, environment, release name, hystrix prometheus and signal handler
+// processConfig processes the config and sets up the logger, newrelic, sentry, environment, release name, OpenTelemetry tracing, hystrix prometheus and signal handler
 func (c *cb) processConfig() {
 	if err := SetupLogger(c.config.LogLevel, c.config.JSONLogs); err != nil {
 		log.Error(context.Background(), "msg", "failed to setup logger", "err", err)
