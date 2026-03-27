@@ -7,7 +7,7 @@ require (
 	github.com/go-coldbrew/errors v0.2.5
 	github.com/go-coldbrew/hystrixprometheus v0.1.2
 	github.com/go-coldbrew/interceptors v0.1.12
-	github.com/go-coldbrew/log v0.2.7
+	github.com/go-coldbrew/log v0.2.8
 	github.com/go-coldbrew/options v0.2.6
 	github.com/go-coldbrew/tracing v0.0.7
 	github.com/golang/protobuf v1.5.4
@@ -109,8 +109,6 @@ require (
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
 	github.com/go-git/go-billy/v5 v5.8.0 // indirect
 	github.com/go-git/go-git/v5 v5.17.0 // indirect
-	github.com/go-kit/log v0.2.1 // indirect
-	github.com/go-logfmt/logfmt v0.6.1 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-toolsmith/astcast v1.1.0 // indirect
