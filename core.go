@@ -87,7 +87,7 @@ func parseHeaders(headerString string) map[string]string {
 	return headers
 }
 
-// processConfig processes the config and sets up the logger, newrelic, sentry, environment, release name, jaeger, hystrix prometheus and signal handler
+// processConfig processes the config and sets up the logger, newrelic, sentry, environment, release name, OpenTelemetry tracing, hystrix prometheus and signal handler
 func (c *cb) processConfig() {
 	if err := SetupLogger(c.config.LogLevel, c.config.JSONLogs); err != nil {
 		log.Error(context.Background(), "msg", "failed to setup logger", "err", err)
@@ -112,10 +112,6 @@ func (c *cb) processConfig() {
 	SetupSentry(c.config.SentryDSN)
 	SetupEnvironment(c.config.Environment)
 	SetupReleaseName(c.config.ReleaseName)
-	cls := setupJaeger(c.config.AppName)
-	if cls != nil {
-		c.closers = append(c.closers, cls)
-	}
 	SetupHystrixPrometheus()
 	ConfigureInterceptors(c.config.DoNotLogGRPCReflection, c.config.TraceHeaderName)
 	if !c.config.DisableSignalHandler {

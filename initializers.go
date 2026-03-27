@@ -3,7 +3,6 @@ package core
 import (
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"os/signal"
 	"strings"
@@ -20,12 +19,9 @@ import (
 	cbslog "github.com/go-coldbrew/log/loggers/slog"
 	nrutil "github.com/go-coldbrew/tracing/newrelic"
 	protov1 "github.com/golang/protobuf/proto" //nolint:staticcheck
-	jprom "github.com/jaegertracing/jaeger-lib/metrics/prometheus"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
-	jaegerconfig "github.com/uber/jaeger-client-go/config"
-	"github.com/uber/jaeger-client-go/zipkin"
 	"go.opentelemetry.io/otel"
 	otelBridge "go.opentelemetry.io/otel/bridge/opentracing"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
@@ -107,40 +103,6 @@ func SetupReleaseName(rel string) {
 	if rel != "" {
 		notifier.SetRelease(rel)
 	}
-}
-
-// setupJaeger sets up the Jaeger tracing.
-// It uses the Jaeger Zipkin B3 HTTP Propagator to propagate the tracing headers to downstream services.
-//
-// Deprecated: The Jaeger client (github.com/uber/jaeger-client-go) is EOL.
-// Use SetupOpenTelemetry or SetupNROpenTelemetry instead, which support
-// OTLP-compatible backends including Jaeger's OTLP receiver.
-func setupJaeger(serviceName string) io.Closer {
-	conf, err := jaegerconfig.FromEnv()
-	if err != nil {
-		log.Info(context.Background(), "msg", "could not initialize jaeger", "err", err)
-		return nil
-	}
-	if conf.ServiceName == "" && serviceName == "" {
-		// Jaeger not configured, skip initialization
-		return nil
-	}
-	log.Warn(context.Background(), "msg", "Jaeger client is deprecated and EOL. Please migrate to SetupOpenTelemetry or SetupNROpenTelemetry with OTLP-compatible backends.")
-	conf.ServiceName = serviceName
-	zipkinPropagator := zipkin.NewZipkinB3HTTPHeaderPropagator()
-	jaegerTracer, closer, err := conf.NewTracer(
-		jaegerconfig.Injector(opentracing.HTTPHeaders, zipkinPropagator),
-		jaegerconfig.Extractor(opentracing.HTTPHeaders, zipkinPropagator),
-		jaegerconfig.ZipkinSharedRPCSpan(true),
-		jaegerconfig.Metrics(jprom.New()),
-	)
-	if err != nil {
-		log.Info(context.Background(), "msg", "could not initialize jaeger", "err", err)
-		return nil
-	}
-	opentracing.SetGlobalTracer(jaegerTracer)
-	log.Info(context.Background(), "msg", "jaeger tracing initialized")
-	return closer
 }
 
 // OTLPConfig holds configuration for OpenTelemetry OTLP exporter
