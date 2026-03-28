@@ -25,6 +25,7 @@ import (
 	"go.opentelemetry.io/otel"
 	otelBridge "go.opentelemetry.io/otel/bridge/opentracing"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -237,6 +238,13 @@ func SetupOpenTelemetry(config OTLPConfig) error {
 		sdktrace.WithBatcher(otlpExporter),
 		sdktrace.WithResource(r),
 	)
+
+	// Set global propagator for W3C trace context + baggage propagation.
+	// This is required for linking spans across HTTP→gRPC boundaries.
+	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
+		propagation.TraceContext{},
+		propagation.Baggage{},
+	))
 
 	if config.UseOpenTracingBridge {
 		otelTracer := tracerProvider.Tracer(config.ServiceName)
