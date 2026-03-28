@@ -327,7 +327,9 @@ func (c *cb) runHTTP(_ context.Context, svr *http.Server) error {
 var otelGRPCServerOpts = []otelgrpc.Option{
 	otelgrpc.WithFilter(defaultOTELFilter),
 }
-var otelGRPCClientOpts []otelgrpc.Option
+var otelGRPCClientOpts = []otelgrpc.Option{
+	otelgrpc.WithFilter(defaultOTELFilter),
+}
 
 // defaultOTELFilter excludes health checks, readiness probes, and gRPC
 // reflection from tracing to reduce noise — matching the previous
