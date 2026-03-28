@@ -180,7 +180,7 @@ func tracingWrapper(h http.Handler) http.Handler {
 				oteltrace.WithSpanKind(oteltrace.SpanKindServer),
 				oteltrace.WithAttributes(
 					semconv.HTTPMethodKey.String(r.Method),
-					semconv.HTTPTargetKey.String(r.URL.Path),
+					semconv.HTTPTargetKey.String(r.URL.RequestURI()),
 				),
 			)
 			r = r.WithContext(ctx)
