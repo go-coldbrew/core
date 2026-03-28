@@ -170,6 +170,83 @@ func TestTracingWrapper(t *testing.T) {
 	}
 }
 
+func TestTracingWrapper_StatusCodes(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		handler    http.HandlerFunc
+		wantStatus int
+	}{
+		{
+			name: "records 200",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			},
+			wantStatus: http.StatusOK,
+		},
+		{
+			name: "records 404",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusNotFound)
+			},
+			wantStatus: http.StatusNotFound,
+		},
+		{
+			name: "records 500",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusInternalServerError)
+			},
+			wantStatus: http.StatusInternalServerError,
+		},
+		{
+			name: "defaults to 200 when WriteHeader not called",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				fmt.Fprint(w, "ok")
+			},
+			wantStatus: http.StatusOK,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			wrapped := tracingWrapper(tt.handler)
+			req := httptest.NewRequest("GET", "/api/test", nil)
+			w := httptest.NewRecorder()
+			wrapped.ServeHTTP(w, req)
+			if w.Code != tt.wantStatus {
+				t.Fatalf("expected %d, got %d", tt.wantStatus, w.Code)
+			}
+		})
+	}
+}
+
+func TestStatusRecorder(t *testing.T) {
+	t.Parallel()
+
+	t.Run("captures explicit status", func(t *testing.T) {
+		t.Parallel()
+		w := httptest.NewRecorder()
+		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		rec.WriteHeader(http.StatusBadGateway)
+		if rec.status != http.StatusBadGateway {
+			t.Fatalf("expected %d, got %d", http.StatusBadGateway, rec.status)
+		}
+		if w.Code != http.StatusBadGateway {
+			t.Fatalf("underlying writer expected %d, got %d", http.StatusBadGateway, w.Code)
+		}
+	})
+
+	t.Run("unwrap returns underlying writer", func(t *testing.T) {
+		t.Parallel()
+		w := httptest.NewRecorder()
+		rec := &statusRecorder{ResponseWriter: w}
+		if rec.Unwrap() != w {
+			t.Fatal("Unwrap did not return underlying ResponseWriter")
+		}
+	})
+}
+
 func TestGetCustomHeaderMatcher_EmptyPrefixes(t *testing.T) {
 	t.Parallel()
 	matcher := getCustomHeaderMatcher(nil, "X-Trace-Id")

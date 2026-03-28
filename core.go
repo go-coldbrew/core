@@ -24,6 +24,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/propagation"
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
 	oteltrace "go.opentelemetry.io/otel/trace"
@@ -169,6 +170,23 @@ func (c *cb) processConfig() {
 	}
 }
 
+// statusRecorder wraps http.ResponseWriter to capture the status code.
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (sr *statusRecorder) WriteHeader(code int) {
+	sr.status = code
+	sr.ResponseWriter.WriteHeader(code)
+}
+
+// Unwrap returns the underlying ResponseWriter so that middleware
+// like gzip can access optional interfaces (http.Flusher, etc.).
+func (sr *statusRecorder) Unwrap() http.ResponseWriter {
+	return sr.ResponseWriter
+}
+
 // tracingWrapper is a middleware that creates a new OTEL span for each incoming HTTP request.
 // It extracts any propagated trace context from the request headers and, for non-filtered
 // methods, starts a server span that is attached to the request context.
@@ -186,7 +204,15 @@ func tracingWrapper(h http.Handler) http.Handler {
 				),
 			)
 			r = r.WithContext(ctx)
-			defer serverSpan.End()
+			rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+			w = rec
+			defer func() {
+				serverSpan.SetAttributes(semconv.HTTPStatusCodeKey.Int(rec.status))
+				if rec.status >= 500 {
+					serverSpan.SetStatus(codes.Error, http.StatusText(rec.status))
+				}
+				serverSpan.End()
+			}()
 		} else {
 			r = r.WithContext(ctx)
 		}
