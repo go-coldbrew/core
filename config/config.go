@@ -131,9 +131,10 @@ type Config struct {
 	// OTLPSamplingRatio is the ratio of traces to sample (0.0 to 1.0)
 	// 1.0 means sample all traces, 0.1 means sample 10% of traces
 	OTLPSamplingRatio float64 `envconfig:"OTLP_SAMPLING_RATIO" default:"0.2"`
-	// OTLPUseOpenTracingBridge determines whether to set up OpenTracing compatibility bridge
-	// This allows using existing OpenTracing instrumentation with OpenTelemetry
-	OTLPUseOpenTracingBridge bool `envconfig:"OTLP_USE_OPENTRACING_BRIDGE" default:"true"`
+	// Deprecated: OpenTracing bridge is provided for backwards compatibility only.
+	// New services should leave this false (the default). Set to true only if you
+	// have existing OpenTracing instrumentation that hasn't been migrated to OTEL.
+	OTLPUseOpenTracingBridge bool `envconfig:"OTLP_USE_OPENTRACING_BRIDGE" default:"false"`
 }
 
 // Validate checks the configuration for common misconfigurations and returns

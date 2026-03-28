@@ -4,14 +4,13 @@ go 1.25.8
 
 require (
 	github.com/afex/hystrix-go v0.0.0-20180502004556-fa1af6a1f4f5
-	github.com/go-coldbrew/errors v0.2.5
+	github.com/go-coldbrew/errors v0.2.6
 	github.com/go-coldbrew/hystrixprometheus v0.1.2
-	github.com/go-coldbrew/interceptors v0.1.12
+	github.com/go-coldbrew/interceptors v0.1.13
 	github.com/go-coldbrew/log v0.2.8
 	github.com/go-coldbrew/options v0.2.6
-	github.com/go-coldbrew/tracing v0.0.7
+	github.com/go-coldbrew/tracing v0.2.0
 	github.com/golang/protobuf v1.5.4
-	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.28.0
 	github.com/klauspost/compress v1.18.5
@@ -23,6 +22,7 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.42.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.42.0
 	go.opentelemetry.io/otel/sdk v1.42.0
+	go.opentelemetry.io/otel/trace v1.42.0
 	go.uber.org/automaxprocs v1.6.0
 	google.golang.org/grpc v1.79.3
 	google.golang.org/protobuf v1.36.11
@@ -262,7 +262,6 @@ require (
 	go.augendre.info/fatcontext v0.9.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel/metric v1.42.0 // indirect
-	go.opentelemetry.io/otel/trace v1.42.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.10.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.1 // indirect
