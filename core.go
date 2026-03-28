@@ -178,7 +178,7 @@ func tracingWrapper(h http.Handler) http.Handler {
 		ctx := prop.Extract(r.Context(), propagation.HeaderCarrier(r.Header))
 		if interceptors.FilterMethodsFunc(ctx, r.URL.Path) {
 			var serverSpan oteltrace.Span
-			ctx, serverSpan = otel.Tracer("coldbrew-http").Start(ctx, "ServeHTTP",
+			ctx, serverSpan = otel.Tracer("coldbrew-http").Start(ctx, r.Method+" "+r.URL.Path,
 				oteltrace.WithSpanKind(oteltrace.SpanKindServer),
 				oteltrace.WithAttributes(
 					semconv.HTTPMethodKey.String(r.Method),
