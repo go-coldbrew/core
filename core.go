@@ -18,13 +18,14 @@ import (
 	"github.com/go-coldbrew/log"
 	"github.com/go-coldbrew/log/loggers"
 	"github.com/go-coldbrew/options"
-	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	grpcprom "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/klauspost/compress/gzhttp"
-	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/ext"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
+	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
+	oteltrace "go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -146,7 +147,7 @@ func (c *cb) processConfig() {
 			ServiceVersion:       c.config.ReleaseName,
 			SamplingRatio:        c.config.OTLPSamplingRatio,
 			Compression:          c.config.OTLPCompression,
-			UseOpenTracingBridge: c.config.OTLPUseOpenTracingBridge,
+			UseOpenTracingBridge: c.config.OTLPUseOpenTracingBridge, //nolint:staticcheck // reading deprecated field for backward compat
 			Insecure:             c.config.OTLPInsecure,
 		}
 		if err := SetupOpenTelemetry(otlpConfig); err != nil {
@@ -166,33 +167,30 @@ func (c *cb) processConfig() {
 	}
 }
 
-// https://grpc-ecosystem.github.io/grpc-gateway/docs/operations/tracing/#opentracing-support
-var grpcGatewayTag = opentracing.Tag{Key: string(ext.Component), Value: "grpc-gateway"}
-
-// tracingWrapper is a middleware that creates a new span for each incoming request.
-// It also adds the span to the context so it can be used by other middlewares or handlers to add additional tags.
+// tracingWrapper is a middleware that creates a new OTEL span for each incoming HTTP request.
+// It extracts any propagated trace context from the request headers and, for non-filtered
+// methods, starts a server span that is attached to the request context.
 func tracingWrapper(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		parentSpanContext, err := opentracing.GlobalTracer().Extract(
-			opentracing.HTTPHeaders,
-			opentracing.HTTPHeadersCarrier(r.Header))
-		if err == nil || err == opentracing.ErrSpanContextNotFound {
-			if interceptors.FilterMethodsFunc(r.Context(), r.URL.Path) {
-				serverSpan := opentracing.GlobalTracer().StartSpan(
-					"ServeHTTP",
-					// this is magical, it attaches the new span to the parent parentSpanContext, and creates an unparented one if empty.
-					ext.RPCServerOption(parentSpanContext),
-					grpcGatewayTag,
-					opentracing.Tag{Key: string(ext.HTTPUrl), Value: r.URL.Path},
-					opentracing.Tag{Key: string(ext.HTTPMethod), Value: r.Method},
-				)
-				r = r.WithContext(opentracing.ContextWithSpan(r.Context(), serverSpan))
-				defer serverSpan.Finish()
-			}
+		prop := otel.GetTextMapPropagator()
+		ctx := prop.Extract(r.Context(), propagation.HeaderCarrier(r.Header))
+		if interceptors.FilterMethodsFunc(ctx, r.URL.Path) {
+			var serverSpan oteltrace.Span
+			ctx, serverSpan = otel.Tracer("coldbrew-http").Start(ctx, "ServeHTTP",
+				oteltrace.WithSpanKind(oteltrace.SpanKindServer),
+				oteltrace.WithAttributes(
+					semconv.HTTPMethodKey.String(r.Method),
+					semconv.HTTPTargetKey.String(r.URL.Path),
+				),
+			)
+			r = r.WithContext(ctx)
+			defer serverSpan.End()
+		} else {
+			r = r.WithContext(ctx)
 		}
 		_, han := interceptors.NRHttpTracer("", h.ServeHTTP)
 		// add this info to log
-		ctx := r.Context()
+		ctx = r.Context()
 		ctx = options.AddToOptions(ctx, "", "")
 		ctx = loggers.AddToLogContext(ctx, "httpPath", r.URL.Path)
 		r = r.WithContext(ctx)
@@ -259,8 +257,6 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 		grpc.WithTransportCredentials(creds),
 		grpc.WithUnaryInterceptor(
 			interceptors.DefaultClientInterceptor(
-				grpc_opentracing.WithTraceHeaderName(c.config.TraceHeaderName),
-				grpc_opentracing.WithFilterFunc(interceptors.FilterMethodsFunc),
 				interceptors.WithoutHystrix(),
 			),
 		),

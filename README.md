@@ -272,7 +272,7 @@ type CB interface {
 ```
 
 <a name="New"></a>
-### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L544>)
+### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L540>)
 
 ```go
 func New(c config.Config) CB
