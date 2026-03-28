@@ -26,7 +26,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/propagation"
-	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.40.0"
 	oteltrace "go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -199,15 +199,18 @@ func tracingWrapper(h http.Handler) http.Handler {
 			ctx, serverSpan = otel.Tracer("coldbrew-http").Start(ctx, r.Method+" "+r.URL.Path,
 				oteltrace.WithSpanKind(oteltrace.SpanKindServer),
 				oteltrace.WithAttributes(
-					semconv.HTTPMethodKey.String(r.Method),
-					semconv.HTTPTargetKey.String(r.URL.RequestURI()),
+					semconv.HTTPRequestMethodKey.String(r.Method),
+					semconv.URLPath(r.URL.Path),
+					semconv.URLQuery(r.URL.RawQuery),
+					semconv.URLScheme(r.URL.Scheme),
+					semconv.ServerAddress(r.Host),
 				),
 			)
 			r = r.WithContext(ctx)
 			rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 			w = rec
 			defer func() {
-				serverSpan.SetAttributes(semconv.HTTPStatusCodeKey.Int(rec.status))
+				serverSpan.SetAttributes(semconv.HTTPResponseStatusCode(rec.status))
 				if rec.status >= 500 {
 					serverSpan.SetStatus(codes.Error, http.StatusText(rec.status))
 				}
