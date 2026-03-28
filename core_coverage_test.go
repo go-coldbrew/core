@@ -247,6 +247,45 @@ func TestStatusRecorder(t *testing.T) {
 	})
 }
 
+func TestSpanRouteMiddleware(t *testing.T) {
+	t.Parallel()
+
+	t.Run("calls next handler", func(t *testing.T) {
+		t.Parallel()
+		called := false
+		next := func(w http.ResponseWriter, r *http.Request, pathParams map[string]string) {
+			called = true
+			w.WriteHeader(http.StatusOK)
+		}
+		wrapped := spanRouteMiddleware(next)
+		req := httptest.NewRequest("GET", "/api/v1/rules", nil)
+		w := httptest.NewRecorder()
+		wrapped(w, req, nil)
+		if !called {
+			t.Fatal("expected next handler to be called")
+		}
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", w.Code)
+		}
+	})
+
+	t.Run("passes path params through", func(t *testing.T) {
+		t.Parallel()
+		var gotParams map[string]string
+		next := func(w http.ResponseWriter, r *http.Request, pathParams map[string]string) {
+			gotParams = pathParams
+		}
+		wrapped := spanRouteMiddleware(next)
+		params := map[string]string{"id": "123"}
+		req := httptest.NewRequest("GET", "/api/v1/rules/123", nil)
+		w := httptest.NewRecorder()
+		wrapped(w, req, params)
+		if gotParams["id"] != "123" {
+			t.Fatalf("expected path param id=123, got %v", gotParams)
+		}
+	})
+}
+
 func TestGetCustomHeaderMatcher_EmptyPrefixes(t *testing.T) {
 	t.Parallel()
 	matcher := getCustomHeaderMatcher(nil, "X-Trace-Id")

@@ -24,6 +24,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/propagation"
 	semconv "go.opentelemetry.io/otel/semconv/v1.40.0"
@@ -187,46 +188,68 @@ func (sr *statusRecorder) Unwrap() http.ResponseWriter {
 	return sr.ResponseWriter
 }
 
+// endSpan records the HTTP status code on the span, marks it as error for 5xx, and ends it.
+func endSpan(span oteltrace.Span, rec *statusRecorder) {
+	span.SetAttributes(semconv.HTTPResponseStatusCode(rec.status))
+	if rec.status >= 500 {
+		span.SetStatus(codes.Error, http.StatusText(rec.status))
+	}
+	span.End()
+}
+
+// httpSpanAttributes returns the OTEL attributes for an incoming HTTP request,
+// omitting empty-valued attributes (e.g. scheme behind a reverse proxy).
+func httpSpanAttributes(r *http.Request) []attribute.KeyValue {
+	attrs := []attribute.KeyValue{
+		semconv.HTTPRequestMethodKey.String(r.Method),
+		semconv.URLPath(r.URL.Path),
+		semconv.ServerAddress(r.Host),
+	}
+	if r.URL.RawQuery != "" {
+		attrs = append(attrs, semconv.URLQuery(r.URL.RawQuery))
+	}
+	if r.URL.Scheme != "" {
+		attrs = append(attrs, semconv.URLScheme(r.URL.Scheme))
+	}
+	return attrs
+}
+
 // tracingWrapper is a middleware that creates a new OTEL span for each incoming HTTP request.
 // It extracts any propagated trace context from the request headers and, for non-filtered
 // methods, starts a server span that is attached to the request context.
 func tracingWrapper(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		prop := otel.GetTextMapPropagator()
-		ctx := prop.Extract(r.Context(), propagation.HeaderCarrier(r.Header))
+		ctx := otel.GetTextMapPropagator().Extract(r.Context(), propagation.HeaderCarrier(r.Header))
+
 		if interceptors.FilterMethodsFunc(ctx, r.URL.Path) {
 			var serverSpan oteltrace.Span
-			ctx, serverSpan = otel.Tracer("coldbrew-http").Start(ctx, r.Method+" "+r.URL.Path,
+			ctx, serverSpan = otel.Tracer("coldbrew-http").Start(ctx, r.Method,
 				oteltrace.WithSpanKind(oteltrace.SpanKindServer),
-				oteltrace.WithAttributes(
-					semconv.HTTPRequestMethodKey.String(r.Method),
-					semconv.URLPath(r.URL.Path),
-					semconv.URLQuery(r.URL.RawQuery),
-					semconv.URLScheme(r.URL.Scheme),
-					semconv.ServerAddress(r.Host),
-				),
+				oteltrace.WithAttributes(httpSpanAttributes(r)...),
 			)
-			r = r.WithContext(ctx)
 			rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 			w = rec
-			defer func() {
-				serverSpan.SetAttributes(semconv.HTTPResponseStatusCode(rec.status))
-				if rec.status >= 500 {
-					serverSpan.SetStatus(codes.Error, http.StatusText(rec.status))
-				}
-				serverSpan.End()
-			}()
-		} else {
-			r = r.WithContext(ctx)
+			defer endSpan(serverSpan, rec)
 		}
+
 		_, han := interceptors.NRHttpTracer("", h.ServeHTTP)
-		// add this info to log
-		ctx = r.Context()
 		ctx = options.AddToOptions(ctx, "", "")
 		ctx = loggers.AddToLogContext(ctx, "httpPath", r.URL.Path)
-		r = r.WithContext(ctx)
-		han(w, r)
+		han(w, r.WithContext(ctx))
 	})
+}
+
+// spanRouteMiddleware is a grpc-gateway middleware that updates the OTEL span
+// name and http.route attribute with the matched route pattern after routing.
+func spanRouteMiddleware(next runtime.HandlerFunc) runtime.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request, pathParams map[string]string) {
+		if pattern, ok := runtime.HTTPPathPattern(r.Context()); ok {
+			span := oteltrace.SpanFromContext(r.Context())
+			span.SetName(r.Method + " " + pattern)
+			span.SetAttributes(semconv.HTTPRoute(pattern))
+		}
+		next(w, r, pathParams)
+	}
 }
 
 // getCustomHeaderMatcher returns a matcher that matches the given header and prefix
@@ -268,6 +291,7 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 		),
 		runtime.WithMarshalerOption("application/proto", pMar),
 		runtime.WithMarshalerOption("application/protobuf", pMar),
+		runtime.WithMiddlewares(spanRouteMiddleware),
 	}
 
 	if c.config.UseJSONBuiltinMarshaller {
