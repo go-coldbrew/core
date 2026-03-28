@@ -4,12 +4,12 @@ go 1.25.8
 
 require (
 	github.com/afex/hystrix-go v0.0.0-20180502004556-fa1af6a1f4f5
-	github.com/go-coldbrew/errors v0.2.5
+	github.com/go-coldbrew/errors v0.2.6
 	github.com/go-coldbrew/hystrixprometheus v0.1.2
-	github.com/go-coldbrew/interceptors v0.1.12
+	github.com/go-coldbrew/interceptors v0.1.13
 	github.com/go-coldbrew/log v0.2.8
 	github.com/go-coldbrew/options v0.2.6
-	github.com/go-coldbrew/tracing v0.0.7
+	github.com/go-coldbrew/tracing v0.2.0
 	github.com/golang/protobuf v1.5.4
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.28.0
@@ -295,9 +295,3 @@ tool (
 	github.com/princjef/gomarkdoc/cmd/gomarkdoc
 	golang.org/x/vuln/cmd/govulncheck
 )
-
-replace github.com/go-coldbrew/tracing => ../tracing
-
-replace github.com/go-coldbrew/interceptors => ../interceptors
-
-replace github.com/go-coldbrew/errors => ../errors
