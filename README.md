@@ -86,6 +86,8 @@ For full documentation, visit https://docs.coldbrew.cloud
 - [Constants](<#constants>)
 - [func ConfigureInterceptors\(DoNotLogGRPCReflection bool, traceHeaderName string\)](<#ConfigureInterceptors>)
 - [func InitializeVTProto\(\)](<#InitializeVTProto>)
+- [func SetOTELGRPCClientOptions\(opts ...otelgrpc.Option\)](<#SetOTELGRPCClientOptions>)
+- [func SetOTELGRPCServerOptions\(opts ...otelgrpc.Option\)](<#SetOTELGRPCServerOptions>)
 - [func SetupAutoMaxProcs\(\)](<#SetupAutoMaxProcs>)
 - [func SetupEnvironment\(env string\)](<#SetupEnvironment>)
 - [func SetupHystrixPrometheus\(\)](<#SetupHystrixPrometheus>)
@@ -130,6 +132,24 @@ func InitializeVTProto()
 InitializeVTProto initializes the vtproto package for use with the service
 
 https://github.com/planetscale/vtprotobuf?tab=readme-ov-file#mixing-protobuf-implementations-with-grpc
+
+<a name="SetOTELGRPCClientOptions"></a>
+## func [SetOTELGRPCClientOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L348>)
+
+```go
+func SetOTELGRPCClientOptions(opts ...otelgrpc.Option)
+```
+
+SetOTELGRPCClientOptions sets options for the OTEL gRPC client stats handler. Must be called during init, before the gRPC client is created.
+
+<a name="SetOTELGRPCServerOptions"></a>
+## func [SetOTELGRPCServerOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L342>)
+
+```go
+func SetOTELGRPCServerOptions(opts ...otelgrpc.Option)
+```
+
+SetOTELGRPCServerOptions sets options for the OTEL gRPC server stats handler. Must be called during init, before the gRPC server starts. Example: core.SetOTELGRPCServerOptions\(otelgrpc.WithFilter\(...\)\)
 
 <a name="SetupAutoMaxProcs"></a>
 ## func [SetupAutoMaxProcs](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L314>)
@@ -272,7 +292,7 @@ type CB interface {
 ```
 
 <a name="New"></a>
-### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L540>)
+### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L571>)
 
 ```go
 func New(c config.Config) CB

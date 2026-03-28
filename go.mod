@@ -17,6 +17,7 @@ require (
 	github.com/newrelic/go-agent/v3 v3.42.0
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/prometheus/client_golang v1.23.2
+	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.67.0
 	go.opentelemetry.io/otel v1.42.0
 	go.opentelemetry.io/otel/bridge/opentracing v1.42.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.42.0
