@@ -22,12 +22,14 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/klauspost/compress/gzhttp"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
 	oteltrace "go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/stats"
 	"google.golang.org/grpc/credentials/insecure"
 	_ "google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/keepalive"
@@ -255,6 +257,7 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(creds),
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler(otelGRPCClientOpts...)),
 		grpc.WithUnaryInterceptor(
 			interceptors.DefaultClientInterceptor(
 				interceptors.WithoutHystrix(),
@@ -319,9 +322,37 @@ func (c *cb) runHTTP(_ context.Context, svr *http.Server) error {
 	return svr.ListenAndServe()
 }
 
+// otelgrpc options configured during init via SetOTELGRPCServerOptions/SetOTELGRPCClientOptions.
+// Defaults filter out health/ready/reflection RPCs to reduce noise.
+var otelGRPCServerOpts = []otelgrpc.Option{
+	otelgrpc.WithFilter(defaultOTELFilter),
+}
+var otelGRPCClientOpts []otelgrpc.Option
+
+// defaultOTELFilter excludes health checks, readiness probes, and gRPC
+// reflection from tracing to reduce noise — matching the previous
+// grpc_opentracing filter behavior.
+func defaultOTELFilter(info *stats.RPCTagInfo) bool {
+	return interceptors.FilterMethodsFunc(context.Background(), info.FullMethodName)
+}
+
+// SetOTELGRPCServerOptions sets options for the OTEL gRPC server stats handler.
+// Must be called during init, before the gRPC server starts.
+// Example: core.SetOTELGRPCServerOptions(otelgrpc.WithFilter(...))
+func SetOTELGRPCServerOptions(opts ...otelgrpc.Option) {
+	otelGRPCServerOpts = opts
+}
+
+// SetOTELGRPCClientOptions sets options for the OTEL gRPC client stats handler.
+// Must be called during init, before the gRPC client is created.
+func SetOTELGRPCClientOptions(opts ...otelgrpc.Option) {
+	otelGRPCClientOpts = opts
+}
+
 func (c *cb) getGRPCServerOptions() []grpc.ServerOption {
 	so := make([]grpc.ServerOption, 0)
 	so = append(so,
+		grpc.StatsHandler(otelgrpc.NewServerHandler(otelGRPCServerOpts...)),
 		grpc.ChainUnaryInterceptor(interceptors.DefaultInterceptors()...),
 		grpc.ChainStreamInterceptor(interceptors.DefaultStreamInterceptors()...),
 	)
