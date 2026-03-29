@@ -268,12 +268,15 @@ func tracingWrapper(h http.Handler) http.Handler {
 
 // spanRouteMiddleware is a grpc-gateway middleware that updates the OTEL span
 // name and http.route attribute with the matched route pattern after routing.
+// It uses runtime.HTTPPattern (the Pattern struct set by handleHandler) rather
+// than runtime.HTTPPathPattern (the string set later inside AnnotateContext).
 func spanRouteMiddleware(next runtime.HandlerFunc) runtime.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request, pathParams map[string]string) {
-		if pattern, ok := runtime.HTTPPathPattern(r.Context()); ok {
+		if pattern, ok := runtime.HTTPPattern(r.Context()); ok {
+			route := pattern.String()
 			span := oteltrace.SpanFromContext(r.Context())
-			span.SetName(r.Method + " " + pattern)
-			span.SetAttributes(semconv.HTTPRoute(pattern))
+			span.SetName(r.Method + " " + route)
+			span.SetAttributes(semconv.HTTPRoute(route))
 		}
 		next(w, r, pathParams)
 	}

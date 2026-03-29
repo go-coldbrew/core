@@ -12,6 +12,9 @@ import (
 
 	"github.com/go-coldbrew/core/config"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"go.opentelemetry.io/otel"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
@@ -284,6 +287,106 @@ func TestSpanRouteMiddleware(t *testing.T) {
 			t.Fatalf("expected path param id=123, got %v", gotParams)
 		}
 	})
+}
+
+// setupTestTracer installs an in-memory span exporter and returns it along with
+// a cleanup function that restores the previous tracer provider.
+func setupTestTracer() (*tracetest.InMemoryExporter, func()) {
+	exporter := tracetest.NewInMemoryExporter()
+	tp := sdktrace.NewTracerProvider(sdktrace.WithSyncer(exporter))
+	prev := otel.GetTracerProvider()
+	otel.SetTracerProvider(tp)
+	return exporter, func() {
+		otel.SetTracerProvider(prev)
+		_ = tp.Shutdown(context.Background())
+	}
+}
+
+func TestTracingWrapperSpanAttributes(t *testing.T) {
+	exporter, cleanup := setupTestTracer()
+	defer cleanup()
+
+	inner := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	wrapped := tracingWrapper(inner)
+
+	req := httptest.NewRequest("GET", "/api/v1/rules?page=1", nil)
+	req.Host = "example.com:9091"
+	w := httptest.NewRecorder()
+	wrapped.ServeHTTP(w, req)
+
+	spans := exporter.GetSpans()
+	if len(spans) == 0 {
+		t.Fatal("expected at least one span")
+	}
+	span := spans[0]
+	if span.Name != "GET" {
+		t.Fatalf("expected span name 'GET', got %q", span.Name)
+	}
+
+	attrMap := make(map[string]any)
+	for _, a := range span.Attributes {
+		attrMap[string(a.Key)] = a.Value.AsInterface()
+	}
+
+	if v, ok := attrMap["http.request.method"]; !ok || v != "GET" {
+		t.Fatalf("expected http.request.method=GET, got %v", v)
+	}
+	if v, ok := attrMap["url.path"]; !ok || v != "/api/v1/rules" {
+		t.Fatalf("expected url.path=/api/v1/rules, got %v", v)
+	}
+	if v, ok := attrMap["url.query"]; !ok || v != "page=1" {
+		t.Fatalf("expected url.query=page=1, got %v", v)
+	}
+	if v, ok := attrMap["server.address"]; !ok || v != "example.com" {
+		t.Fatalf("expected server.address=example.com, got %v", v)
+	}
+	if v, ok := attrMap["server.port"]; !ok || v != int64(9091) {
+		t.Fatalf("expected server.port=9091, got %v", v)
+	}
+	if v, ok := attrMap["http.response.status_code"]; !ok || v != int64(200) {
+		t.Fatalf("expected http.response.status_code=200, got %v", v)
+	}
+}
+
+func TestTracingWrapperGatewaySpanName(t *testing.T) {
+	exporter, cleanup := setupTestTracer()
+	defer cleanup()
+
+	// Create a grpc-gateway mux with spanRouteMiddleware and a test handler.
+	mux := runtime.NewServeMux(runtime.WithMiddlewares(spanRouteMiddleware))
+	err := mux.HandlePath("GET", "/api/v1/rules/{rule_id}", func(w http.ResponseWriter, r *http.Request, pathParams map[string]string) {
+		w.WriteHeader(http.StatusOK)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	wrapped := tracingWrapper(mux)
+	req := httptest.NewRequest("GET", "/api/v1/rules/123", nil)
+	w := httptest.NewRecorder()
+	wrapped.ServeHTTP(w, req)
+
+	spans := exporter.GetSpans()
+	if len(spans) == 0 {
+		t.Fatal("expected at least one span")
+	}
+
+	span := spans[0]
+	// Pattern.String() includes wildcard spec, e.g. {rule_id=*}
+	wantName := "GET /api/v1/rules/{rule_id=*}"
+	if span.Name != wantName {
+		t.Fatalf("expected span name %q, got %q", wantName, span.Name)
+	}
+
+	attrMap := make(map[string]any)
+	for _, a := range span.Attributes {
+		attrMap[string(a.Key)] = a.Value.AsInterface()
+	}
+	if v, ok := attrMap["http.route"]; !ok || v != "/api/v1/rules/{rule_id=*}" {
+		t.Fatalf("expected http.route=/api/v1/rules/{rule_id=*}, got %v", v)
+	}
 }
 
 func TestGetCustomHeaderMatcher_EmptyPrefixes(t *testing.T) {
