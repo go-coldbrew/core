@@ -173,8 +173,8 @@ func (c *cb) processConfig() {
 }
 
 // statusRecorder wraps http.ResponseWriter to capture the final HTTP status code.
-// It records the first non-1xx (>= 200) status, matching net/http behavior where
-// 1xx responses are informational and a final status follows.
+// It records the first status >= 200, plus 101 Switching Protocols (which is
+// terminal). Other 1xx statuses are informational and skipped.
 // Unwrap() is provided for http.ResponseController (Go 1.20+) to access optional
 // interfaces (http.Flusher, http.Hijacker, etc.) from the underlying writer.
 type statusRecorder struct {
@@ -221,6 +221,7 @@ func httpSpanAttributes(r *http.Request) []attribute.KeyValue {
 	if err != nil {
 		host = r.Host
 	}
+	host = strings.TrimPrefix(strings.TrimSuffix(host, "]"), "[")
 	attrs := []attribute.KeyValue{
 		semconv.HTTPRequestMethodKey.String(r.Method),
 		semconv.URLPath(r.URL.Path),
