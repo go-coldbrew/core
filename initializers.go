@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"syscall"
@@ -23,13 +25,14 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	otelBridge "go.opentelemetry.io/otel/bridge/opentracing"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.40.0"
 	"go.uber.org/automaxprocs/maxprocs"
 	"google.golang.org/grpc/encoding"
 	_ "google.golang.org/grpc/encoding/gzip"
@@ -210,12 +213,28 @@ func SetupOpenTelemetry(config OTLPConfig) error {
 	}
 
 	d := resource.Default()
+	attrs := []attribute.KeyValue{
+		semconv.ServiceName(config.ServiceName),
+		semconv.ServiceVersion(config.ServiceVersion),
+	}
+	if bi, ok := debug.ReadBuildInfo(); ok {
+		attrs = append(attrs,
+			semconv.ProcessExecutableName(filepath.Base(os.Args[0])),
+			semconv.ProcessRuntimeVersion(bi.GoVersion),
+		)
+		for _, s := range bi.Settings {
+			switch s.Key {
+			case "vcs.revision":
+				attrs = append(attrs, semconv.VCSRefHeadRevision(s.Value))
+			case "vcs.time":
+				attrs = append(attrs, attribute.String("vcs.time", s.Value))
+			case "vcs.modified":
+				attrs = append(attrs, attribute.Bool("vcs.modified", s.Value == "true"))
+			}
+		}
+	}
 	res, err := resource.New(context.Background(),
-		resource.WithAttributes(
-			// the service name used to display traces in backends
-			semconv.ServiceNameKey.String(config.ServiceName),
-			semconv.ServiceVersionKey.String(config.ServiceVersion),
-		),
+		resource.WithAttributes(attrs...),
 	)
 	if err != nil {
 		log.Error(context.Background(), "msg", "creating OTLP resource", "err", err)
