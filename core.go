@@ -172,9 +172,11 @@ func (c *cb) processConfig() {
 	}
 }
 
-// statusRecorder wraps http.ResponseWriter to capture the status code.
-// Only the first WriteHeader call is recorded, matching net/http behavior
-// where subsequent calls are no-ops.
+// statusRecorder wraps http.ResponseWriter to capture the final HTTP status code.
+// It records the first non-1xx (>= 200) status, matching net/http behavior where
+// 1xx responses are informational and a final status follows.
+// Unwrap() is provided for http.ResponseController (Go 1.20+) to access optional
+// interfaces (http.Flusher, http.Hijacker, etc.) from the underlying writer.
 type statusRecorder struct {
 	http.ResponseWriter
 	status      int
@@ -182,15 +184,23 @@ type statusRecorder struct {
 }
 
 func (sr *statusRecorder) WriteHeader(code int) {
-	if !sr.wroteHeader {
+	if !sr.wroteHeader && code >= 200 {
 		sr.status = code
 		sr.wroteHeader = true
 	}
 	sr.ResponseWriter.WriteHeader(code)
 }
 
-// Unwrap returns the underlying ResponseWriter so that middleware
-// like gzip can access optional interfaces (http.Flusher, etc.).
+func (sr *statusRecorder) Write(b []byte) (int, error) {
+	if !sr.wroteHeader {
+		sr.status = http.StatusOK
+		sr.wroteHeader = true
+	}
+	return sr.ResponseWriter.Write(b)
+}
+
+// Unwrap returns the underlying ResponseWriter so that http.ResponseController
+// and middleware can access optional interfaces (http.Flusher, http.Hijacker, etc.).
 func (sr *statusRecorder) Unwrap() http.ResponseWriter {
 	return sr.ResponseWriter
 }
