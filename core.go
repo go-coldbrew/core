@@ -258,7 +258,17 @@ func tracingWrapper(h http.Handler) http.Handler {
 			)
 			rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 			w = rec
-			defer endSpan(serverSpan, rec)
+			defer func() {
+				if recovered := recover(); recovered != nil {
+					if !rec.wroteHeader {
+						rec.status = http.StatusInternalServerError
+					}
+					serverSpan.RecordError(fmt.Errorf("panic: %v", recovered))
+					endSpan(serverSpan, rec)
+					panic(recovered)
+				}
+				endSpan(serverSpan, rec)
+			}()
 		}
 
 		_, han := interceptors.NRHttpTracer("", h.ServeHTTP)
