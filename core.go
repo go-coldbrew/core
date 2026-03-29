@@ -225,7 +225,9 @@ func httpSpanAttributes(r *http.Request) []attribute.KeyValue {
 	attrs := []attribute.KeyValue{
 		semconv.HTTPRequestMethodKey.String(r.Method),
 		semconv.URLPath(r.URL.Path),
-		semconv.ServerAddress(host),
+	}
+	if host != "" {
+		attrs = append(attrs, semconv.ServerAddress(host))
 	}
 	if port != "" {
 		if p, err := strconv.Atoi(port); err == nil {

@@ -13,6 +13,7 @@ import (
 	"github.com/go-coldbrew/core/config"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	"google.golang.org/grpc"
@@ -302,6 +303,25 @@ func setupTestTracer() (*tracetest.InMemoryExporter, func()) {
 	}
 }
 
+// findSpanByName returns the first span with the given name, or nil if not found.
+func findSpanByName(spans tracetest.SpanStubs, name string) *tracetest.SpanStub {
+	for i := range spans {
+		if spans[i].Name == name {
+			return &spans[i]
+		}
+	}
+	return nil
+}
+
+// spanAttrMap returns a map of attribute key to value for a span.
+func spanAttrMap(span *tracetest.SpanStub) map[string]any {
+	m := make(map[string]any, len(span.Attributes))
+	for _, a := range span.Attributes {
+		m[string(a.Key)] = a.Value.AsInterface()
+	}
+	return m
+}
+
 func TestTracingWrapperSpanAttributes(t *testing.T) {
 	exporter, cleanup := setupTestTracer()
 	defer cleanup()
@@ -316,37 +336,56 @@ func TestTracingWrapperSpanAttributes(t *testing.T) {
 	w := httptest.NewRecorder()
 	wrapped.ServeHTTP(w, req)
 
-	spans := exporter.GetSpans()
-	if len(spans) == 0 {
-		t.Fatal("expected at least one span")
-	}
-	span := spans[0]
-	if span.Name != "GET" {
-		t.Fatalf("expected span name 'GET', got %q", span.Name)
+	span := findSpanByName(exporter.GetSpans(), "GET")
+	if span == nil {
+		t.Fatal("expected span named 'GET'")
 	}
 
-	attrMap := make(map[string]any)
-	for _, a := range span.Attributes {
-		attrMap[string(a.Key)] = a.Value.AsInterface()
-	}
-
-	if v, ok := attrMap["http.request.method"]; !ok || v != "GET" {
+	attrs := spanAttrMap(span)
+	if v := attrs["http.request.method"]; v != "GET" {
 		t.Fatalf("expected http.request.method=GET, got %v", v)
 	}
-	if v, ok := attrMap["url.path"]; !ok || v != "/api/v1/rules" {
+	if v := attrs["url.path"]; v != "/api/v1/rules" {
 		t.Fatalf("expected url.path=/api/v1/rules, got %v", v)
 	}
-	if v, ok := attrMap["url.query"]; !ok || v != "page=1" {
+	if v := attrs["url.query"]; v != "page=1" {
 		t.Fatalf("expected url.query=page=1, got %v", v)
 	}
-	if v, ok := attrMap["server.address"]; !ok || v != "example.com" {
+	if v := attrs["server.address"]; v != "example.com" {
 		t.Fatalf("expected server.address=example.com, got %v", v)
 	}
-	if v, ok := attrMap["server.port"]; !ok || v != int64(9091) {
+	if v := attrs["server.port"]; v != int64(9091) {
 		t.Fatalf("expected server.port=9091, got %v", v)
 	}
-	if v, ok := attrMap["http.response.status_code"]; !ok || v != int64(200) {
+	if v := attrs["http.response.status_code"]; v != int64(200) {
 		t.Fatalf("expected http.response.status_code=200, got %v", v)
+	}
+}
+
+func TestTracingWrapperSpanErrorStatus(t *testing.T) {
+	exporter, cleanup := setupTestTracer()
+	defer cleanup()
+
+	inner := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+	wrapped := tracingWrapper(inner)
+
+	req := httptest.NewRequest("GET", "/api/error", nil)
+	w := httptest.NewRecorder()
+	wrapped.ServeHTTP(w, req)
+
+	span := findSpanByName(exporter.GetSpans(), "GET")
+	if span == nil {
+		t.Fatal("expected span named 'GET'")
+	}
+
+	attrs := spanAttrMap(span)
+	if v := attrs["http.response.status_code"]; v != int64(500) {
+		t.Fatalf("expected http.response.status_code=500, got %v", v)
+	}
+	if span.Status.Code != codes.Error {
+		t.Fatalf("expected span status Error, got %v", span.Status.Code)
 	}
 }
 
@@ -368,23 +407,19 @@ func TestTracingWrapperGatewaySpanName(t *testing.T) {
 	w := httptest.NewRecorder()
 	wrapped.ServeHTTP(w, req)
 
-	spans := exporter.GetSpans()
-	if len(spans) == 0 {
-		t.Fatal("expected at least one span")
-	}
-
-	span := spans[0]
 	// Pattern.String() includes wildcard spec, e.g. {rule_id=*}
 	wantName := "GET /api/v1/rules/{rule_id=*}"
-	if span.Name != wantName {
-		t.Fatalf("expected span name %q, got %q", wantName, span.Name)
+	span := findSpanByName(exporter.GetSpans(), wantName)
+	if span == nil {
+		names := make([]string, 0)
+		for _, s := range exporter.GetSpans() {
+			names = append(names, s.Name)
+		}
+		t.Fatalf("expected span named %q, got spans: %v", wantName, names)
 	}
 
-	attrMap := make(map[string]any)
-	for _, a := range span.Attributes {
-		attrMap[string(a.Key)] = a.Value.AsInterface()
-	}
-	if v, ok := attrMap["http.route"]; !ok || v != "/api/v1/rules/{rule_id=*}" {
+	attrs := spanAttrMap(span)
+	if v := attrs["http.route"]; v != "/api/v1/rules/{rule_id=*}" {
 		t.Fatalf("expected http.route=/api/v1/rules/{rule_id=*}, got %v", v)
 	}
 }
