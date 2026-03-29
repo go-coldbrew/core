@@ -239,7 +239,9 @@ func httpSpanAttributes(r *http.Request) []attribute.KeyValue {
 	}
 	scheme := r.URL.Scheme
 	if scheme == "" {
-		if r.TLS != nil {
+		if proto := r.Header.Get("X-Forwarded-Proto"); proto != "" {
+			scheme = proto
+		} else if r.TLS != nil {
 			scheme = "https"
 		} else {
 			scheme = "http"
