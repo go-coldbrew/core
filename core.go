@@ -272,6 +272,7 @@ func tracingWrapper(h http.Handler) http.Handler {
 						rec.status = http.StatusInternalServerError
 					}
 					serverSpan.RecordError(fmt.Errorf("panic: %v", recovered))
+					serverSpan.SetStatus(codes.Error, "panic")
 					endSpan(serverSpan, rec)
 					panic(recovered)
 				}

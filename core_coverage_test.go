@@ -360,6 +360,9 @@ func TestTracingWrapperSpanAttributes(t *testing.T) {
 	if v := attrs["http.response.status_code"]; v != int64(200) {
 		t.Fatalf("expected http.response.status_code=200, got %v", v)
 	}
+	if v := attrs["url.scheme"]; v != "http" {
+		t.Fatalf("expected url.scheme=http, got %v", v)
+	}
 }
 
 func TestTracingWrapperSpanErrorStatus(t *testing.T) {
