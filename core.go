@@ -237,9 +237,15 @@ func httpSpanAttributes(r *http.Request) []attribute.KeyValue {
 	if r.URL.RawQuery != "" {
 		attrs = append(attrs, semconv.URLQuery(r.URL.RawQuery))
 	}
-	if r.URL.Scheme != "" {
-		attrs = append(attrs, semconv.URLScheme(r.URL.Scheme))
+	scheme := r.URL.Scheme
+	if scheme == "" {
+		if r.TLS != nil {
+			scheme = "https"
+		} else {
+			scheme = "http"
+		}
 	}
+	attrs = append(attrs, semconv.URLScheme(scheme))
 	return attrs
 }
 
