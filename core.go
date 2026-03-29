@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/pprof"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -172,13 +173,19 @@ func (c *cb) processConfig() {
 }
 
 // statusRecorder wraps http.ResponseWriter to capture the status code.
+// Only the first WriteHeader call is recorded, matching net/http behavior
+// where subsequent calls are no-ops.
 type statusRecorder struct {
 	http.ResponseWriter
-	status int
+	status      int
+	wroteHeader bool
 }
 
 func (sr *statusRecorder) WriteHeader(code int) {
-	sr.status = code
+	if !sr.wroteHeader {
+		sr.status = code
+		sr.wroteHeader = true
+	}
 	sr.ResponseWriter.WriteHeader(code)
 }
 
@@ -200,10 +207,19 @@ func endSpan(span oteltrace.Span, rec *statusRecorder) {
 // httpSpanAttributes returns the OTEL attributes for an incoming HTTP request,
 // omitting empty-valued attributes (e.g. scheme behind a reverse proxy).
 func httpSpanAttributes(r *http.Request) []attribute.KeyValue {
+	host, port, err := net.SplitHostPort(r.Host)
+	if err != nil {
+		host = r.Host
+	}
 	attrs := []attribute.KeyValue{
 		semconv.HTTPRequestMethodKey.String(r.Method),
 		semconv.URLPath(r.URL.Path),
-		semconv.ServerAddress(r.Host),
+		semconv.ServerAddress(host),
+	}
+	if port != "" {
+		if p, err := strconv.Atoi(port); err == nil {
+			attrs = append(attrs, semconv.ServerPort(p))
+		}
 	}
 	if r.URL.RawQuery != "" {
 		attrs = append(attrs, semconv.URLQuery(r.URL.RawQuery))
