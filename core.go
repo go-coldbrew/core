@@ -225,7 +225,9 @@ func httpSpanAttributes(r *http.Request) []attribute.KeyValue {
 	attrs := []attribute.KeyValue{
 		semconv.HTTPRequestMethodKey.String(r.Method),
 		semconv.URLPath(r.URL.Path),
-		semconv.ServerAddress(host),
+	}
+	if host != "" {
+		attrs = append(attrs, semconv.ServerAddress(host))
 	}
 	if port != "" {
 		if p, err := strconv.Atoi(port); err == nil {
@@ -235,9 +237,17 @@ func httpSpanAttributes(r *http.Request) []attribute.KeyValue {
 	if r.URL.RawQuery != "" {
 		attrs = append(attrs, semconv.URLQuery(r.URL.RawQuery))
 	}
-	if r.URL.Scheme != "" {
-		attrs = append(attrs, semconv.URLScheme(r.URL.Scheme))
+	scheme := r.URL.Scheme
+	if scheme == "" {
+		if proto := r.Header.Get("X-Forwarded-Proto"); proto != "" {
+			scheme = proto
+		} else if r.TLS != nil {
+			scheme = "https"
+		} else {
+			scheme = "http"
+		}
 	}
+	attrs = append(attrs, semconv.URLScheme(scheme))
 	return attrs
 }
 
@@ -256,7 +266,18 @@ func tracingWrapper(h http.Handler) http.Handler {
 			)
 			rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 			w = rec
-			defer endSpan(serverSpan, rec)
+			defer func() {
+				if recovered := recover(); recovered != nil {
+					if !rec.wroteHeader {
+						rec.status = http.StatusInternalServerError
+					}
+					serverSpan.RecordError(fmt.Errorf("panic: %v", recovered))
+					serverSpan.SetStatus(codes.Error, "panic")
+					endSpan(serverSpan, rec)
+					panic(recovered)
+				}
+				endSpan(serverSpan, rec)
+			}()
 		}
 
 		_, han := interceptors.NRHttpTracer("", h.ServeHTTP)
@@ -268,12 +289,15 @@ func tracingWrapper(h http.Handler) http.Handler {
 
 // spanRouteMiddleware is a grpc-gateway middleware that updates the OTEL span
 // name and http.route attribute with the matched route pattern after routing.
+// It uses runtime.HTTPPattern (the Pattern struct set by handleHandler) rather
+// than runtime.HTTPPathPattern (the string set later inside AnnotateContext).
 func spanRouteMiddleware(next runtime.HandlerFunc) runtime.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request, pathParams map[string]string) {
-		if pattern, ok := runtime.HTTPPathPattern(r.Context()); ok {
+		if pattern, ok := runtime.HTTPPattern(r.Context()); ok {
+			route := pattern.String()
 			span := oteltrace.SpanFromContext(r.Context())
-			span.SetName(r.Method + " " + pattern)
-			span.SetAttributes(semconv.HTTPRoute(pattern))
+			span.SetName(r.Method + " " + route)
+			span.SetAttributes(semconv.HTTPRoute(route))
 		}
 		next(w, r, pathParams)
 	}
