@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"runtime/debug"
 	"os/signal"
+	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"syscall"
@@ -218,7 +219,7 @@ func SetupOpenTelemetry(config OTLPConfig) error {
 	}
 	if bi, ok := debug.ReadBuildInfo(); ok {
 		attrs = append(attrs,
-			semconv.ProcessRuntimeName("go"),
+			semconv.ProcessExecutableName(filepath.Base(os.Args[0])),
 			semconv.ProcessRuntimeVersion(bi.GoVersion),
 		)
 		for _, s := range bi.Settings {
