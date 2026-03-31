@@ -579,13 +579,23 @@ func (c *cb) Run() error {
 
 	g, gctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
-		return c.runGRPC(gctx, c.grpcServer)
+		err := c.runGRPC(gctx, c.grpcServer)
+		// Expected shutdown error — don't cancel the group.
+		if errors.Is(err, grpc.ErrServerStopped) {
+			return nil
+		}
+		return err
 	})
 	g.Go(func() error {
-		return c.runHTTP(gctx, c.httpServer)
+		err := c.runHTTP(gctx, c.httpServer)
+		// Expected shutdown error — don't cancel the group.
+		if errors.Is(err, http.ErrServerClosed) {
+			return nil
+		}
+		return err
 	})
-	// When one server exits (error or context cancellation), stop the other
-	// so both goroutines return and g.Wait() completes.
+	// When one server exits with an unexpected error (or parent context is
+	// cancelled by signal handler), stop the peer so g.Wait() completes.
 	g.Go(func() error {
 		<-gctx.Done()
 		if c.grpcServer != nil {
@@ -597,10 +607,6 @@ func (c *cb) Run() error {
 		return nil
 	})
 	err = g.Wait()
-	// Ignore expected shutdown errors.
-	if errors.Is(err, http.ErrServerClosed) || errors.Is(err, grpc.ErrServerStopped) {
-		err = nil
-	}
 	c.gracefulWait.Wait() // if graceful shutdown is in progress wait for it to finish
 	c.close()
 	return err
