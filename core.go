@@ -14,6 +14,8 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/go-coldbrew/core/config"
 	"github.com/go-coldbrew/interceptors"
 	"github.com/go-coldbrew/log"
@@ -575,23 +577,29 @@ func (c *cb) Run() error {
 		return err
 	}
 
-	errChan := make(chan error, 2)
-	go func() {
-		errChan <- c.runGRPC(ctx, c.grpcServer)
-	}()
-	go func() {
-		errChan <- c.runHTTP(ctx, c.httpServer)
-	}()
-	err = <-errChan
-	// Stop the peer server only on unexpected failures to avoid racing
-	// with an in-progress graceful shutdown.
-	if err != nil && !errors.Is(err, http.ErrServerClosed) && !errors.Is(err, grpc.ErrServerStopped) {
+	g, gctx := errgroup.WithContext(ctx)
+	g.Go(func() error {
+		return c.runGRPC(gctx, c.grpcServer)
+	})
+	g.Go(func() error {
+		return c.runHTTP(gctx, c.httpServer)
+	})
+	// When one server exits (error or context cancellation), stop the other
+	// so both goroutines return and g.Wait() completes.
+	g.Go(func() error {
+		<-gctx.Done()
 		if c.grpcServer != nil {
 			c.grpcServer.Stop()
 		}
 		if c.httpServer != nil {
 			c.httpServer.Close()
 		}
+		return nil
+	})
+	err = g.Wait()
+	// Ignore expected shutdown errors.
+	if errors.Is(err, http.ErrServerClosed) || errors.Is(err, grpc.ErrServerStopped) {
+		err = nil
 	}
 	c.gracefulWait.Wait() // if graceful shutdown is in progress wait for it to finish
 	c.close()
