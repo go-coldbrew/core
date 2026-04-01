@@ -424,7 +424,12 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 	return gwServer, nil
 }
 
-func (c *cb) runHTTP(_ context.Context, svr *http.Server) error {
+func (c *cb) runHTTP(ctx context.Context, svr *http.Server) error {
+	// Check context before starting — if the peer server already failed
+	// during startup, avoid creating a new listener that would block.
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	return svr.ListenAndServe()
 }
 
@@ -542,6 +547,11 @@ func (c *cb) initGRPC(ctx context.Context) (*grpc.Server, error) {
 }
 
 func (c *cb) runGRPC(ctx context.Context, svr *grpc.Server) error {
+	// Check context before starting — if the peer server already failed
+	// during startup, avoid blocking on Serve.
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	grpcServerEndpoint := fmt.Sprintf("%s:%d", c.config.ListenHost, c.config.GRPCPort)
 	lis, err := net.Listen("tcp", grpcServerEndpoint)
 	if err != nil {
