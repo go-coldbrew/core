@@ -425,10 +425,10 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 }
 
 func (c *cb) runHTTP(ctx context.Context, svr *http.Server) error {
-	// Check context before starting — if the peer server already failed
-	// during startup, avoid creating a new listener that would block.
-	if err := ctx.Err(); err != nil {
-		return err
+	// If the peer server already failed (cancelling gctx), exit cleanly
+	// so the peer's error is what g.Wait() returns, not context.Canceled.
+	if ctx.Err() != nil {
+		return nil
 	}
 	return svr.ListenAndServe()
 }
@@ -547,10 +547,10 @@ func (c *cb) initGRPC(ctx context.Context) (*grpc.Server, error) {
 }
 
 func (c *cb) runGRPC(ctx context.Context, svr *grpc.Server) error {
-	// Check context before starting — if the peer server already failed
-	// during startup, avoid blocking on Serve.
-	if err := ctx.Err(); err != nil {
-		return err
+	// If the peer server already failed (cancelling gctx), exit cleanly
+	// so the peer's error is what g.Wait() returns, not context.Canceled.
+	if ctx.Err() != nil {
+		return nil
 	}
 	grpcServerEndpoint := fmt.Sprintf("%s:%d", c.config.ListenHost, c.config.GRPCPort)
 	lis, err := net.Listen("tcp", grpcServerEndpoint)
