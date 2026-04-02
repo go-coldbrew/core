@@ -111,6 +111,11 @@ func (c *cb) processConfig() {
 	if !c.config.DisableAutoMaxProcs {
 		SetupAutoMaxProcs()
 	}
+	// Auto-disable NewRelic when no license key is configured to avoid
+	// interceptor overhead for services that don't use NR.
+	if !c.config.DisableNewRelic && c.config.NewRelicLicenseKey == "" {
+		c.config.DisableNewRelic = true
+	}
 	if !c.config.DisableNewRelic {
 		err := SetupNewRelic(nrName, c.config.NewRelicLicenseKey, c.config.NewRelicDistributedTracing)
 		if err != nil {
@@ -121,7 +126,7 @@ func (c *cb) processConfig() {
 	SetupEnvironment(c.config.Environment)
 	SetupReleaseName(c.config.ReleaseName)
 	SetupHystrixPrometheus()
-	ConfigureInterceptors(c.config.DoNotLogGRPCReflection, c.config.TraceHeaderName)
+	ConfigureInterceptors(c.config.DoNotLogGRPCReflection, c.config.TraceHeaderName, c.config.ResponseTimeLogLevel, c.config.ResponseTimeLogErrorOnly)
 	if !c.config.DisableSignalHandler {
 		dur := time.Second * 10
 		if c.config.ShutdownDurationInSeconds > 0 {
@@ -390,7 +395,14 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 	// Start HTTP server (and proxy calls to gRPC server endpoint)
 	gatewayAddr := fmt.Sprintf("%s:%d", c.config.ListenHost, c.config.HTTPPort)
 	promHandler := promhttp.Handler()
-	gzipHandler := gzhttp.GzipHandler(tracingWrapper(mux))
+	var gzipHandler http.Handler = tracingWrapper(mux)
+	if !c.config.DisableHTTPCompression {
+		wrapper, err := gzhttp.NewWrapper(gzhttp.MinSize(c.config.HTTPCompressionMinSize))
+		if err != nil {
+			return nil, fmt.Errorf("failed to create compression handler: %v", err)
+		}
+		gzipHandler = wrapper(gzipHandler)
+	}
 	gwServer := &http.Server{
 		Addr: gatewayAddr,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

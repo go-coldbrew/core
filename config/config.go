@@ -135,6 +135,20 @@ type Config struct {
 	// New services should leave this false (the default). Set to true only if you
 	// have existing OpenTracing instrumentation that hasn't been migrated to OTEL.
 	OTLPUseOpenTracingBridge bool `envconfig:"OTLP_USE_OPENTRACING_BRIDGE" default:"false"`
+
+	// Throughput tuning
+
+	// DisableHTTPCompression disables gzip/zstd compression for HTTP gateway responses
+	DisableHTTPCompression bool `envconfig:"DISABLE_HTTP_COMPRESSION" default:"false"`
+	// HTTPCompressionMinSize is the minimum response body size (bytes) before compression is applied.
+	// Responses smaller than this are sent uncompressed. Applies to both gzip and zstd.
+	HTTPCompressionMinSize int `envconfig:"HTTP_COMPRESSION_MIN_SIZE" default:"256"`
+	// ResponseTimeLogLevel sets the log level for per-request response time logging.
+	// Valid values: "debug", "info", "warn", "error". Invalid values default to "info".
+	ResponseTimeLogLevel string `envconfig:"RESPONSE_TIME_LOG_LEVEL" default:"info"`
+	// ResponseTimeLogErrorOnly when true, only logs response time for requests that return an error.
+	// Successful requests are not logged. Default behavior logs all requests.
+	ResponseTimeLogErrorOnly bool `envconfig:"RESPONSE_TIME_LOG_ERROR_ONLY" default:"false"`
 }
 
 // Validate checks the configuration for common misconfigurations and returns
