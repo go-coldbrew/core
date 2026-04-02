@@ -14,6 +14,8 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/go-coldbrew/core/config"
 	"github.com/go-coldbrew/interceptors"
 	"github.com/go-coldbrew/log"
@@ -422,7 +424,12 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 	return gwServer, nil
 }
 
-func (c *cb) runHTTP(_ context.Context, svr *http.Server) error {
+func (c *cb) runHTTP(ctx context.Context, svr *http.Server) error {
+	// If the peer server already failed (cancelling gctx), exit cleanly
+	// so the peer's error is what g.Wait() returns, not context.Canceled.
+	if ctx.Err() != nil {
+		return nil
+	}
 	return svr.ListenAndServe()
 }
 
@@ -540,6 +547,11 @@ func (c *cb) initGRPC(ctx context.Context) (*grpc.Server, error) {
 }
 
 func (c *cb) runGRPC(ctx context.Context, svr *grpc.Server) error {
+	// If the peer server already failed (cancelling gctx), exit cleanly
+	// so the peer's error is what g.Wait() returns, not context.Canceled.
+	if ctx.Err() != nil {
+		return nil
+	}
 	grpcServerEndpoint := fmt.Sprintf("%s:%d", c.config.ListenHost, c.config.GRPCPort)
 	lis, err := net.Listen("tcp", grpcServerEndpoint)
 	if err != nil {
@@ -575,24 +587,36 @@ func (c *cb) Run() error {
 		return err
 	}
 
-	errChan := make(chan error, 2)
-	go func() {
-		errChan <- c.runGRPC(ctx, c.grpcServer)
-	}()
-	go func() {
-		errChan <- c.runHTTP(ctx, c.httpServer)
-	}()
-	err = <-errChan
-	// Stop the peer server only on unexpected failures to avoid racing
-	// with an in-progress graceful shutdown.
-	if err != nil && !errors.Is(err, http.ErrServerClosed) && !errors.Is(err, grpc.ErrServerStopped) {
+	g, gctx := errgroup.WithContext(ctx)
+	g.Go(func() error {
+		err := c.runGRPC(gctx, c.grpcServer)
+		// Expected shutdown error — don't cancel the group.
+		if errors.Is(err, grpc.ErrServerStopped) {
+			return nil
+		}
+		return err
+	})
+	g.Go(func() error {
+		err := c.runHTTP(gctx, c.httpServer)
+		// Expected shutdown error — don't cancel the group.
+		if errors.Is(err, http.ErrServerClosed) {
+			return nil
+		}
+		return err
+	})
+	// When one server exits with an unexpected error (or parent context is
+	// cancelled by signal handler), stop the peer so g.Wait() completes.
+	g.Go(func() error {
+		<-gctx.Done()
 		if c.grpcServer != nil {
 			c.grpcServer.Stop()
 		}
 		if c.httpServer != nil {
 			c.httpServer.Close()
 		}
-	}
+		return nil
+	})
+	err = g.Wait()
 	c.gracefulWait.Wait() // if graceful shutdown is in progress wait for it to finish
 	c.close()
 	return err
