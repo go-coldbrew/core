@@ -43,7 +43,7 @@ type Config struct {
 	// Enable new relic opentelemetry
 	NewRelicOpentelemetry bool `envconfig:"NEW_RELIC_OPENTELEMETRY" default:"true"`
 	// Sampling ratio for NR opentelemetry
-	NewRelicOpentelemetrySample float64 `envconfig:"NEW_RELIC_OPENTELEMETRY_SAMPLE" default:"0.2"`
+	NewRelicOpentelemetrySample float64 `envconfig:"NEW_RELIC_OPENTELEMETRY_SAMPLE" default:"0.1"`
 	// The name of the application in NewRelic
 	NewRelicAppname string `envconfig:"NEW_RELIC_APPNAME" default:""`
 	// DSN for reporting errors to sentry
@@ -130,7 +130,7 @@ type Config struct {
 	OTLPInsecure bool `envconfig:"OTLP_INSECURE" default:"false"`
 	// OTLPSamplingRatio is the ratio of traces to sample (0.0 to 1.0)
 	// 1.0 means sample all traces, 0.1 means sample 10% of traces
-	OTLPSamplingRatio float64 `envconfig:"OTLP_SAMPLING_RATIO" default:"0.2"`
+	OTLPSamplingRatio float64 `envconfig:"OTLP_SAMPLING_RATIO" default:"0.1"`
 	// Deprecated: OpenTracing bridge is provided for backwards compatibility only.
 	// New services should leave this false (the default). Set to true only if you
 	// have existing OpenTracing instrumentation that hasn't been migrated to OTEL.
