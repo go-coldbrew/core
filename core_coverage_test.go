@@ -852,6 +852,31 @@ func TestHTTPHandler_Metrics(t *testing.T) {
 	}
 }
 
+func TestHTTPHandler_MetricsSubpath(t *testing.T) {
+	// removed t.Parallel() — core tests mutate package-level globals
+	c := &cb{
+		config: config.Config{
+			GRPCPort:   19090,
+			HTTPPort:   19091,
+			ListenHost: "127.0.0.1",
+		},
+		svc: []CBService{&testService{}},
+	}
+	svr, err := c.initHTTP(context.Background())
+	if err != nil {
+		t.Fatalf("initHTTP failed: %v", err)
+	}
+
+	for _, path := range []string{"/metrics/", "/metrics/foo"} {
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", path, nil)
+		svr.Handler.ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200 for %s, got %d", path, w.Code)
+		}
+	}
+}
+
 func TestHTTPHandler_DisabledEndpoints(t *testing.T) {
 	// removed t.Parallel() — core tests mutate package-level globals
 	c := &cb{

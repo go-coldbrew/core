@@ -430,10 +430,18 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 	}
 	if !c.config.DisableSwagger && c.openAPIHandler != nil {
 		swaggerURL := c.config.SwaggerURL
-		if swaggerURL != "/" && !strings.HasSuffix(swaggerURL, "/") {
-			swaggerURL += "/"
+		if !strings.HasPrefix(swaggerURL, "/") {
+			return nil, fmt.Errorf("invalid SwaggerURL %q: must start with '/'", swaggerURL)
 		}
-		adminMux.Handle(swaggerURL, http.StripPrefix(swaggerURL, c.openAPIHandler))
+		if swaggerURL == "/" {
+			return nil, fmt.Errorf("invalid SwaggerURL %q: must not be '/'", swaggerURL)
+		}
+		swaggerPattern := swaggerURL
+		if !strings.HasSuffix(swaggerPattern, "/") {
+			swaggerPattern += "/"
+			adminMux.Handle(swaggerURL, http.RedirectHandler(swaggerPattern, http.StatusPermanentRedirect))
+		}
+		adminMux.Handle(swaggerPattern, http.StripPrefix(swaggerPattern, c.openAPIHandler))
 	}
 	adminMux.Handle("/", gzipHandler)
 	gwServer := &http.Server{
