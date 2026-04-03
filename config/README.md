@@ -65,7 +65,7 @@ import "github.com/go-coldbrew/core/config"
 
 
 <a name="Config"></a>
-## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L6-L138>)
+## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L6-L152>)
 
 Config is the configuration for the Coldbrew server It is populated from environment variables and has sensible defaults for all fields so that you can just use it as is without any configuration The following environment variables are supported and can be used to override the defaults for the fields
 
@@ -110,7 +110,7 @@ type Config struct {
     // Enable new relic opentelemetry
     NewRelicOpentelemetry bool `envconfig:"NEW_RELIC_OPENTELEMETRY" default:"true"`
     // Sampling ratio for NR opentelemetry
-    NewRelicOpentelemetrySample float64 `envconfig:"NEW_RELIC_OPENTELEMETRY_SAMPLE" default:"0.2"`
+    NewRelicOpentelemetrySample float64 `envconfig:"NEW_RELIC_OPENTELEMETRY_SAMPLE" default:"0.1"`
     // The name of the application in NewRelic
     NewRelicAppname string `envconfig:"NEW_RELIC_APPNAME" default:""`
     // DSN for reporting errors to sentry
@@ -194,16 +194,28 @@ type Config struct {
     OTLPInsecure bool `envconfig:"OTLP_INSECURE" default:"false"`
     // OTLPSamplingRatio is the ratio of traces to sample (0.0 to 1.0)
     // 1.0 means sample all traces, 0.1 means sample 10% of traces
-    OTLPSamplingRatio float64 `envconfig:"OTLP_SAMPLING_RATIO" default:"0.2"`
+    OTLPSamplingRatio float64 `envconfig:"OTLP_SAMPLING_RATIO" default:"0.1"`
     // Deprecated: OpenTracing bridge is provided for backwards compatibility only.
     // New services should leave this false (the default). Set to true only if you
     // have existing OpenTracing instrumentation that hasn't been migrated to OTEL.
     OTLPUseOpenTracingBridge bool `envconfig:"OTLP_USE_OPENTRACING_BRIDGE" default:"false"`
+
+    // DisableHTTPCompression disables gzip/zstd compression for HTTP gateway responses
+    DisableHTTPCompression bool `envconfig:"DISABLE_HTTP_COMPRESSION" default:"false"`
+    // HTTPCompressionMinSize is the minimum response body size (bytes) before compression is applied.
+    // Responses smaller than this are sent uncompressed. Applies to both gzip and zstd.
+    HTTPCompressionMinSize int `envconfig:"HTTP_COMPRESSION_MIN_SIZE" default:"256"`
+    // ResponseTimeLogLevel sets the log level for per-request response time logging.
+    // Valid values: "debug", "info", "warn", "error". Invalid values default to "info".
+    ResponseTimeLogLevel string `envconfig:"RESPONSE_TIME_LOG_LEVEL" default:"info"`
+    // ResponseTimeLogErrorOnly when true, only logs response time for requests that return an error.
+    // Successful requests are not logged. Default behavior logs all requests.
+    ResponseTimeLogErrorOnly bool `envconfig:"RESPONSE_TIME_LOG_ERROR_ONLY" default:"false"`
 }
 ```
 
 <a name="Config.Validate"></a>
-### func \(Config\) [Validate](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L143>)
+### func \(Config\) [Validate](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L157>)
 
 ```go
 func (c Config) Validate() []string
