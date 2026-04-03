@@ -190,6 +190,12 @@ type statusRecorder struct {
 	wroteHeader bool
 }
 
+var statusRecorderPool = sync.Pool{
+	New: func() any {
+		return &statusRecorder{}
+	},
+}
+
 func (sr *statusRecorder) WriteHeader(code int) {
 	if !sr.wroteHeader && (code >= 200 || code == http.StatusSwitchingProtocols) {
 		sr.status = code
@@ -271,7 +277,10 @@ func tracingWrapper(h http.Handler) http.Handler {
 				oteltrace.WithSpanKind(oteltrace.SpanKindServer),
 				oteltrace.WithAttributes(httpSpanAttributes(r)...),
 			)
-			rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+			rec := statusRecorderPool.Get().(*statusRecorder)
+			rec.ResponseWriter = w
+			rec.status = http.StatusOK
+			rec.wroteHeader = false
 			w = rec
 			defer func() {
 				if recovered := recover(); recovered != nil {
@@ -281,9 +290,13 @@ func tracingWrapper(h http.Handler) http.Handler {
 					serverSpan.RecordError(fmt.Errorf("panic: %v", recovered))
 					serverSpan.SetStatus(codes.Error, "panic")
 					endSpan(serverSpan, rec)
+					rec.ResponseWriter = nil
+					statusRecorderPool.Put(rec)
 					panic(recovered)
 				}
 				endSpan(serverSpan, rec)
+				rec.ResponseWriter = nil
+				statusRecorderPool.Put(rec)
 			}()
 		}
 
@@ -403,34 +416,24 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 		}
 		gzipHandler = wrapper(gzipHandler)
 	}
+	adminMux := http.NewServeMux()
+	if !c.config.DisableDebug {
+		adminMux.Handle("/debug/pprof/cmdline", http.HandlerFunc(pprof.Cmdline))
+		adminMux.Handle("/debug/pprof/profile", http.HandlerFunc(pprof.Profile))
+		adminMux.Handle("/debug/pprof/symbol", http.HandlerFunc(pprof.Symbol))
+		adminMux.Handle("/debug/pprof/trace", http.HandlerFunc(pprof.Trace))
+		adminMux.Handle("/debug/pprof/", http.HandlerFunc(pprof.Index))
+	}
+	if !(c.config.DisablePrometheus || c.config.DisablePormetheus) { //nolint:staticcheck // intentional use of deprecated field for backward compatibility
+		adminMux.Handle("/metrics", promHandler)
+	}
+	if !c.config.DisableSwagger && c.openAPIHandler != nil {
+		adminMux.Handle(c.config.SwaggerURL, http.StripPrefix(c.config.SwaggerURL, c.openAPIHandler))
+	}
+	adminMux.Handle("/", gzipHandler)
 	gwServer := &http.Server{
-		Addr: gatewayAddr,
-		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if !c.config.DisableSwagger && c.openAPIHandler != nil &&
-				strings.HasPrefix(r.URL.Path, c.config.SwaggerURL) {
-				http.StripPrefix(c.config.SwaggerURL, c.openAPIHandler).ServeHTTP(w, r)
-				return
-			} else if !c.config.DisableDebug && strings.HasPrefix(r.URL.Path, "/debug/pprof/cmdline") {
-				pprof.Cmdline(w, r)
-				return
-			} else if !c.config.DisableDebug && strings.HasPrefix(r.URL.Path, "/debug/pprof/profile") {
-				pprof.Profile(w, r)
-				return
-			} else if !c.config.DisableDebug && strings.HasPrefix(r.URL.Path, "/debug/pprof/symbol") {
-				pprof.Symbol(w, r)
-				return
-			} else if !c.config.DisableDebug && strings.HasPrefix(r.URL.Path, "/debug/pprof/trace") {
-				pprof.Trace(w, r)
-				return
-			} else if !c.config.DisableDebug && strings.HasPrefix(r.URL.Path, "/debug/pprof/") {
-				pprof.Index(w, r)
-				return
-			} else if !(c.config.DisablePrometheus || c.config.DisablePormetheus) && strings.HasPrefix(r.URL.Path, "/metrics") { //nolint:staticcheck // intentional use of deprecated field for backward compatibility
-				promHandler.ServeHTTP(w, r)
-				return
-			}
-			gzipHandler.ServeHTTP(w, r)
-		}),
+		Addr:    gatewayAddr,
+		Handler: adminMux,
 	}
 	log.Info(ctx, "msg", "Starting HTTP server", "address", gatewayAddr)
 	return gwServer, nil

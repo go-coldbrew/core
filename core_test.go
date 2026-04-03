@@ -21,7 +21,7 @@ func (m *mockCBService) InitGRPC(_ context.Context, _ *grpc.Server) error {
 }
 
 func TestNew(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	cb := New(config.Config{
 		DisableSignalHandler: true,
 	})
@@ -31,7 +31,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestSetService_Nil(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	c := &cb{
 		svc: make([]CBService, 0),
 	}
@@ -45,7 +45,7 @@ func TestSetService_Nil(t *testing.T) {
 }
 
 func TestSetService_Valid(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	c := &cb{
 		svc: make([]CBService, 0),
 	}
@@ -59,7 +59,7 @@ func TestSetService_Valid(t *testing.T) {
 }
 
 func TestParseHeaders(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	tests := []struct {
 		name     string
 		input    string
@@ -102,7 +102,7 @@ func TestParseHeaders(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
+			// removed t.Parallel() — core tests mutate package-level globals
 			result := parseHeaders(tc.input)
 			if len(result) != len(tc.expected) {
 				t.Fatalf("expected %d entries, got %d: %v", len(tc.expected), len(result), result)
@@ -121,12 +121,12 @@ func TestParseHeaders(t *testing.T) {
 }
 
 func TestGetCustomHeaderMatcher(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 
 	matcher := getCustomHeaderMatcher([]string{"X-Custom-"}, "X-Trace-Id")
 
 	t.Run("matching trace header returns true", func(t *testing.T) {
-		t.Parallel()
+		// removed t.Parallel() — core tests mutate package-level globals
 		key, matched := matcher("X-Trace-Id")
 		if !matched {
 			t.Fatal("expected trace header to match")
@@ -137,7 +137,7 @@ func TestGetCustomHeaderMatcher(t *testing.T) {
 	})
 
 	t.Run("matching prefix returns true", func(t *testing.T) {
-		t.Parallel()
+		// removed t.Parallel() — core tests mutate package-level globals
 		key, matched := matcher("X-Custom-Something")
 		if !matched {
 			t.Fatal("expected prefixed header to match")
@@ -148,7 +148,7 @@ func TestGetCustomHeaderMatcher(t *testing.T) {
 	})
 
 	t.Run("non-matching header falls back to default matcher", func(t *testing.T) {
-		t.Parallel()
+		// removed t.Parallel() — core tests mutate package-level globals
 		// "Content-Type" is handled by DefaultHeaderMatcher
 		key, matched := matcher("Content-Type")
 		if !matched {
