@@ -324,10 +324,8 @@ func SetupHystrixPrometheus() {
 // ConfigureInterceptors configures the interceptors package with the provided settings.
 func ConfigureInterceptors(DoNotLogGRPCReflection bool, traceHeaderName string, responseTimeLogLevel string, responseTimeLogErrorOnly bool) {
 	if DoNotLogGRPCReflection {
-		interceptors.FilterMethods = append(
-			interceptors.FilterMethods,
-			"grpc.reflection.v1alpha.ServerReflection",
-		)
+		methods := append(interceptors.FilterMethods, "grpc.reflection.v1alpha.ServerReflection") //nolint:staticcheck // FilterMethods read is fine, using SetFilterMethods to write
+		interceptors.SetFilterMethods(context.Background(), methods)
 	}
 	if traceHeaderName != "" {
 		notifier.SetTraceHeaderName(traceHeaderName)

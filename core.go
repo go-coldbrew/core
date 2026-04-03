@@ -395,7 +395,7 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 	// Start HTTP server (and proxy calls to gRPC server endpoint)
 	gatewayAddr := fmt.Sprintf("%s:%d", c.config.ListenHost, c.config.HTTPPort)
 	promHandler := promhttp.Handler()
-	var gzipHandler http.Handler = tracingWrapper(mux)
+	gzipHandler := http.Handler(tracingWrapper(mux))
 	if !c.config.DisableHTTPCompression {
 		wrapper, err := gzhttp.NewWrapper(gzhttp.MinSize(c.config.HTTPCompressionMinSize))
 		if err != nil {
