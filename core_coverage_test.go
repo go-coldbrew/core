@@ -1165,5 +1165,5 @@ func TestSetupOpenTelemetry_MissingServiceName(t *testing.T) {
 }
 
 func TestConfigureInterceptors_BothBranches(t *testing.T) {
-	ConfigureInterceptors(true, "X-My-Trace")
+	ConfigureInterceptors(true, "X-My-Trace", "info", false)
 }

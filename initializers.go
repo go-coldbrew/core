@@ -321,19 +321,24 @@ func SetupHystrixPrometheus() {
 	})
 }
 
-// ConfigureInterceptors configures the interceptors package with the provided
-// DoNotLogGRPCReflection is a boolean that indicates whether to log the grpc.reflection.v1alpha.ServerReflection service calls in logs
-// traceHeaderName is the name of the header to use for tracing (e.g. X-Trace-Id) - if empty, defaults to X-Trace-Id
-func ConfigureInterceptors(DoNotLogGRPCReflection bool, traceHeaderName string) {
+// ConfigureInterceptors configures the interceptors package with the provided settings.
+func ConfigureInterceptors(DoNotLogGRPCReflection bool, traceHeaderName string, responseTimeLogLevel string, responseTimeLogErrorOnly bool) {
 	if DoNotLogGRPCReflection {
-		interceptors.FilterMethods = append(
-			interceptors.FilterMethods,
-			"grpc.reflection.v1alpha.ServerReflection",
-		)
+		methods := append(interceptors.FilterMethods, "grpc.reflection.v1alpha.ServerReflection") //nolint:staticcheck // FilterMethods read is fine, using SetFilterMethods to write
+		interceptors.SetFilterMethods(context.Background(), methods)
 	}
 	if traceHeaderName != "" {
 		notifier.SetTraceHeaderName(traceHeaderName)
 	}
+	if responseTimeLogLevel != "" {
+		level, err := loggers.ParseLevel(responseTimeLogLevel)
+		if err != nil {
+			log.Warn(context.Background(), "msg", "invalid RESPONSE_TIME_LOG_LEVEL, defaulting to info", "value", responseTimeLogLevel, "err", err)
+			level = loggers.InfoLevel
+		}
+		interceptors.SetResponseTimeLogLevel(context.Background(), level)
+	}
+	interceptors.SetResponseTimeLogErrorOnly(responseTimeLogErrorOnly)
 }
 
 // SetupAutoMaxProcs sets up the GOMAXPROCS to match Linux container CPU quota
