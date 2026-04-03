@@ -113,7 +113,7 @@ func (c *cb) processConfig() {
 	}
 	// Auto-disable NewRelic when no license key is configured to avoid
 	// interceptor overhead for services that don't use NR.
-	if !c.config.DisableNewRelic && c.config.NewRelicLicenseKey == "" {
+	if !c.config.DisableNewRelic && strings.TrimSpace(c.config.NewRelicLicenseKey) == "" {
 		c.config.DisableNewRelic = true
 	}
 	if !c.config.DisableNewRelic {
@@ -399,7 +399,7 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 	if !c.config.DisableHTTPCompression {
 		wrapper, err := gzhttp.NewWrapper(gzhttp.MinSize(c.config.HTTPCompressionMinSize))
 		if err != nil {
-			return nil, fmt.Errorf("failed to create compression handler: %v", err)
+			return nil, fmt.Errorf("failed to create compression handler: %w", err)
 		}
 		gzipHandler = wrapper(gzipHandler)
 	}
