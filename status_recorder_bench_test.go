@@ -2,16 +2,23 @@ package core
 
 import (
 	"net/http"
-	"net/http/httptest"
 	"sync"
 	"testing"
 )
+
+// noopResponseWriter is a minimal ResponseWriter that discards output,
+// isolating statusRecorder overhead from buffer growth.
+type noopResponseWriter struct{}
+
+func (noopResponseWriter) Header() http.Header        { return http.Header{} }
+func (noopResponseWriter) Write(b []byte) (int, error) { return len(b), nil }
+func (noopResponseWriter) WriteHeader(int)             {}
 
 // sink prevents compiler from optimizing away allocations.
 var sink http.ResponseWriter
 
 func BenchmarkStatusRecorder_Direct(b *testing.B) {
-	w := httptest.NewRecorder()
+	w := noopResponseWriter{}
 	body := []byte("hello")
 	b.ReportAllocs()
 	b.ResetTimer()
@@ -29,7 +36,7 @@ func BenchmarkStatusRecorder_Pool(b *testing.B) {
 			return &statusRecorder{}
 		},
 	}
-	w := httptest.NewRecorder()
+	w := noopResponseWriter{}
 	body := []byte("hello")
 	b.ReportAllocs()
 	b.ResetTimer()

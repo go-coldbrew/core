@@ -426,9 +426,14 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 	}
 	if !(c.config.DisablePrometheus || c.config.DisablePormetheus) { //nolint:staticcheck // intentional use of deprecated field for backward compatibility
 		adminMux.Handle("/metrics", promHandler)
+		adminMux.Handle("/metrics/", promHandler) // preserve HasPrefix semantics
 	}
 	if !c.config.DisableSwagger && c.openAPIHandler != nil {
-		adminMux.Handle(c.config.SwaggerURL, http.StripPrefix(c.config.SwaggerURL, c.openAPIHandler))
+		swaggerURL := c.config.SwaggerURL
+		if swaggerURL != "/" && !strings.HasSuffix(swaggerURL, "/") {
+			swaggerURL += "/"
+		}
+		adminMux.Handle(swaggerURL, http.StripPrefix(swaggerURL, c.openAPIHandler))
 	}
 	adminMux.Handle("/", gzipHandler)
 	gwServer := &http.Server{
