@@ -77,7 +77,7 @@ func (f closerFunc) Close() error { return f() }
 // --- Group 1: Utility Functions ---
 
 func TestSetOpenAPIHandler(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	c := &cb{}
 	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -89,7 +89,7 @@ func TestSetOpenAPIHandler(t *testing.T) {
 }
 
 func TestTimedCall_Completes(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -103,7 +103,7 @@ func TestTimedCall_Completes(t *testing.T) {
 }
 
 func TestTimedCall_TimesOut(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
 	defer cancel()
 
@@ -114,7 +114,7 @@ func TestTimedCall_TimesOut(t *testing.T) {
 }
 
 func TestClose_WithClosers(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	closed := false
 	c := &cb{
 		closers: []io.Closer{
@@ -132,7 +132,7 @@ func TestClose_WithClosers(t *testing.T) {
 }
 
 func TestClose_WithErrorCloser(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	c := &cb{
 		closers: []io.Closer{
 			closerFunc(func() error {
@@ -144,7 +144,7 @@ func TestClose_WithErrorCloser(t *testing.T) {
 }
 
 func TestClose_WithNilCloser(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	c := &cb{
 		closers: []io.Closer{nil},
 	}
@@ -152,7 +152,7 @@ func TestClose_WithNilCloser(t *testing.T) {
 }
 
 func TestLoadTLSCredentials_BadFiles(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	_, err := loadTLSCredentials("/nonexistent/cert.pem", "/nonexistent/key.pem", false)
 	if err == nil {
 		t.Fatal("expected error for nonexistent TLS files")
@@ -160,7 +160,7 @@ func TestLoadTLSCredentials_BadFiles(t *testing.T) {
 }
 
 func TestTracingWrapper(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	inner := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
@@ -175,7 +175,7 @@ func TestTracingWrapper(t *testing.T) {
 }
 
 func TestTracingWrapper_StatusCodes(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	tests := []struct {
 		name       string
 		handler    http.HandlerFunc
@@ -213,7 +213,7 @@ func TestTracingWrapper_StatusCodes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
+			// removed t.Parallel() — core tests mutate package-level globals
 			wrapped := tracingWrapper(tt.handler)
 			req := httptest.NewRequest("GET", "/api/test", nil)
 			w := httptest.NewRecorder()
@@ -226,10 +226,10 @@ func TestTracingWrapper_StatusCodes(t *testing.T) {
 }
 
 func TestStatusRecorder(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 
 	t.Run("captures explicit status", func(t *testing.T) {
-		t.Parallel()
+		// removed t.Parallel() — core tests mutate package-level globals
 		w := httptest.NewRecorder()
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 		rec.WriteHeader(http.StatusBadGateway)
@@ -242,7 +242,7 @@ func TestStatusRecorder(t *testing.T) {
 	})
 
 	t.Run("unwrap returns underlying writer", func(t *testing.T) {
-		t.Parallel()
+		// removed t.Parallel() — core tests mutate package-level globals
 		w := httptest.NewRecorder()
 		rec := &statusRecorder{ResponseWriter: w}
 		if rec.Unwrap() != w {
@@ -252,10 +252,10 @@ func TestStatusRecorder(t *testing.T) {
 }
 
 func TestSpanRouteMiddleware(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 
 	t.Run("calls next handler", func(t *testing.T) {
-		t.Parallel()
+		// removed t.Parallel() — core tests mutate package-level globals
 		called := false
 		next := func(w http.ResponseWriter, r *http.Request, pathParams map[string]string) {
 			called = true
@@ -274,7 +274,7 @@ func TestSpanRouteMiddleware(t *testing.T) {
 	})
 
 	t.Run("passes path params through", func(t *testing.T) {
-		t.Parallel()
+		// removed t.Parallel() — core tests mutate package-level globals
 		var gotParams map[string]string
 		next := func(w http.ResponseWriter, r *http.Request, pathParams map[string]string) {
 			gotParams = pathParams
@@ -428,7 +428,7 @@ func TestTracingWrapperGatewaySpanName(t *testing.T) {
 }
 
 func TestGetCustomHeaderMatcher_EmptyPrefixes(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	matcher := getCustomHeaderMatcher(nil, "X-Trace-Id")
 
 	_, matched := matcher("X-Trace-Id")
@@ -442,7 +442,7 @@ func TestGetCustomHeaderMatcher_EmptyPrefixes(t *testing.T) {
 }
 
 func TestGetCustomHeaderMatcher_EmptyPrefix(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	matcher := getCustomHeaderMatcher([]string{""}, "X-Trace-Id")
 	_, matched := matcher("X-Random-Header")
 	if matched {
@@ -453,7 +453,7 @@ func TestGetCustomHeaderMatcher_EmptyPrefix(t *testing.T) {
 // --- Group 2: gRPC Server Options ---
 
 func TestGetGRPCServerOptions_Default(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	c := &cb{config: config.Config{}}
 	opts := c.getGRPCServerOptions()
 	if len(opts) < 2 {
@@ -462,7 +462,7 @@ func TestGetGRPCServerOptions_Default(t *testing.T) {
 }
 
 func TestGetGRPCServerOptions_WithMsgSizeLimits(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	c := &cb{config: config.Config{
 		GRPCMaxRecvMsgSize: 4 * 1024 * 1024,
 		GRPCMaxSendMsgSize: 4 * 1024 * 1024,
@@ -474,7 +474,7 @@ func TestGetGRPCServerOptions_WithMsgSizeLimits(t *testing.T) {
 }
 
 func TestGetGRPCServerOptions_WithKeepalive(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	c := &cb{config: config.Config{
 		GRPCServerMaxConnectionIdleInSeconds:     30,
 		GRPCServerMaxConnectionAgeInSeconds:      60,
@@ -626,7 +626,7 @@ func TestSetupHystrixPrometheus_CalledTwice(t *testing.T) {
 // --- Group 4: Init Server Functions ---
 
 func TestInitGRPC(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	svc := &testService{}
 	c := &cb{
 		config: config.Config{},
@@ -646,7 +646,7 @@ func TestInitGRPC(t *testing.T) {
 }
 
 func TestInitGRPC_ServiceError(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	svc := &errorService{grpcErr: fmt.Errorf("init grpc failed")}
 	c := &cb{
 		config: config.Config{},
@@ -659,7 +659,7 @@ func TestInitGRPC_ServiceError(t *testing.T) {
 }
 
 func TestInitGRPC_WithTLS_BadFiles(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	c := &cb{
 		config: config.Config{
 			GRPCTLSCertFile: "/nonexistent/cert.pem",
@@ -674,7 +674,7 @@ func TestInitGRPC_WithTLS_BadFiles(t *testing.T) {
 }
 
 func TestInitGRPC_DisableReflection(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	c := &cb{
 		config: config.Config{DisableGRPCReflection: true},
 		svc:    []CBService{&testService{}},
@@ -687,7 +687,7 @@ func TestInitGRPC_DisableReflection(t *testing.T) {
 }
 
 func TestInitHTTP(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	svc := &testService{}
 	c := &cb{
 		config: config.Config{
@@ -710,7 +710,7 @@ func TestInitHTTP(t *testing.T) {
 }
 
 func TestInitHTTP_ServiceError(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	svc := &errorService{httpErr: fmt.Errorf("init http failed")}
 	c := &cb{
 		config: config.Config{
@@ -727,7 +727,7 @@ func TestInitHTTP_ServiceError(t *testing.T) {
 }
 
 func TestInitHTTP_WithOptions(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	c := &cb{
 		config: config.Config{
 			GRPCPort:                  19090,
@@ -752,7 +752,7 @@ func TestInitHTTP_WithOptions(t *testing.T) {
 }
 
 func TestInitHTTP_BackwardCompatiblePrefix(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	c := &cb{
 		config: config.Config{
 			GRPCPort:         19090,
@@ -774,7 +774,7 @@ func TestInitHTTP_BackwardCompatiblePrefix(t *testing.T) {
 // --- Group 5: HTTP Handler Routing ---
 
 func TestHTTPHandler_Swagger(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte("swagger"))
 	})
@@ -805,7 +805,7 @@ func TestHTTPHandler_Swagger(t *testing.T) {
 }
 
 func TestHTTPHandler_Pprof(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	c := &cb{
 		config: config.Config{
 			GRPCPort:   19090,
@@ -830,7 +830,7 @@ func TestHTTPHandler_Pprof(t *testing.T) {
 }
 
 func TestHTTPHandler_Metrics(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	c := &cb{
 		config: config.Config{
 			GRPCPort:   19090,
@@ -852,8 +852,33 @@ func TestHTTPHandler_Metrics(t *testing.T) {
 	}
 }
 
+func TestHTTPHandler_MetricsSubpath(t *testing.T) {
+	// removed t.Parallel() — core tests mutate package-level globals
+	c := &cb{
+		config: config.Config{
+			GRPCPort:   19090,
+			HTTPPort:   19091,
+			ListenHost: "127.0.0.1",
+		},
+		svc: []CBService{&testService{}},
+	}
+	svr, err := c.initHTTP(context.Background())
+	if err != nil {
+		t.Fatalf("initHTTP failed: %v", err)
+	}
+
+	for _, path := range []string{"/metrics/", "/metrics/foo"} {
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", path, nil)
+		svr.Handler.ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200 for %s, got %d", path, w.Code)
+		}
+	}
+}
+
 func TestHTTPHandler_DisabledEndpoints(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	c := &cb{
 		config: config.Config{
 			GRPCPort:          19090,
@@ -883,7 +908,7 @@ func TestHTTPHandler_DisabledEndpoints(t *testing.T) {
 // --- Group 6: Lifecycle ---
 
 func TestRunAndStop(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	svc := &testService{}
 	c := &cb{
 		config: config.Config{
@@ -918,7 +943,7 @@ func TestRunAndStop(t *testing.T) {
 }
 
 func TestStop_WithHealthcheckWait(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	c := &cb{
 		config: config.Config{
 			HealthcheckWaitDurationInSeconds: 1,
@@ -937,7 +962,7 @@ func TestStop_WithHealthcheckWait(t *testing.T) {
 }
 
 func TestRunGRPC_BadPort(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	c := &cb{
 		config: config.Config{
 			GRPCPort:   -1,
@@ -953,7 +978,7 @@ func TestRunGRPC_BadPort(t *testing.T) {
 }
 
 func TestRun_GRPCInitError(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	svc := &errorService{grpcErr: fmt.Errorf("grpc init error")}
 	c := &cb{
 		config: config.Config{DisableSignalHandler: true},
@@ -966,7 +991,7 @@ func TestRun_GRPCInitError(t *testing.T) {
 }
 
 func TestRun_HTTPInitError(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	svc := &errorService{httpErr: fmt.Errorf("http init error")}
 	c := &cb{
 		config: config.Config{
@@ -1041,7 +1066,7 @@ func TestRunFullLifecycle(t *testing.T) {
 // --- Group 7: VTProto Codec ---
 
 func TestVTProtoCodec_Marshal_ProtoMessage(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	codec := vtprotoCodec{}
 	msg := wrapperspb.String("hello")
 	data, err := codec.Marshal(msg)
@@ -1054,7 +1079,7 @@ func TestVTProtoCodec_Marshal_ProtoMessage(t *testing.T) {
 }
 
 func TestVTProtoCodec_Unmarshal_ProtoMessage(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	codec := vtprotoCodec{}
 	original := wrapperspb.String("hello")
 	data, err := codec.Marshal(original)
@@ -1073,7 +1098,7 @@ func TestVTProtoCodec_Unmarshal_ProtoMessage(t *testing.T) {
 }
 
 func TestVTProtoCodec_Marshal_UnknownType(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	codec := vtprotoCodec{}
 	_, err := codec.Marshal("not a proto message")
 	if err == nil {
@@ -1082,7 +1107,7 @@ func TestVTProtoCodec_Marshal_UnknownType(t *testing.T) {
 }
 
 func TestVTProtoCodec_Unmarshal_UnknownType(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	codec := vtprotoCodec{}
 	err := codec.Unmarshal([]byte{}, "not a proto message")
 	if err == nil {
@@ -1091,7 +1116,7 @@ func TestVTProtoCodec_Unmarshal_UnknownType(t *testing.T) {
 }
 
 func TestVTProtoCodec_Name(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	codec := vtprotoCodec{}
 	if codec.Name() != "proto" {
 		t.Fatalf("expected 'proto', got %q", codec.Name())
@@ -1169,7 +1194,7 @@ func TestConfigureInterceptors_BothBranches(t *testing.T) {
 }
 
 func TestConfig_Validate_HTTPCompressionMinSize(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	tests := []struct {
 		name    string
 		minSize int
@@ -1197,7 +1222,7 @@ func TestConfig_Validate_HTTPCompressionMinSize(t *testing.T) {
 }
 
 func TestProcessConfig_NRAutoDisable(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	tests := []struct {
 		name       string
 		licenseKey string
