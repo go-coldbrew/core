@@ -335,6 +335,7 @@ func ConfigureInterceptors(DoNotLogGRPCReflection bool, traceHeaderName string, 
 	if responseTimeLogLevel != "" {
 		level, err := loggers.ParseLevel(responseTimeLogLevel)
 		if err != nil {
+			log.Warn(context.Background(), "msg", "invalid RESPONSE_TIME_LOG_LEVEL, defaulting to info", "value", responseTimeLogLevel, "err", err)
 			level = loggers.InfoLevel
 		}
 		interceptors.SetResponseTimeLogLevel(context.Background(), level)
