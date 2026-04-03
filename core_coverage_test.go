@@ -1220,13 +1220,14 @@ func TestProcessConfig_NRAutoDisable(t *testing.T) {
 				NewRelicLicenseKey:   tt.licenseKey,
 				DisableNewRelic:      tt.disableNR,
 			})
-			// processConfig runs in New(). We can't inspect c.config directly
-			// since it's unexported, but we can verify behavior: when NR is
-			// disabled, the NR interceptor is a pass-through (nil app).
-			// The fact that New() doesn't panic with an invalid key confirms
-			// the auto-disable path works.
 			if instance == nil {
 				t.Fatal("expected non-nil instance")
+			}
+			// We're in package core, so we can type-assert to *cb
+			// and inspect the config after processConfig ran.
+			cbInstance := instance.(*cb)
+			if cbInstance.config.DisableNewRelic != tt.wantDisabled {
+				t.Errorf("DisableNewRelic = %v, want %v", cbInstance.config.DisableNewRelic, tt.wantDisabled)
 			}
 		})
 	}
