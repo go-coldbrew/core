@@ -180,7 +180,7 @@ func (c Config) Validate() []string {
 		warnings = append(warnings, "HealthcheckWaitDurationInSeconds should be less than ShutdownDurationInSeconds")
 	}
 	if c.HTTPCompressionMinSize < 0 {
-		warnings = append(warnings, "HTTPCompressionMinSize must be >= 0, using 0 (compress all)")
+		warnings = append(warnings, "HTTPCompressionMinSize is negative; this may cause unexpected behavior")
 	}
 
 	return warnings
