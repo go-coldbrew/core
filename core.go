@@ -8,8 +8,8 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"os"
 	"net/http/pprof"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -35,11 +35,11 @@ import (
 	oteltrace "go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/stats"
 	"google.golang.org/grpc/credentials/insecure"
 	_ "google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
+	"google.golang.org/grpc/stats"
 )
 
 // SupportPackageIsVersion1 is a compile-time assertion constant.
@@ -382,9 +382,11 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 	}
 
 	// Use unix socket for the gateway's internal connection when available.
+	// Only when TLS is not configured — grpc.Server applies TLS to all listeners,
+	// so insecure dial would fail the handshake.
 	dialEndpoint := grpcServerEndpoint
 	dialCreds := creds
-	if c.unixSocketPath != "" {
+	if c.unixSocketPath != "" && c.creds == nil {
 		dialEndpoint = "unix:" + c.unixSocketPath
 		dialCreds = insecure.NewCredentials()
 	}
@@ -476,6 +478,7 @@ func (c *cb) runHTTP(ctx context.Context, svr *http.Server) error {
 var otelGRPCServerOpts = []otelgrpc.Option{
 	otelgrpc.WithFilter(defaultOTELFilter),
 }
+
 var otelGRPCClientOpts = []otelgrpc.Option{
 	otelgrpc.WithFilter(defaultOTELFilter),
 }
@@ -632,18 +635,25 @@ func (c *cb) Run() error {
 	// Create unix socket for the gateway before initHTTP so the endpoint is known.
 	var unixLis net.Listener
 	if !c.config.DisableUnixGateway {
-		socketPath := fmt.Sprintf("/tmp/coldbrew-%d.sock", os.Getpid())
-		os.Remove(socketPath) // clean up stale socket from previous run
-		unixLis, err = net.Listen("unix", socketPath)
-		if err != nil {
-			log.Warn(ctx, "msg", "failed to create unix socket, falling back to TCP for gateway",
-				"path", socketPath, "err", err)
+		tmp, tmpErr := os.CreateTemp("", fmt.Sprintf("coldbrew-%d-*.sock", os.Getpid()))
+		if tmpErr != nil {
+			log.Warn(ctx, "msg", "failed to allocate unix socket path, falling back to TCP for gateway",
+				"err", tmpErr)
 		} else {
-			c.unixSocketPath = socketPath
-			c.closers = append(c.closers, closerFunc(func() error {
-				return os.Remove(socketPath)
-			}))
-			log.Info(ctx, "msg", "Unix socket created for gateway", "path", socketPath)
+			socketPath := tmp.Name()
+			tmp.Close()
+			os.Remove(socketPath) // remove placeholder so net.Listen can create the socket
+			unixLis, err = net.Listen("unix", socketPath)
+			if err != nil {
+				log.Warn(ctx, "msg", "failed to create unix socket, falling back to TCP for gateway",
+					"path", socketPath, "err", err)
+			} else {
+				c.unixSocketPath = socketPath
+				c.closers = append(c.closers, closerFunc(func() error {
+					return os.Remove(socketPath)
+				}))
+				log.Info(ctx, "msg", "Unix socket created for gateway", "path", socketPath)
+			}
 		}
 	}
 
@@ -690,8 +700,8 @@ func (c *cb) Run() error {
 // closerFunc adapts a plain function into an io.Closer.
 type closerFunc func() error
 
-func (f closerFunc) Close() error  { return f() }
-func (closerFunc) String() string  { return "closerFunc" }
+func (f closerFunc) Close() error { return f() }
+func (closerFunc) String() string { return "closerFunc" }
 
 func (c *cb) close() {
 	for _, closer := range c.closers {

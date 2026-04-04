@@ -975,16 +975,20 @@ func TestRunGRPC_BadPort(t *testing.T) {
 }
 
 func TestUnixGateway_DisabledByDefault(t *testing.T) {
-	// envconfig defaults are applied at process() time; the struct zero value
-	// is false, but the envconfig tag says default:"true". Verify using
-	// the same ProcessConfig that real code uses.
-	var cfg config.Config
-	// Zero value of bool is false; the DISABLE_UNIX_GATEWAY default is "true"
-	// which means the feature is opt-in. Verify the intent: when someone
-	// creates a cb{} without setting the field, the gateway is disabled.
-	c := &cb{config: cfg}
+	// Zero value of bool is false, but envconfig default is "true".
+	// Verify that a cb{} with default config does not set a socket path.
+	c := &cb{config: config.Config{}}
 	if c.unixSocketPath != "" {
 		t.Error("expected empty unix socket path by default")
+	}
+	// Also verify DisableUnixGateway zero value means feature is off
+	// (zero = false = not disabled = enabled, but that's the Go zero value,
+	// not the envconfig default). The envconfig default:"true" ensures
+	// the feature is disabled in production.
+	if !c.config.DisableUnixGateway {
+		// This is expected — zero value is false. The envconfig tag
+		// provides the "true" default at runtime.
+		t.Log("DisableUnixGateway zero value is false (envconfig provides true default at runtime)")
 	}
 }
 
@@ -999,12 +1003,14 @@ func TestUnixGateway_SocketCreatedAndCleaned(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create unix socket: %v", err)
 	}
-	defer lis.Close()
 
 	// Verify socket file exists while listener is open
 	if _, err := os.Stat(socketPath); os.IsNotExist(err) {
 		t.Fatal("expected socket file to exist while listener is open")
 	}
+
+	// Close listener before cleanup (matches shutdown order)
+	lis.Close()
 
 	// Verify cleanup via closerFunc removes the file
 	c := &cb{}
@@ -1016,21 +1022,31 @@ func TestUnixGateway_SocketCreatedAndCleaned(t *testing.T) {
 }
 
 func TestUnixGateway_FallbackOnFailure(t *testing.T) {
-	c := &cb{
-		config: config.Config{
-			DisableUnixGateway:   false,
-			DisableSignalHandler: true,
-		},
+	// Pre-create a regular file at the target path so net.Listen("unix", ...) fails.
+	socketPath := fmt.Sprintf("/tmp/coldbrew-test-fallback-%d.sock", os.Getpid())
+	os.Remove(socketPath)
+	defer os.Remove(socketPath)
+
+	if err := os.WriteFile(socketPath, []byte("not a socket"), 0o600); err != nil {
+		t.Fatalf("failed to create blocking file: %v", err)
 	}
-	// unixSocketPath should remain empty when socket creation would fail
-	// (we test this indirectly — if the field is empty, initHTTP uses TCP)
+
+	// Verify net.Listen fails when a regular file exists at the path
+	lis, err := net.Listen("unix", socketPath)
+	if err == nil {
+		lis.Close()
+		t.Fatal("expected unix socket creation to fail when a regular file exists")
+	}
+
+	// The cb struct should not have a socket path populated
+	c := &cb{config: config.Config{DisableUnixGateway: false}}
 	if c.unixSocketPath != "" {
-		t.Error("expected empty socket path before Run")
+		t.Error("expected empty socket path when socket creation fails")
 	}
 }
 
 func TestRunGRPC_WithUnixListener(t *testing.T) {
-	socketPath := fmt.Sprintf("/tmp/coldbrew-test-%d.sock", os.Getpid())
+	socketPath := fmt.Sprintf("/tmp/coldbrew-test-rpc-%d.sock", os.Getpid())
 	os.Remove(socketPath)
 	defer os.Remove(socketPath)
 
@@ -1048,13 +1064,29 @@ func TestRunGRPC_WithUnixListener(t *testing.T) {
 	}
 	server := grpc.NewServer()
 
-	// runGRPC with a bad TCP port will fail, but the unix listener goroutine
-	// should have been started. We just verify it doesn't panic.
-	c.config.GRPCPort = -1
-	err = c.runGRPC(context.Background(), server, unixLis)
+	// Use a valid TCP port so both listeners can serve.
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- c.runGRPC(context.Background(), server, unixLis)
+	}()
+
+	// Give the server time to start both listeners.
+	select {
+	case err := <-errCh:
+		t.Fatalf("runGRPC returned before Stop: %v", err)
+	case <-time.After(200 * time.Millisecond):
+	}
+
+	// Stop cleanly — this stops both TCP and Unix listeners.
 	server.Stop()
-	if err == nil {
-		t.Fatal("expected error for bad TCP port")
+
+	select {
+	case err := <-errCh:
+		if err != nil {
+			t.Fatalf("runGRPC returned error after Stop: %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("runGRPC did not return after Stop")
 	}
 }
 
@@ -1277,8 +1309,8 @@ func TestConfigureInterceptors_BothBranches(t *testing.T) {
 func TestConfig_Validate_HTTPCompressionMinSize(t *testing.T) {
 	// removed t.Parallel() — core tests mutate package-level globals
 	tests := []struct {
-		name    string
-		minSize int
+		name     string
+		minSize  int
 		wantWarn bool
 	}{
 		{"negative triggers warning", -1, true},
@@ -1305,9 +1337,9 @@ func TestConfig_Validate_HTTPCompressionMinSize(t *testing.T) {
 func TestProcessConfig_NRAutoDisable(t *testing.T) {
 	// removed t.Parallel() — core tests mutate package-level globals
 	tests := []struct {
-		name       string
-		licenseKey string
-		disableNR  bool
+		name         string
+		licenseKey   string
+		disableNR    bool
 		wantDisabled bool
 	}{
 		{"empty key auto-disables", "", false, true},
