@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package benchpb;
+
+option go_package = "github.com/go-coldbrew/core/benchmarks/benchpb";
+
+import "google/protobuf/timestamp.proto";
+
+// Item represents a typical API entity (e.g., product, order, user record).
+message Item {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  double price = 4;
+  int64 quantity = 5;
+  map<string, string> metadata = 6;
+  repeated string tags = 7;
+  google.protobuf.Timestamp created_at = 8;
+}
+
+// BenchRequest carries a variable number of items for transport benchmarking.
+message BenchRequest {
+  repeated Item items = 1;
+}
+
+// BenchResponse echoes back items with a summary.
+message BenchResponse {
+  repeated Item items = 1;
+  int64 total_count = 2;
+  string request_id = 3;
+}
+
+// BenchService is a minimal echo service for benchmarking.
+service BenchService {
+  rpc Echo(BenchRequest) returns (BenchResponse);
+}
