@@ -237,10 +237,11 @@ func httpSpanAttributes(r *http.Request) []attribute.KeyValue {
 		host = r.Host
 	}
 	host = strings.TrimPrefix(strings.TrimSuffix(host, "]"), "[")
-	attrs := []attribute.KeyValue{
-		semconv.HTTPRequestMethodKey.String(r.Method),
-		semconv.URLPath(r.URL.Path),
-	}
+	// Pre-allocate for the common case: method + path + host + scheme + optional port/query.
+	var attrBuf [6]attribute.KeyValue
+	attrBuf[0] = semconv.HTTPRequestMethodKey.String(r.Method)
+	attrBuf[1] = semconv.URLPath(r.URL.Path)
+	attrs := attrBuf[:2]
 	if host != "" {
 		attrs = append(attrs, semconv.ServerAddress(host))
 	}
@@ -303,6 +304,8 @@ func tracingWrapper(h http.Handler) http.Handler {
 		}
 
 		_, han := interceptors.NRHttpTracer("", h.ServeHTTP)
+		// No-op with empty key (returns ctx unchanged). Kept for historical
+		// reasons; the subsequent AddToLogContext call initializes RequestContext.
 		ctx = options.AddToOptions(ctx, "", "")
 		ctx = loggers.AddToLogContext(ctx, "httpPath", r.URL.Path)
 		han(w, r.WithContext(ctx))
