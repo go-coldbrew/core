@@ -659,6 +659,11 @@ func (c *cb) Run() error {
 
 	c.httpServer, err = c.initHTTP(ctx)
 	if err != nil {
+		// Clean up unix socket listener and file if initHTTP fails.
+		if unixLis != nil {
+			unixLis.Close()
+		}
+		c.close()
 		return err
 	}
 
