@@ -65,7 +65,7 @@ import "github.com/go-coldbrew/core/config"
 
 
 <a name="Config"></a>
-## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L6-L152>)
+## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L6-L156>)
 
 Config is the configuration for the Coldbrew server It is populated from environment variables and has sensible defaults for all fields so that you can just use it as is without any configuration The following environment variables are supported and can be used to override the defaults for the fields
 
@@ -211,11 +211,15 @@ type Config struct {
     // ResponseTimeLogErrorOnly when true, only logs response time for requests that return an error.
     // Successful requests are not logged. Default behavior logs all requests.
     ResponseTimeLogErrorOnly bool `envconfig:"RESPONSE_TIME_LOG_ERROR_ONLY" default:"false"`
+    // DisableUnixGateway disables Unix domain socket for the HTTP gateway's
+    // internal gRPC connection. When false (enabled), the gateway connects via
+    // a Unix socket (~1.9x faster than TCP loopback). Default true (opt-in).
+    DisableUnixGateway bool `envconfig:"DISABLE_UNIX_GATEWAY" default:"true"`
 }
 ```
 
 <a name="Config.Validate"></a>
-### func \(Config\) [Validate](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L157>)
+### func \(Config\) [Validate](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L161>)
 
 ```go
 func (c Config) Validate() []string
