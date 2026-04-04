@@ -177,10 +177,10 @@ github.com/go-coldbrew/hystrixprometheus v0.1.2 h1:WSt4FtYr8xNDKgdGWYpMfXGFIK7zd
 github.com/go-coldbrew/hystrixprometheus v0.1.2/go.mod h1:OrNRHHxZagpmQXNp//oHKOemGSU0ScOqEcJgeKbJ+wg=
 github.com/go-coldbrew/interceptors v0.1.15 h1:oLEhYiQGmZK4mVg4et+T+dqCdhhJp/kV+ob5Q/D7kSQ=
 github.com/go-coldbrew/interceptors v0.1.15/go.mod h1:ixchtwMi+V2CY0AsESmX7FQlgZJYGT9Xt04ddGz2M5w=
-github.com/go-coldbrew/log v0.2.9 h1:LpuIOVlH6PUcq/ugO+8tK3JpmwdDwpOr2pG0fTt/dX0=
-github.com/go-coldbrew/log v0.2.9/go.mod h1:vYRIAbHVLcMjBqXexjYiVehRxgEfr07O6ZXBvg1DvmQ=
-github.com/go-coldbrew/options v0.2.7 h1:hWUgVx+snbjafEcJ01OLFBOfAV4a28IHcsHc5/vVkQE=
-github.com/go-coldbrew/options v0.2.7/go.mod h1:8JlmgVJXFoY1KiDLsyMmR//q1U1aBItCexvTrVT2Y60=
+github.com/go-coldbrew/log v0.3.0 h1:oYaAq6rS4hJGMVUQgF0xav2uw3LZeMcQrnKQcUl9Vaw=
+github.com/go-coldbrew/log v0.3.0/go.mod h1:xxZGHBfni5eXc6Azg+g8UPTmqTJLAf9sX46gAT8o39Y=
+github.com/go-coldbrew/options v0.3.0 h1:JwyVntb9bzBeFdaHFK6yGVVz30G3aVlqJJ6uVyYQfCc=
+github.com/go-coldbrew/options v0.3.0/go.mod h1:8JlmgVJXFoY1KiDLsyMmR//q1U1aBItCexvTrVT2Y60=
 github.com/go-coldbrew/tracing v0.2.0 h1:WGfdp5PNunOGfjTZGXPFaip3G5qOOMP622JFYA90ML4=
 github.com/go-coldbrew/tracing v0.2.0/go.mod h1:phF8WDsadDKK20lgB0Zv2/ocVIrCbVziMd3MMxqr+aU=
 github.com/go-critic/go-critic v0.14.3 h1:5R1qH2iFeo4I/RJU8vTezdqs08Egi4u5p6vOESA0pog=

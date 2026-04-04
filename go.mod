@@ -7,8 +7,8 @@ require (
 	github.com/go-coldbrew/errors v0.2.9
 	github.com/go-coldbrew/hystrixprometheus v0.1.2
 	github.com/go-coldbrew/interceptors v0.1.15
-	github.com/go-coldbrew/log v0.2.9
-	github.com/go-coldbrew/options v0.2.7
+	github.com/go-coldbrew/log v0.3.0
+	github.com/go-coldbrew/options v0.3.0
 	github.com/go-coldbrew/tracing v0.2.0
 	github.com/golang/protobuf v1.5.4
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.0
