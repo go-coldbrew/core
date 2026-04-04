@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/pprof"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -34,11 +35,11 @@ import (
 	oteltrace "go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/stats"
 	"google.golang.org/grpc/credentials/insecure"
 	_ "google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
+	"google.golang.org/grpc/stats"
 )
 
 // SupportPackageIsVersion1 is a compile-time assertion constant.
@@ -58,6 +59,7 @@ type cb struct {
 	cancelFunc     context.CancelFunc
 	gracefulWait   sync.WaitGroup
 	creds          credentials.TransportCredentials
+	unixSocketPath string
 }
 
 func (c *cb) SetService(svc CBService) error {
@@ -379,8 +381,18 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 		creds = insecure.NewCredentials()
 	}
 
+	// Use unix socket for the gateway's internal connection when available.
+	// Only when TLS is not configured — grpc.Server applies TLS to all listeners,
+	// so insecure dial would fail the handshake.
+	dialEndpoint := grpcServerEndpoint
+	dialCreds := creds
+	if c.unixSocketPath != "" && c.creds == nil {
+		dialEndpoint = "unix:" + c.unixSocketPath
+		dialCreds = insecure.NewCredentials()
+	}
+
 	opts := []grpc.DialOption{
-		grpc.WithTransportCredentials(creds),
+		grpc.WithTransportCredentials(dialCreds),
 		grpc.WithStatsHandler(otelgrpc.NewClientHandler(otelGRPCClientOpts...)),
 		grpc.WithUnaryInterceptor(
 			interceptors.DefaultClientInterceptor(
@@ -400,7 +412,7 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 		)
 	}
 	for _, s := range c.svc {
-		if err := s.InitHTTP(ctx, mux, grpcServerEndpoint, opts); err != nil {
+		if err := s.InitHTTP(ctx, mux, dialEndpoint, opts); err != nil {
 			return nil, err
 		}
 	}
@@ -466,6 +478,7 @@ func (c *cb) runHTTP(ctx context.Context, svr *http.Server) error {
 var otelGRPCServerOpts = []otelgrpc.Option{
 	otelgrpc.WithFilter(defaultOTELFilter),
 }
+
 var otelGRPCClientOpts = []otelgrpc.Option{
 	otelgrpc.WithFilter(defaultOTELFilter),
 }
@@ -574,7 +587,7 @@ func (c *cb) initGRPC(ctx context.Context) (*grpc.Server, error) {
 	return grpcServer, nil
 }
 
-func (c *cb) runGRPC(ctx context.Context, svr *grpc.Server) error {
+func (c *cb) runGRPC(ctx context.Context, svr *grpc.Server, unixLis net.Listener) error {
 	// If the peer server already failed (cancelling gctx), exit cleanly
 	// so the peer's error is what g.Wait() returns, not context.Canceled.
 	if ctx.Err() != nil {
@@ -587,6 +600,15 @@ func (c *cb) runGRPC(ctx context.Context, svr *grpc.Server) error {
 	}
 	if !c.config.DisableGRPCReflection {
 		reflection.Register(svr)
+	}
+	// Start serving on the unix socket in a background goroutine.
+	if unixLis != nil {
+		go func() {
+			if err := svr.Serve(unixLis); err != nil && !errors.Is(err, grpc.ErrServerStopped) {
+				log.Error(context.Background(), "msg", "unix socket gRPC server error", "err", err)
+			}
+		}()
+		log.Info(ctx, "msg", "gRPC also listening on unix socket", "path", c.unixSocketPath)
 	}
 	log.Info(ctx, "msg", "Starting GRPC server", "address", grpcServerEndpoint)
 	return svr.Serve(lis)
@@ -610,14 +632,44 @@ func (c *cb) Run() error {
 		return err
 	}
 
+	// Create unix socket for the gateway before initHTTP so the endpoint is known.
+	var unixLis net.Listener
+	if !c.config.DisableUnixGateway {
+		tmp, tmpErr := os.CreateTemp("", fmt.Sprintf("coldbrew-%d-*.sock", os.Getpid()))
+		if tmpErr != nil {
+			log.Warn(ctx, "msg", "failed to allocate unix socket path, falling back to TCP for gateway",
+				"err", tmpErr)
+		} else {
+			socketPath := tmp.Name()
+			tmp.Close()
+			os.Remove(socketPath) // remove placeholder so net.Listen can create the socket
+			unixLis, err = net.Listen("unix", socketPath)
+			if err != nil {
+				log.Warn(ctx, "msg", "failed to create unix socket, falling back to TCP for gateway",
+					"path", socketPath, "err", err)
+			} else {
+				c.unixSocketPath = socketPath
+				c.closers = append(c.closers, closerFunc(func() error {
+					return os.Remove(socketPath)
+				}))
+				log.Info(ctx, "msg", "Unix socket created for gateway", "path", socketPath)
+			}
+		}
+	}
+
 	c.httpServer, err = c.initHTTP(ctx)
 	if err != nil {
+		// Clean up unix socket listener and file if initHTTP fails.
+		if unixLis != nil {
+			unixLis.Close()
+		}
+		c.close()
 		return err
 	}
 
 	g, gctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
-		err := c.runGRPC(gctx, c.grpcServer)
+		err := c.runGRPC(gctx, c.grpcServer, unixLis)
 		// Expected shutdown error — don't cancel the group.
 		if errors.Is(err, grpc.ErrServerStopped) {
 			return nil
@@ -649,6 +701,12 @@ func (c *cb) Run() error {
 	c.close()
 	return err
 }
+
+// closerFunc adapts a plain function into an io.Closer.
+type closerFunc func() error
+
+func (f closerFunc) Close() error { return f() }
+func (closerFunc) String() string { return "closerFunc" }
 
 func (c *cb) close() {
 	for _, closer := range c.closers {
