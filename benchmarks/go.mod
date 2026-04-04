@@ -1,6 +1,6 @@
 module github.com/go-coldbrew/core/benchmarks
 
-go 1.26.1
+go 1.25.8
 
 require (
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10
