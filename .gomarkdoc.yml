@@ -25,6 +25,7 @@ header: |+
   | **[options](https://github.com/go-coldbrew/options)** | Request-scoped key-value metadata via context |
   | **[grpcpool](https://github.com/go-coldbrew/grpcpool)** | Round-robin gRPC connection pool |
   | **[data-builder](https://github.com/go-coldbrew/data-builder)** | Dependency injection with automatic resolution and parallel execution |
+  | **[workers](https://github.com/go-coldbrew/workers)** | Background worker lifecycle with panic recovery, restart, and tracing |
 
   ## Quick Start
 
