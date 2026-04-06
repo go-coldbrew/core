@@ -185,6 +185,8 @@ github.com/go-coldbrew/errors v0.2.13 h1:OUOEWLml6Mstt0Sskc94VVPhZ/rMfONeNOlHqyc
 github.com/go-coldbrew/errors v0.2.13/go.mod h1:eFLqeTPhgGyvsVVRXcdKGUxEnm+chrpddhL8lfogonk=
 github.com/go-coldbrew/hystrixprometheus v0.1.2 h1:WSt4FtYr8xNDKgdGWYpMfXGFIK7zdDSBwDSbpuPhBHI=
 github.com/go-coldbrew/hystrixprometheus v0.1.2/go.mod h1:OrNRHHxZagpmQXNp//oHKOemGSU0ScOqEcJgeKbJ+wg=
+github.com/go-coldbrew/interceptors v0.1.20 h1:8AmKCcqkupJdZhG6tCaswDIwQBgX5MKWCig7EAXhSGo=
+github.com/go-coldbrew/interceptors v0.1.20/go.mod h1:QmjjBvZMrIP0UvyYRbKNjcKnMUegsJ3k76CMu0poQXQ=
 github.com/go-coldbrew/log v0.3.1 h1:Cyx6KWBW3wZE8dSru6mIDFtUnJ1R2h6C44ZDo5bOqAo=
 github.com/go-coldbrew/log v0.3.1/go.mod h1:xxZGHBfni5eXc6Azg+g8UPTmqTJLAf9sX46gAT8o39Y=
 github.com/go-coldbrew/options v0.3.0 h1:JwyVntb9bzBeFdaHFK6yGVVz30G3aVlqJJ6uVyYQfCc=
