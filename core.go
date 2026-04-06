@@ -136,6 +136,9 @@ func (c *cb) processConfig() {
 		}
 		startSignalHandler(c, dur)
 	}
+	if c.config.DisableProtoValidate {
+		interceptors.SetDisableProtoValidate(true)
+	}
 	if c.config.EnablePrometheusGRPCHistogram {
 		if len(c.config.PrometheusGRPCHistogramBuckets) > 0 {
 			interceptors.SetServerMetricsOptions(

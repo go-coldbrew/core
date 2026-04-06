@@ -25,6 +25,7 @@ ColdBrew is a collection of composable packages:
 | **[options](https://github.com/go-coldbrew/options)** | Request-scoped key-value metadata via context |
 | **[grpcpool](https://github.com/go-coldbrew/grpcpool)** | Round-robin gRPC connection pool |
 | **[data-builder](https://github.com/go-coldbrew/data-builder)** | Dependency injection with automatic resolution and parallel execution |
+| **[workers](https://github.com/go-coldbrew/workers)** | Background worker lifecycle with panic recovery, restart, and tracing |
 
 ## Quick Start
 
@@ -134,7 +135,7 @@ InitializeVTProto initializes the vtproto package for use with the service
 https://github.com/planetscale/vtprotobuf?tab=readme-ov-file#mixing-protobuf-implementations-with-grpc
 
 <a name="SetOTELGRPCClientOptions"></a>
-## func [SetOTELGRPCClientOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L499>)
+## func [SetOTELGRPCClientOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L508>)
 
 ```go
 func SetOTELGRPCClientOptions(opts ...otelgrpc.Option)
@@ -143,7 +144,7 @@ func SetOTELGRPCClientOptions(opts ...otelgrpc.Option)
 SetOTELGRPCClientOptions sets options for the OTEL gRPC client stats handler. Must be called during init, before the gRPC client is created.
 
 <a name="SetOTELGRPCServerOptions"></a>
-## func [SetOTELGRPCServerOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L493>)
+## func [SetOTELGRPCServerOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L502>)
 
 ```go
 func SetOTELGRPCServerOptions(opts ...otelgrpc.Option)
@@ -292,7 +293,7 @@ type CB interface {
 ```
 
 <a name="New"></a>
-### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L772>)
+### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L793>)
 
 ```go
 func New(c config.Config) CB

@@ -6,7 +6,7 @@ test:
 	go test -race ./...
 
 doc:
-	go tool gomarkdoc --exclude-dirs benchmarks ./...
+	go tool gomarkdoc --output '{{.Dir}}/README.md' . ./config
 
 lint:
 	go tool golangci-lint run

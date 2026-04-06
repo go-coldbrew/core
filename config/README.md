@@ -25,6 +25,7 @@ ColdBrew is a collection of composable packages:
 | **[options](https://github.com/go-coldbrew/options)** | Request-scoped key-value metadata via context |
 | **[grpcpool](https://github.com/go-coldbrew/grpcpool)** | Round-robin gRPC connection pool |
 | **[data-builder](https://github.com/go-coldbrew/data-builder)** | Dependency injection with automatic resolution and parallel execution |
+| **[workers](https://github.com/go-coldbrew/workers)** | Background worker lifecycle with panic recovery, restart, and tracing |
 
 ## Quick Start
 
@@ -65,7 +66,7 @@ import "github.com/go-coldbrew/core/config"
 
 
 <a name="Config"></a>
-## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L6-L156>)
+## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L6-L159>)
 
 Config is the configuration for the Coldbrew server It is populated from environment variables and has sensible defaults for all fields so that you can just use it as is without any configuration The following environment variables are supported and can be used to override the defaults for the fields
 
@@ -170,6 +171,9 @@ type Config struct {
     // GRPCTLSInsecureSkipVerify is used to skip verification of the server's certificate chain and host name
     // Only set this to true if you are sure you want to disable TLS verification for the server
     GRPCTLSInsecureSkipVerify bool `envconfig:"GRPC_TLS_INSECURE_SKIP_VERIFY" default:"false"`
+    // DisableProtoValidate disables the protovalidate interceptor in the default
+    // interceptor chain. When disabled, proto validation annotations are ignored.
+    DisableProtoValidate bool `envconfig:"DISABLE_PROTO_VALIDATE" default:"false"`
     // DisableVTProtobuf disables the use of the vtprotobuf marshaller and unmarshaller for GRPC
     // https://github.com/planetscale/vtprotobuf
     DisableVTProtobuf bool `envconfig:"DISABLE_VT_PROTOBUF" default:"false"`
@@ -219,7 +223,7 @@ type Config struct {
 ```
 
 <a name="Config.Validate"></a>
-### func \(Config\) [Validate](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L161>)
+### func \(Config\) [Validate](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L164>)
 
 ```go
 func (c Config) Validate() []string
