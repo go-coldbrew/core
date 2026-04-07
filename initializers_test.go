@@ -42,12 +42,16 @@ func TestBuildOTELResource(t *testing.T) {
 }
 
 func TestSetupOpenTelemetry_StoresTracerProvider(t *testing.T) {
-	// Reset globals
+	// Save and restore all globals mutated by SetupOpenTelemetry.
 	oldTP := otelTracerProvider
 	oldRes := otelResource
+	oldGlobalTP := otel.GetTracerProvider()
+	oldGlobalProp := otel.GetTextMapPropagator()
 	defer func() {
 		otelTracerProvider = oldTP
 		otelResource = oldRes
+		otel.SetTracerProvider(oldGlobalTP)
+		otel.SetTextMapPropagator(oldGlobalProp)
 	}()
 
 	otelTracerProvider = nil
@@ -252,16 +256,20 @@ func TestBuildOTELOptions_WithMeterProvider(t *testing.T) {
 }
 
 func TestProcessConfig_NativeOTEL(t *testing.T) {
-	// Reset globals
+	// Save and restore all globals mutated by processConfig.
 	oldSet := otelGRPCOptionsSet
 	oldOpts := otelGRPCOptions
 	oldTP := otelTracerProvider
 	oldRes := otelResource
+	oldUseLegacy := otelUseLegacy
+	oldMP := otelMeterProvider
 	defer func() {
 		otelGRPCOptionsSet = oldSet
 		otelGRPCOptions = oldOpts
 		otelTracerProvider = oldTP
 		otelResource = oldRes
+		otelUseLegacy = oldUseLegacy
+		otelMeterProvider = oldMP
 	}()
 
 	otelGRPCOptionsSet = false
@@ -294,7 +302,11 @@ func TestProcessConfig_NativeOTEL(t *testing.T) {
 
 func TestProcessConfig_LegacyFallback(t *testing.T) {
 	oldSet := otelGRPCOptionsSet
-	defer func() { otelGRPCOptionsSet = oldSet }()
+	oldUseLegacy := otelUseLegacy
+	defer func() {
+		otelGRPCOptionsSet = oldSet
+		otelUseLegacy = oldUseLegacy
+	}()
 
 	otelGRPCOptionsSet = false
 
@@ -315,9 +327,11 @@ func TestProcessConfig_LegacyFallback(t *testing.T) {
 func TestProcessConfig_UserSetOTELOptions(t *testing.T) {
 	oldSet := otelGRPCOptionsSet
 	oldOpts := otelGRPCOptions
+	oldUseLegacy := otelUseLegacy
 	defer func() {
 		otelGRPCOptionsSet = oldSet
 		otelGRPCOptions = oldOpts
+		otelUseLegacy = oldUseLegacy
 	}()
 
 	// Simulate user calling SetOTELOptions during init

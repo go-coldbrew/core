@@ -295,6 +295,9 @@ func SetupOTELMetrics(config OTLPConfig, interval time.Duration) (*sdkmetric.Met
 	if config.Endpoint == "" {
 		return nil, fmt.Errorf("OTLP endpoint is required for OTEL metrics")
 	}
+	if interval <= 0 {
+		return nil, fmt.Errorf("OTEL metrics interval must be positive, got %v", interval)
+	}
 	if config.Compression == "" {
 		config.Compression = "gzip"
 	}
