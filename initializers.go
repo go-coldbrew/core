@@ -295,10 +295,6 @@ func SetupOTELMetrics(config OTLPConfig, interval time.Duration) (*sdkmetric.Met
 	if config.Endpoint == "" {
 		return nil, fmt.Errorf("OTLP endpoint is required for OTEL metrics")
 	}
-	if config.ServiceName == "" {
-		log.Warn(context.Background(), "msg", "SetupOTELMetrics called without ServiceName; metrics will have an empty service identity")
-	}
-
 	if config.Compression == "" {
 		config.Compression = "gzip"
 	}
@@ -322,6 +318,9 @@ func SetupOTELMetrics(config OTLPConfig, interval time.Duration) (*sdkmetric.Met
 	r := otelResource
 	if r == nil {
 		// Fallback: build resource if SetupOpenTelemetry wasn't called first.
+		if config.ServiceName == "" {
+			return nil, fmt.Errorf("OTEL service name is required when tracing resource is not initialized")
+		}
 		r, err = buildOTELResource(config.ServiceName, config.ServiceVersion)
 		if err != nil {
 			return nil, fmt.Errorf("building OTLP resource for metrics: %w", err)
