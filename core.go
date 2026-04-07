@@ -162,6 +162,7 @@ func (c *cb) processConfig() {
 	}
 
 	// Setup OpenTelemetry - custom OTLP takes precedence over New Relic
+	prevTP := otelTracerProvider // track whether this call initializes a new provider
 	var otlpConfig OTLPConfig
 	if c.config.OTLPEndpoint != "" {
 		headers := parseHeaders(c.config.OTLPHeaders)
@@ -192,7 +193,7 @@ func (c *cb) processConfig() {
 		// no-ops without it, so metrics would just get auth failures).
 		if strings.TrimSpace(c.config.NewRelicLicenseKey) != "" {
 			otlpConfig = OTLPConfig{
-				Endpoint:       "otlp.nr-data.net:4317",
+				Endpoint:       nrOTLPEndpoint,
 				Headers:        map[string]string{"api-key": c.config.NewRelicLicenseKey},
 				ServiceName:    nrName,
 				ServiceVersion: c.config.ReleaseName,
@@ -201,9 +202,9 @@ func (c *cb) processConfig() {
 		}
 	}
 
-	// Register TracerProvider for graceful shutdown.
-	// Capture in local var so the closure shuts down the correct instance.
-	if tp := otelTracerProvider; tp != nil {
+	// Register TracerProvider for graceful shutdown — only if this
+	// processConfig() call actually initialized a new one.
+	if tp := otelTracerProvider; tp != nil && tp != prevTP {
 		c.closers = append(c.closers, closerFunc(func() error {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
@@ -211,22 +212,22 @@ func (c *cb) processConfig() {
 		}))
 	}
 
-	// Setup OTEL Metrics if enabled (opt-in alongside Prometheus).
-	if c.config.EnableOTELMetrics && otlpConfig.Endpoint == "" {
-		log.Error(context.Background(), "msg", "ENABLE_OTEL_METRICS is true but no OTLP endpoint is configured; OTEL metrics will not be exported")
-	}
-	if c.config.EnableOTELMetrics && otlpConfig.Endpoint != "" {
-		interval := time.Duration(c.config.OTELMetricsInterval) * time.Second
-		mp, err := SetupOTELMetrics(otlpConfig, interval)
-		if err != nil {
-			log.Error(context.Background(), "msg", "Failed to setup OTEL metrics", "err", err)
+	if c.config.EnableOTELMetrics {
+		if otlpConfig.Endpoint == "" {
+			log.Error(context.Background(), "msg", "ENABLE_OTEL_METRICS is true but no OTLP endpoint is configured; OTEL metrics will not be exported")
 		} else {
-			otelMeterProvider = mp
-			c.closers = append(c.closers, closerFunc(func() error {
-				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-				defer cancel()
-				return mp.Shutdown(ctx)
-			}))
+			interval := time.Duration(c.config.OTELMetricsInterval) * time.Second
+			mp, err := SetupOTELMetrics(otlpConfig, interval)
+			if err != nil {
+				log.Error(context.Background(), "msg", "Failed to setup OTEL metrics", "err", err)
+			} else {
+				otelMeterProvider = mp
+				c.closers = append(c.closers, closerFunc(func() error {
+					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+					defer cancel()
+					return mp.Shutdown(ctx)
+				}))
+			}
 		}
 	}
 

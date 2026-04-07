@@ -144,6 +144,9 @@ type OTLPConfig struct {
 	Insecure bool
 }
 
+// nrOTLPEndpoint is the New Relic OTLP gRPC endpoint.
+const nrOTLPEndpoint = "otlp.nr-data.net:4317"
+
 // otelResource is the shared resource used by both TracerProvider and
 // MeterProvider so that traces and metrics correlate in backends.
 var otelResource *resource.Resource
@@ -154,6 +157,9 @@ var otelTracerProvider *sdktrace.TracerProvider
 // buildOTELResource builds a resource with service name, version, build info,
 // and VCS metadata. The result is cached in otelResource for reuse.
 func buildOTELResource(serviceName, serviceVersion string) (*resource.Resource, error) {
+	if otelResource != nil {
+		return otelResource, nil
+	}
 	d := resource.Default()
 	attrs := []attribute.KeyValue{
 		semconv.ServiceName(serviceName),
@@ -187,22 +193,6 @@ func buildOTELResource(serviceName, serviceVersion string) (*resource.Resource, 
 	}
 	otelResource = r
 	return r, nil
-}
-
-// buildOTLPTraceExporterOpts returns OTLP gRPC client options for the trace
-// exporter derived from an OTLPConfig.
-func buildOTLPTraceExporterOpts(config OTLPConfig) []otlptracegrpc.Option {
-	opts := []otlptracegrpc.Option{
-		otlptracegrpc.WithEndpoint(config.Endpoint),
-		otlptracegrpc.WithHeaders(config.Headers),
-	}
-	if config.Compression != "none" {
-		opts = append(opts, otlptracegrpc.WithCompressor(config.Compression))
-	}
-	if config.Insecure {
-		opts = append(opts, otlptracegrpc.WithInsecure())
-	}
-	return opts
 }
 
 // SetupOpenTelemetry sets up OpenTelemetry tracing with a generic OTLP exporter.
@@ -245,7 +235,16 @@ func SetupOpenTelemetry(config OTLPConfig) error {
 		config.Compression = "gzip"
 	}
 
-	clientOpts := buildOTLPTraceExporterOpts(config)
+	clientOpts := []otlptracegrpc.Option{
+		otlptracegrpc.WithEndpoint(config.Endpoint),
+		otlptracegrpc.WithHeaders(config.Headers),
+	}
+	if config.Compression != "none" {
+		clientOpts = append(clientOpts, otlptracegrpc.WithCompressor(config.Compression))
+	}
+	if config.Insecure {
+		clientOpts = append(clientOpts, otlptracegrpc.WithInsecure())
+	}
 
 	otlpExporter, err := otlptrace.New(context.Background(), otlptracegrpc.NewClient(clientOpts...))
 	if err != nil {
@@ -363,7 +362,7 @@ func SetupNROpenTelemetry(serviceName, license, version string, ratio float64) e
 	}
 	// Use the generic SetupOpenTelemetry with New Relic specific configuration
 	config := OTLPConfig{
-		Endpoint:       "otlp.nr-data.net:4317",
+		Endpoint:       nrOTLPEndpoint,
 		Headers:        map[string]string{"api-key": license},
 		ServiceName:    serviceName,
 		ServiceVersion: version,
