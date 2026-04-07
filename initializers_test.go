@@ -15,6 +15,10 @@ import (
 )
 
 func TestBuildOTELResource(t *testing.T) {
+	oldRes := otelResource
+	otelResource = nil // force rebuild
+	defer func() { otelResource = oldRes }()
+
 	r, err := buildOTELResource("test-service", "v1.0.0")
 	if err != nil {
 		t.Fatalf("buildOTELResource() error: %v", err)
