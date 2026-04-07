@@ -187,6 +187,14 @@ func (c *cb) processConfig() {
 		if err != nil {
 			log.Error(context.Background(), "msg", "Failed to setup New Relic OpenTelemetry", "err", err)
 		}
+		// Build otlpConfig for NR path so OTEL metrics can reuse the endpoint.
+		otlpConfig = OTLPConfig{
+			Endpoint:       "otlp.nr-data.net:4317",
+			Headers:        map[string]string{"api-key": c.config.NewRelicLicenseKey},
+			ServiceName:    nrName,
+			ServiceVersion: c.config.ReleaseName,
+			Compression:    "gzip",
+		}
 	}
 
 	// Register TracerProvider for graceful shutdown.
@@ -200,7 +208,7 @@ func (c *cb) processConfig() {
 	}
 
 	// Setup OTEL Metrics if enabled (opt-in alongside Prometheus).
-	if c.config.EnableOTELMetrics && c.config.OTLPEndpoint != "" {
+	if c.config.EnableOTELMetrics && otlpConfig.Endpoint != "" {
 		interval := time.Duration(c.config.OTELMetricsInterval) * time.Second
 		mp, err := SetupOTELMetrics(otlpConfig, interval)
 		if err != nil {
