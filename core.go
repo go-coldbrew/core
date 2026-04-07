@@ -188,12 +188,16 @@ func (c *cb) processConfig() {
 			log.Error(context.Background(), "msg", "Failed to setup New Relic OpenTelemetry", "err", err)
 		}
 		// Build otlpConfig for NR path so OTEL metrics can reuse the endpoint.
-		otlpConfig = OTLPConfig{
-			Endpoint:       "otlp.nr-data.net:4317",
-			Headers:        map[string]string{"api-key": c.config.NewRelicLicenseKey},
-			ServiceName:    nrName,
-			ServiceVersion: c.config.ReleaseName,
-			Compression:    "gzip",
+		// Only populate when the license key is non-empty (SetupNROpenTelemetry
+		// no-ops without it, so metrics would just get auth failures).
+		if strings.TrimSpace(c.config.NewRelicLicenseKey) != "" {
+			otlpConfig = OTLPConfig{
+				Endpoint:       "otlp.nr-data.net:4317",
+				Headers:        map[string]string{"api-key": c.config.NewRelicLicenseKey},
+				ServiceName:    nrName,
+				ServiceVersion: c.config.ReleaseName,
+				Compression:    "gzip",
+			}
 		}
 	}
 
