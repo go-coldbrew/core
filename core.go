@@ -31,15 +31,18 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/propagation"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	semconv "go.opentelemetry.io/otel/semconv/v1.40.0"
 	oteltrace "go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	_ "google.golang.org/grpc/encoding/gzip"
+	experimental "google.golang.org/grpc/experimental/opentelemetry"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/stats"
+	grpcotel "google.golang.org/grpc/stats/opentelemetry"
 )
 
 // SupportPackageIsVersion1 is a compile-time assertion constant.
@@ -153,25 +156,28 @@ func (c *cb) processConfig() {
 		}
 	}
 
+	// Warn if deprecated OpenTracing bridge env var is still set.
+	if c.config.OTLPUseOpenTracingBridge { //nolint:staticcheck // reading deprecated field to emit warning
+		log.Warn(context.Background(), "msg", "OTLP_USE_OPENTRACING_BRIDGE is set but OpenTracing bridge has been removed; this setting is ignored")
+	}
+
 	// Setup OpenTelemetry - custom OTLP takes precedence over New Relic
+	var otlpConfig OTLPConfig
 	if c.config.OTLPEndpoint != "" {
-		// Use custom OTLP configuration
 		headers := parseHeaders(c.config.OTLPHeaders)
-		otlpConfig := OTLPConfig{
-			Endpoint:             c.config.OTLPEndpoint,
-			Headers:              headers,
-			ServiceName:          c.config.AppName,
-			ServiceVersion:       c.config.ReleaseName,
-			SamplingRatio:        c.config.OTLPSamplingRatio,
-			Compression:          c.config.OTLPCompression,
-			UseOpenTracingBridge: c.config.OTLPUseOpenTracingBridge, //nolint:staticcheck // reading deprecated field for backward compat
-			Insecure:             c.config.OTLPInsecure,
+		otlpConfig = OTLPConfig{
+			Endpoint:       c.config.OTLPEndpoint,
+			Headers:        headers,
+			ServiceName:    c.config.AppName,
+			ServiceVersion: c.config.ReleaseName,
+			SamplingRatio:  c.config.OTLPSamplingRatio,
+			Compression:    c.config.OTLPCompression,
+			Insecure:       c.config.OTLPInsecure,
 		}
 		if err := SetupOpenTelemetry(otlpConfig); err != nil {
 			log.Error(context.Background(), "msg", "Failed to setup custom OTLP", "err", err)
 		}
 	} else if c.config.NewRelicOpentelemetry {
-		// Fall back to New Relic OpenTelemetry if no custom OTLP is configured
 		err := SetupNROpenTelemetry(
 			nrName,
 			c.config.NewRelicLicenseKey,
@@ -181,6 +187,38 @@ func (c *cb) processConfig() {
 		if err != nil {
 			log.Error(context.Background(), "msg", "Failed to setup New Relic OpenTelemetry", "err", err)
 		}
+	}
+
+	// Register TracerProvider for graceful shutdown.
+	if otelTracerProvider != nil {
+		c.closers = append(c.closers, closerFunc(func() error {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			return otelTracerProvider.Shutdown(ctx)
+		}))
+	}
+
+	// Setup OTEL Metrics if enabled (opt-in alongside Prometheus).
+	if c.config.EnableOTELMetrics && c.config.OTLPEndpoint != "" {
+		interval := time.Duration(c.config.OTELMetricsInterval) * time.Second
+		mp, err := SetupOTELMetrics(otlpConfig, interval)
+		if err != nil {
+			log.Error(context.Background(), "msg", "Failed to setup OTEL metrics", "err", err)
+		} else {
+			otelMeterProvider = mp
+			c.closers = append(c.closers, closerFunc(func() error {
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+				return otelMeterProvider.Shutdown(ctx)
+			}))
+		}
+	}
+
+	// Build native stats/opentelemetry options unless user already called
+	// SetOTELOptions() or legacy instrumentation is requested.
+	if !c.config.OTELUseLegacyInstrumentation && !otelGRPCOptionsSet {
+		otelGRPCOptions = buildOTELOptions()
+		otelGRPCOptionsSet = true
 	}
 }
 
@@ -399,13 +437,18 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(dialCreds),
-		grpc.WithStatsHandler(otelgrpc.NewClientHandler(otelGRPCClientOpts...)),
-		grpc.WithUnaryInterceptor(
-			interceptors.DefaultClientInterceptor(
-				interceptors.WithoutHystrix(),
-			),
-		),
 	}
+	// Use native stats/opentelemetry when configured, otherwise legacy otelgrpc.
+	if otelGRPCOptionsSet {
+		opts = append(opts, grpcotel.DialOption(otelGRPCOptions))
+	} else {
+		opts = append(opts, grpc.WithStatsHandler(otelgrpc.NewClientHandler(otelGRPCClientOpts...)))
+	}
+	opts = append(opts, grpc.WithUnaryInterceptor(
+		interceptors.DefaultClientInterceptor(
+			interceptors.WithoutHystrix(),
+		),
+	))
 	// Mirror configured limits on the client side used by the gateway.
 	if c.config.GRPCMaxRecvMsgSize > 0 {
 		opts = append(opts,
@@ -479,8 +522,14 @@ func (c *cb) runHTTP(ctx context.Context, svr *http.Server) error {
 	return svr.ListenAndServe()
 }
 
-// otelgrpc options configured during init via SetOTELGRPCServerOptions/SetOTELGRPCClientOptions.
-// Defaults filter out health/ready/reflection RPCs to reduce noise.
+// Native stats/opentelemetry options, built during processConfig().
+var (
+	otelGRPCOptionsSet bool            // true after processConfig builds or user calls SetOTELOptions
+	otelGRPCOptions    grpcotel.Options // value used by getGRPCServerOptions / initHTTP
+	otelMeterProvider  *sdkmetric.MeterProvider
+)
+
+// Legacy otelgrpc options — only used when OTEL_USE_LEGACY_INSTRUMENTATION=true.
 var otelGRPCServerOpts = []otelgrpc.Option{
 	otelgrpc.WithFilter(defaultOTELFilter),
 }
@@ -489,30 +538,60 @@ var otelGRPCClientOpts = []otelgrpc.Option{
 	otelgrpc.WithFilter(defaultOTELFilter),
 }
 
-// defaultOTELFilter excludes health checks, readiness probes, and gRPC
-// reflection from tracing to reduce noise — matching the previous
-// grpc_opentracing filter behavior.
 func defaultOTELFilter(info *stats.RPCTagInfo) bool {
 	return interceptors.FilterMethodsFunc(context.Background(), info.FullMethodName)
 }
 
-// SetOTELGRPCServerOptions sets options for the OTEL gRPC server stats handler.
-// Must be called during init, before the gRPC server starts.
-// Example: core.SetOTELGRPCServerOptions(otelgrpc.WithFilter(...))
+// Deprecated: Use SetOTELOptions instead. Only applies when
+// OTEL_USE_LEGACY_INSTRUMENTATION=true.
 func SetOTELGRPCServerOptions(opts ...otelgrpc.Option) {
 	otelGRPCServerOpts = opts
 }
 
-// SetOTELGRPCClientOptions sets options for the OTEL gRPC client stats handler.
-// Must be called during init, before the gRPC client is created.
+// Deprecated: Use SetOTELOptions instead. Only applies when
+// OTEL_USE_LEGACY_INSTRUMENTATION=true.
 func SetOTELGRPCClientOptions(opts ...otelgrpc.Option) {
 	otelGRPCClientOpts = opts
 }
 
+// SetOTELOptions configures the native gRPC stats/opentelemetry integration.
+// Must be called during init, before the gRPC server starts.
+// When set, processConfig() will NOT overwrite these with auto-built options.
+func SetOTELOptions(opts grpcotel.Options) {
+	otelGRPCOptions = opts
+	otelGRPCOptionsSet = true
+}
+
+// buildOTELOptions constructs grpcotel.Options from the global TracerProvider
+// and TextMapPropagator. Must be called after SetupOpenTelemetry.
+func buildOTELOptions() grpcotel.Options {
+	opts := grpcotel.Options{
+		MetricsOptions: grpcotel.MetricsOptions{
+			MethodAttributeFilter: func(method string) bool {
+				return interceptors.FilterMethodsFunc(context.Background(), method)
+			},
+		},
+		TraceOptions: experimental.TraceOptions{
+			TracerProvider:    otel.GetTracerProvider(),
+			TextMapPropagator: otel.GetTextMapPropagator(),
+		},
+	}
+	if otelMeterProvider != nil {
+		opts.MetricsOptions.MeterProvider = otelMeterProvider
+	}
+	return opts
+}
+
 func (c *cb) getGRPCServerOptions() []grpc.ServerOption {
 	so := make([]grpc.ServerOption, 0)
+
+	// Use native stats/opentelemetry when configured, otherwise legacy otelgrpc.
+	if otelGRPCOptionsSet {
+		so = append(so, grpcotel.ServerOption(otelGRPCOptions))
+	} else {
+		so = append(so, grpc.StatsHandler(otelgrpc.NewServerHandler(otelGRPCServerOpts...)))
+	}
 	so = append(so,
-		grpc.StatsHandler(otelgrpc.NewServerHandler(otelGRPCServerOpts...)),
 		grpc.ChainUnaryInterceptor(interceptors.DefaultInterceptors()...),
 		grpc.ChainStreamInterceptor(interceptors.DefaultStreamInterceptors()...),
 	)

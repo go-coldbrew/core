@@ -87,14 +87,17 @@ For full documentation, visit https://docs.coldbrew.cloud
 - [Constants](<#constants>)
 - [func ConfigureInterceptors\(DoNotLogGRPCReflection bool, traceHeaderName string, responseTimeLogLevel string, responseTimeLogErrorOnly bool\)](<#ConfigureInterceptors>)
 - [func InitializeVTProto\(\)](<#InitializeVTProto>)
+- [func OTELMeterProvider\(\) otelmetric.MeterProvider](<#OTELMeterProvider>)
 - [func SetOTELGRPCClientOptions\(opts ...otelgrpc.Option\)](<#SetOTELGRPCClientOptions>)
 - [func SetOTELGRPCServerOptions\(opts ...otelgrpc.Option\)](<#SetOTELGRPCServerOptions>)
+- [func SetOTELOptions\(opts grpcotel.Options\)](<#SetOTELOptions>)
 - [func SetupAutoMaxProcs\(\)](<#SetupAutoMaxProcs>)
 - [func SetupEnvironment\(env string\)](<#SetupEnvironment>)
 - [func SetupHystrixPrometheus\(\)](<#SetupHystrixPrometheus>)
 - [func SetupLogger\(logLevel string, jsonlogs bool\) error](<#SetupLogger>)
 - [func SetupNROpenTelemetry\(serviceName, license, version string, ratio float64\) error](<#SetupNROpenTelemetry>)
 - [func SetupNewRelic\(serviceName, apiKey string, tracing bool\) error](<#SetupNewRelic>)
+- [func SetupOTELMetrics\(config OTLPConfig, interval time.Duration\) \(\*sdkmetric.MeterProvider, error\)](<#SetupOTELMetrics>)
 - [func SetupOpenTelemetry\(config OTLPConfig\) error](<#SetupOpenTelemetry>)
 - [func SetupReleaseName\(rel string\)](<#SetupReleaseName>)
 - [func SetupSentry\(dsn string\)](<#SetupSentry>)
@@ -115,7 +118,7 @@ const SupportPackageIsVersion1 = true
 ```
 
 <a name="ConfigureInterceptors"></a>
-## func [ConfigureInterceptors](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L325>)
+## func [ConfigureInterceptors](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L385>)
 
 ```go
 func ConfigureInterceptors(DoNotLogGRPCReflection bool, traceHeaderName string, responseTimeLogLevel string, responseTimeLogErrorOnly bool)
@@ -124,7 +127,7 @@ func ConfigureInterceptors(DoNotLogGRPCReflection bool, traceHeaderName string, 
 ConfigureInterceptors configures the interceptors package with the provided settings.
 
 <a name="InitializeVTProto"></a>
-## func [InitializeVTProto](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L380>)
+## func [InitializeVTProto](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L440>)
 
 ```go
 func InitializeVTProto()
@@ -134,26 +137,44 @@ InitializeVTProto initializes the vtproto package for use with the service
 
 https://github.com/planetscale/vtprotobuf?tab=readme-ov-file#mixing-protobuf-implementations-with-grpc
 
+<a name="OTELMeterProvider"></a>
+## func [OTELMeterProvider](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L340>)
+
+```go
+func OTELMeterProvider() otelmetric.MeterProvider
+```
+
+OTELMeterProvider returns the global OTel MeterProvider. This is a convenience accessor for code that needs the interface type.
+
 <a name="SetOTELGRPCClientOptions"></a>
-## func [SetOTELGRPCClientOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L508>)
+## func [SetOTELGRPCClientOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L553>)
 
 ```go
 func SetOTELGRPCClientOptions(opts ...otelgrpc.Option)
 ```
 
-SetOTELGRPCClientOptions sets options for the OTEL gRPC client stats handler. Must be called during init, before the gRPC client is created.
+Deprecated: Use SetOTELOptions instead. Only applies when OTEL\_USE\_LEGACY\_INSTRUMENTATION=true.
 
 <a name="SetOTELGRPCServerOptions"></a>
-## func [SetOTELGRPCServerOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L502>)
+## func [SetOTELGRPCServerOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L547>)
 
 ```go
 func SetOTELGRPCServerOptions(opts ...otelgrpc.Option)
 ```
 
-SetOTELGRPCServerOptions sets options for the OTEL gRPC server stats handler. Must be called during init, before the gRPC server starts. Example: core.SetOTELGRPCServerOptions\(otelgrpc.WithFilter\(...\)\)
+Deprecated: Use SetOTELOptions instead. Only applies when OTEL\_USE\_LEGACY\_INSTRUMENTATION=true.
+
+<a name="SetOTELOptions"></a>
+## func [SetOTELOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L560>)
+
+```go
+func SetOTELOptions(opts grpcotel.Options)
+```
+
+SetOTELOptions configures the native gRPC stats/opentelemetry integration. Must be called during init, before the gRPC server starts. When set, processConfig\(\) will NOT overwrite these with auto\-built options.
 
 <a name="SetupAutoMaxProcs"></a>
-## func [SetupAutoMaxProcs](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L346>)
+## func [SetupAutoMaxProcs](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L406>)
 
 ```go
 func SetupAutoMaxProcs()
@@ -162,7 +183,7 @@ func SetupAutoMaxProcs()
 SetupAutoMaxProcs sets up the GOMAXPROCS to match Linux container CPU quota This is used to set the GOMAXPROCS to the number of CPUs allocated to the container
 
 <a name="SetupEnvironment"></a>
-## func [SetupEnvironment](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L97>)
+## func [SetupEnvironment](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L98>)
 
 ```go
 func SetupEnvironment(env string)
@@ -171,7 +192,7 @@ func SetupEnvironment(env string)
 SetupEnvironment sets the environment This is used to identify the environment in Sentry and New Relic env is the environment to set for the service \(e.g. prod, staging, dev\)
 
 <a name="SetupHystrixPrometheus"></a>
-## func [SetupHystrixPrometheus](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L317>)
+## func [SetupHystrixPrometheus](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L377>)
 
 ```go
 func SetupHystrixPrometheus()
@@ -180,7 +201,7 @@ func SetupHystrixPrometheus()
 SetupHystrixPrometheus sets up the hystrix metrics This is a workaround for hystrix\-go not supporting the prometheus registry It uses sync.Once to ensure the Prometheus collectors are only registered once, since duplicate registration panics.
 
 <a name="SetupLogger"></a>
-## func [SetupLogger](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L73>)
+## func [SetupLogger](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L74>)
 
 ```go
 func SetupLogger(logLevel string, jsonlogs bool) error
@@ -189,7 +210,7 @@ func SetupLogger(logLevel string, jsonlogs bool) error
 SetupLogger sets up the logger It uses the coldbrew logger to log messages to stdout logLevel is the log level to set for the logger jsonlogs is a boolean to enable or disable json logs
 
 <a name="SetupNROpenTelemetry"></a>
-## func [SetupNROpenTelemetry](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L293>)
+## func [SetupNROpenTelemetry](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L354>)
 
 ```go
 func SetupNROpenTelemetry(serviceName, license, version string, ratio float64) error
@@ -207,7 +228,7 @@ Parameters:
 - ratio: the sampling ratio to use for traces \(0.0 to 1.0\)
 
 <a name="SetupNewRelic"></a>
-## func [SetupNewRelic](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L47>)
+## func [SetupNewRelic](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L48>)
 
 ```go
 func SetupNewRelic(serviceName, apiKey string, tracing bool) error
@@ -215,27 +236,37 @@ func SetupNewRelic(serviceName, apiKey string, tracing bool) error
 
 SetupNewRelic sets up the New Relic tracing and monitoring agent for the service It uses the New Relic Go Agent to send traces to New Relic One APM and Insights serviceName is the name of the service apiKey is the New Relic license key tracing is a boolean to enable or disable tracing
 
+<a name="SetupOTELMetrics"></a>
+## func [SetupOTELMetrics](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L294>)
+
+```go
+func SetupOTELMetrics(config OTLPConfig, interval time.Duration) (*sdkmetric.MeterProvider, error)
+```
+
+SetupOTELMetrics creates a MeterProvider with an OTLP gRPC exporter that reuses the same resource as the TracerProvider \(set by SetupOpenTelemetry\). The MeterProvider is set as the global OTel MeterProvider.
+
+Call this after SetupOpenTelemetry so the shared resource is available.
+
 <a name="SetupOpenTelemetry"></a>
-## func [SetupOpenTelemetry](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L178>)
+## func [SetupOpenTelemetry](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L234>)
 
 ```go
 func SetupOpenTelemetry(config OTLPConfig) error
 ```
 
-SetupOpenTelemetry sets up OpenTelemetry tracing with a generic OTLP exporter
+SetupOpenTelemetry sets up OpenTelemetry tracing with a generic OTLP exporter.
 
-This function provides a flexible way to configure OpenTelemetry tracing with any OTLP\-compatible backend. It sets up the trace provider, configures sampling, and optionally sets up an OpenTracing bridge for compatibility.
+It configures a TracerProvider with the given sampling ratio and OTLP backend, sets it as the global provider, and stores it for graceful shutdown.
 
 Example usage with Jaeger:
 
 ```
 config := OTLPConfig{
-    Endpoint:             "localhost:4317",
-    ServiceName:          "my-service",
-    ServiceVersion:       "v1.0.0",
-    SamplingRatio:        0.1,
-    UseOpenTracingBridge: true,
-    Insecure:            true,  // for local development
+    Endpoint:       "localhost:4317",
+    ServiceName:    "my-service",
+    ServiceVersion: "v1.0.0",
+    SamplingRatio:  0.1,
+    Insecure:       true, // for local development
 }
 err := SetupOpenTelemetry(config)
 ```
@@ -254,7 +285,7 @@ err := SetupOpenTelemetry(config)
 ```
 
 <a name="SetupReleaseName"></a>
-## func [SetupReleaseName](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L106>)
+## func [SetupReleaseName](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L107>)
 
 ```go
 func SetupReleaseName(rel string)
@@ -263,7 +294,7 @@ func SetupReleaseName(rel string)
 SetupReleaseName sets the release name This is used to identify the release in Sentry rel is the release name to set for the service \(e.g. v1.0.0\)
 
 <a name="SetupSentry"></a>
-## func [SetupSentry](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L88>)
+## func [SetupSentry](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L89>)
 
 ```go
 func SetupSentry(dsn string)
@@ -293,7 +324,7 @@ type CB interface {
 ```
 
 <a name="New"></a>
-### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L793>)
+### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L872>)
 
 ```go
 func New(c config.Config) CB
@@ -346,7 +377,7 @@ type CBStopper interface {
 ```
 
 <a name="OTLPConfig"></a>
-## type [OTLPConfig](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L116-L148>)
+## type [OTLPConfig](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L117-L145>)
 
 OTLPConfig holds configuration for OpenTelemetry OTLP exporter
 
@@ -377,10 +408,6 @@ type OTLPConfig struct {
     // Compression specifies the compression type (e.g., "gzip", "none")
     // If empty, defaults to "gzip"
     Compression string
-
-    // UseOpenTracingBridge determines whether to set up OpenTracing compatibility bridge
-    // This allows using OpenTracing instrumentation with OpenTelemetry
-    UseOpenTracingBridge bool
 
     // Insecure disables TLS verification for the connection
     // Only use this for local development or testing

@@ -66,7 +66,7 @@ import "github.com/go-coldbrew/core/config"
 
 
 <a name="Config"></a>
-## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L6-L159>)
+## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L6-L170>)
 
 Config is the configuration for the Coldbrew server It is populated from environment variables and has sensible defaults for all fields so that you can just use it as is without any configuration The following environment variables are supported and can be used to override the defaults for the fields
 
@@ -199,10 +199,21 @@ type Config struct {
     // OTLPSamplingRatio is the ratio of traces to sample (0.0 to 1.0)
     // 1.0 means sample all traces, 0.1 means sample 10% of traces
     OTLPSamplingRatio float64 `envconfig:"OTLP_SAMPLING_RATIO" default:"0.1"`
-    // Deprecated: OpenTracing bridge is provided for backwards compatibility only.
-    // New services should leave this false (the default). Set to true only if you
-    // have existing OpenTracing instrumentation that hasn't been migrated to OTEL.
+    // Deprecated: OpenTracing bridge has been removed. This field is ignored.
+    // If set to true, a warning is logged at startup.
     OTLPUseOpenTracingBridge bool `envconfig:"OTLP_USE_OPENTRACING_BRIDGE" default:"false"`
+
+    // OTELUseLegacyInstrumentation reverts to the deprecated otelgrpc contrib
+    // package for gRPC OpenTelemetry instrumentation. Default false (uses native
+    // grpc stats/opentelemetry). Set to true only for rollback.
+    OTELUseLegacyInstrumentation bool `envconfig:"OTEL_USE_LEGACY_INSTRUMENTATION" default:"false"`
+
+    // EnableOTELMetrics enables OpenTelemetry metrics export via OTLP alongside
+    // Prometheus. Does not replace Prometheus. Default false.
+    EnableOTELMetrics bool `envconfig:"ENABLE_OTEL_METRICS" default:"false"`
+    // OTELMetricsInterval controls the export interval in seconds for OTEL
+    // metrics. Default 60.
+    OTELMetricsInterval int `envconfig:"OTEL_METRICS_INTERVAL" default:"60"`
 
     // DisableHTTPCompression disables gzip/zstd compression for HTTP gateway responses
     DisableHTTPCompression bool `envconfig:"DISABLE_HTTP_COMPRESSION" default:"false"`
@@ -223,7 +234,7 @@ type Config struct {
 ```
 
 <a name="Config.Validate"></a>
-### func \(Config\) [Validate](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L164>)
+### func \(Config\) [Validate](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L175>)
 
 ```go
 func (c Config) Validate() []string
