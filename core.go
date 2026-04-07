@@ -208,6 +208,9 @@ func (c *cb) processConfig() {
 	}
 
 	// Setup OTEL Metrics if enabled (opt-in alongside Prometheus).
+	if c.config.EnableOTELMetrics && otlpConfig.Endpoint == "" {
+		log.Error(context.Background(), "msg", "ENABLE_OTEL_METRICS is true but no OTLP endpoint is configured; OTEL metrics will not be exported")
+	}
 	if c.config.EnableOTELMetrics && otlpConfig.Endpoint != "" {
 		interval := time.Duration(c.config.OTELMetricsInterval) * time.Second
 		mp, err := SetupOTELMetrics(otlpConfig, interval)

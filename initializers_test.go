@@ -117,6 +117,13 @@ func TestSetupOTELMetrics(t *testing.T) {
 }
 
 func TestSetupOTELMetrics_NoEndpoint(t *testing.T) {
+	// Ensure resource exists so test validates endpoint check, not resource fallback.
+	oldRes := otelResource
+	defer func() { otelResource = oldRes }()
+	if _, err := buildOTELResource("test-no-endpoint", "v1.0.0"); err != nil {
+		t.Fatalf("buildOTELResource() error: %v", err)
+	}
+
 	_, err := SetupOTELMetrics(OTLPConfig{}, 60*time.Second)
 	if err == nil {
 		t.Fatal("SetupOTELMetrics with empty endpoint should error")
@@ -263,6 +270,8 @@ func TestProcessConfig_NativeOTEL(t *testing.T) {
 	oldRes := otelResource
 	oldUseLegacy := otelUseLegacy
 	oldMP := otelMeterProvider
+	oldGlobalTP := otel.GetTracerProvider()
+	oldGlobalProp := otel.GetTextMapPropagator()
 	defer func() {
 		otelGRPCOptionsSet = oldSet
 		otelGRPCOptions = oldOpts
@@ -270,6 +279,8 @@ func TestProcessConfig_NativeOTEL(t *testing.T) {
 		otelResource = oldRes
 		otelUseLegacy = oldUseLegacy
 		otelMeterProvider = oldMP
+		otel.SetTracerProvider(oldGlobalTP)
+		otel.SetTextMapPropagator(oldGlobalProp)
 	}()
 
 	otelGRPCOptionsSet = false
