@@ -10,7 +10,6 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	experimental "google.golang.org/grpc/experimental/opentelemetry"
 	grpcotel "google.golang.org/grpc/stats/opentelemetry"
 )
@@ -345,6 +344,3 @@ func TestProcessConfig_UserSetOTELOptions(t *testing.T) {
 		t.Error("processConfig should not overwrite user-provided OTELOptions")
 	}
 }
-
-// Use tracetest to suppress real span export.
-var _ = tracetest.NewInMemoryExporter()

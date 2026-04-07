@@ -190,11 +190,12 @@ func (c *cb) processConfig() {
 	}
 
 	// Register TracerProvider for graceful shutdown.
-	if otelTracerProvider != nil {
+	// Capture in local var so the closure shuts down the correct instance.
+	if tp := otelTracerProvider; tp != nil {
 		c.closers = append(c.closers, closerFunc(func() error {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
-			return otelTracerProvider.Shutdown(ctx)
+			return tp.Shutdown(ctx)
 		}))
 	}
 
@@ -209,7 +210,7 @@ func (c *cb) processConfig() {
 			c.closers = append(c.closers, closerFunc(func() error {
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
-				return otelMeterProvider.Shutdown(ctx)
+				return mp.Shutdown(ctx)
 			}))
 		}
 	}

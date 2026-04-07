@@ -189,8 +189,8 @@ func buildOTELResource(serviceName, serviceVersion string) (*resource.Resource, 
 	return r, nil
 }
 
-// buildOTLPTraceExporterOpts returns common OTLP gRPC client options derived
-// from an OTLPConfig, shared between trace and metric exporters.
+// buildOTLPTraceExporterOpts returns OTLP gRPC client options for the trace
+// exporter derived from an OTLPConfig.
 func buildOTLPTraceExporterOpts(config OTLPConfig) []otlptracegrpc.Option {
 	opts := []otlptracegrpc.Option{
 		otlptracegrpc.WithEndpoint(config.Endpoint),
