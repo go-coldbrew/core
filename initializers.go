@@ -295,6 +295,9 @@ func SetupOTELMetrics(config OTLPConfig, interval time.Duration) (*sdkmetric.Met
 	if config.Endpoint == "" {
 		return nil, fmt.Errorf("OTLP endpoint is required for OTEL metrics")
 	}
+	if config.ServiceName == "" {
+		log.Warn(context.Background(), "msg", "SetupOTELMetrics called without ServiceName; metrics will have an empty service identity")
+	}
 
 	if config.Compression == "" {
 		config.Compression = "gzip"

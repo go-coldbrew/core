@@ -200,6 +200,9 @@ func (c Config) Validate() []string {
 	if c.HTTPCompressionMinSize < 0 {
 		warnings = append(warnings, "HTTPCompressionMinSize is negative; this may cause unexpected behavior")
 	}
+	if c.EnableOTELMetrics && c.OTELMetricsInterval <= 0 {
+		warnings = append(warnings, "OTELMetricsInterval should be positive when ENABLE_OTEL_METRICS is true")
+	}
 
 	return warnings
 }

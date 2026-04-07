@@ -118,7 +118,7 @@ const SupportPackageIsVersion1 = true
 ```
 
 <a name="ConfigureInterceptors"></a>
-## func [ConfigureInterceptors](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L385>)
+## func [ConfigureInterceptors](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L388>)
 
 ```go
 func ConfigureInterceptors(DoNotLogGRPCReflection bool, traceHeaderName string, responseTimeLogLevel string, responseTimeLogErrorOnly bool)
@@ -127,7 +127,7 @@ func ConfigureInterceptors(DoNotLogGRPCReflection bool, traceHeaderName string, 
 ConfigureInterceptors configures the interceptors package with the provided settings.
 
 <a name="InitializeVTProto"></a>
-## func [InitializeVTProto](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L440>)
+## func [InitializeVTProto](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L443>)
 
 ```go
 func InitializeVTProto()
@@ -138,7 +138,7 @@ InitializeVTProto initializes the vtproto package for use with the service
 https://github.com/planetscale/vtprotobuf?tab=readme-ov-file#mixing-protobuf-implementations-with-grpc
 
 <a name="OTELMeterProvider"></a>
-## func [OTELMeterProvider](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L340>)
+## func [OTELMeterProvider](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L343>)
 
 ```go
 func OTELMeterProvider() otelmetric.MeterProvider
@@ -147,7 +147,7 @@ func OTELMeterProvider() otelmetric.MeterProvider
 OTELMeterProvider returns the global OTel MeterProvider. This is a convenience accessor for code that needs the interface type.
 
 <a name="SetOTELGRPCClientOptions"></a>
-## func [SetOTELGRPCClientOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L553>)
+## func [SetOTELGRPCClientOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L558>)
 
 ```go
 func SetOTELGRPCClientOptions(opts ...otelgrpc.Option)
@@ -156,7 +156,7 @@ func SetOTELGRPCClientOptions(opts ...otelgrpc.Option)
 Deprecated: Use SetOTELOptions instead. Only applies when OTEL\_USE\_LEGACY\_INSTRUMENTATION=true.
 
 <a name="SetOTELGRPCServerOptions"></a>
-## func [SetOTELGRPCServerOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L547>)
+## func [SetOTELGRPCServerOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L552>)
 
 ```go
 func SetOTELGRPCServerOptions(opts ...otelgrpc.Option)
@@ -165,7 +165,7 @@ func SetOTELGRPCServerOptions(opts ...otelgrpc.Option)
 Deprecated: Use SetOTELOptions instead. Only applies when OTEL\_USE\_LEGACY\_INSTRUMENTATION=true.
 
 <a name="SetOTELOptions"></a>
-## func [SetOTELOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L560>)
+## func [SetOTELOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L565>)
 
 ```go
 func SetOTELOptions(opts grpcotel.Options)
@@ -174,7 +174,7 @@ func SetOTELOptions(opts grpcotel.Options)
 SetOTELOptions configures the native gRPC stats/opentelemetry integration. Must be called during init, before the gRPC server starts. When set, processConfig\(\) will NOT overwrite these with auto\-built options.
 
 <a name="SetupAutoMaxProcs"></a>
-## func [SetupAutoMaxProcs](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L406>)
+## func [SetupAutoMaxProcs](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L409>)
 
 ```go
 func SetupAutoMaxProcs()
@@ -192,7 +192,7 @@ func SetupEnvironment(env string)
 SetupEnvironment sets the environment This is used to identify the environment in Sentry and New Relic env is the environment to set for the service \(e.g. prod, staging, dev\)
 
 <a name="SetupHystrixPrometheus"></a>
-## func [SetupHystrixPrometheus](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L377>)
+## func [SetupHystrixPrometheus](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L380>)
 
 ```go
 func SetupHystrixPrometheus()
@@ -210,7 +210,7 @@ func SetupLogger(logLevel string, jsonlogs bool) error
 SetupLogger sets up the logger It uses the coldbrew logger to log messages to stdout logLevel is the log level to set for the logger jsonlogs is a boolean to enable or disable json logs
 
 <a name="SetupNROpenTelemetry"></a>
-## func [SetupNROpenTelemetry](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L354>)
+## func [SetupNROpenTelemetry](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L357>)
 
 ```go
 func SetupNROpenTelemetry(serviceName, license, version string, ratio float64) error
@@ -324,7 +324,7 @@ type CB interface {
 ```
 
 <a name="New"></a>
-### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L872>)
+### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L878>)
 
 ```go
 func New(c config.Config) CB

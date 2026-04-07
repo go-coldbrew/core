@@ -214,9 +214,13 @@ func (c *cb) processConfig() {
 		}
 	}
 
+	// Record legacy preference so getGRPCServerOptions/initHTTP respect it
+	// even if SetOTELOptions() was called during init.
+	otelUseLegacy = c.config.OTELUseLegacyInstrumentation
+
 	// Build native stats/opentelemetry options unless user already called
 	// SetOTELOptions() or legacy instrumentation is requested.
-	if !c.config.OTELUseLegacyInstrumentation && !otelGRPCOptionsSet {
+	if !otelUseLegacy && !otelGRPCOptionsSet {
 		otelGRPCOptions = buildOTELOptions()
 		otelGRPCOptionsSet = true
 	}
@@ -438,8 +442,8 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(dialCreds),
 	}
-	// Use native stats/opentelemetry when configured, otherwise legacy otelgrpc.
-	if otelGRPCOptionsSet {
+	// Use native stats/opentelemetry unless legacy mode is forced via config.
+	if !otelUseLegacy && otelGRPCOptionsSet {
 		opts = append(opts, grpcotel.DialOption(otelGRPCOptions))
 	} else {
 		opts = append(opts, grpc.WithStatsHandler(otelgrpc.NewClientHandler(otelGRPCClientOpts...)))
@@ -527,6 +531,7 @@ var (
 	otelGRPCOptionsSet bool            // true after processConfig builds or user calls SetOTELOptions
 	otelGRPCOptions    grpcotel.Options // value used by getGRPCServerOptions / initHTTP
 	otelMeterProvider  *sdkmetric.MeterProvider
+	otelUseLegacy      bool            // set from config; forces legacy otelgrpc even if SetOTELOptions was called
 )
 
 // Legacy otelgrpc options — only used when OTEL_USE_LEGACY_INSTRUMENTATION=true.
@@ -563,7 +568,8 @@ func SetOTELOptions(opts grpcotel.Options) {
 }
 
 // buildOTELOptions constructs grpcotel.Options from the global TracerProvider
-// and TextMapPropagator. Must be called after SetupOpenTelemetry.
+// and TextMapPropagator. If SetupOpenTelemetry was not called, the no-op
+// defaults from the OTel SDK are used.
 func buildOTELOptions() grpcotel.Options {
 	opts := grpcotel.Options{
 		MetricsOptions: grpcotel.MetricsOptions{
@@ -585,8 +591,8 @@ func buildOTELOptions() grpcotel.Options {
 func (c *cb) getGRPCServerOptions() []grpc.ServerOption {
 	so := make([]grpc.ServerOption, 0)
 
-	// Use native stats/opentelemetry when configured, otherwise legacy otelgrpc.
-	if otelGRPCOptionsSet {
+	// Use native stats/opentelemetry unless legacy mode is forced via config.
+	if !otelUseLegacy && otelGRPCOptionsSet {
 		so = append(so, grpcotel.ServerOption(otelGRPCOptions))
 	} else {
 		so = append(so, grpc.StatsHandler(otelgrpc.NewServerHandler(otelGRPCServerOpts...)))

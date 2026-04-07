@@ -89,6 +89,10 @@ func TestSetupOTELMetrics(t *testing.T) {
 		t.Fatalf("buildOTELResource() error: %v", err)
 	}
 
+	// Save and restore global MeterProvider.
+	oldGlobalMP := otel.GetMeterProvider()
+	defer otel.SetMeterProvider(oldGlobalMP)
+
 	mp, err := SetupOTELMetrics(OTLPConfig{
 		Endpoint: "localhost:4317",
 		Insecure: true,
@@ -117,9 +121,13 @@ func TestSetupOTELMetrics_NoEndpoint(t *testing.T) {
 }
 
 func TestSetupOTELMetrics_SharedResource(t *testing.T) {
-	// Reset globals
+	// Save and restore globals
 	oldRes := otelResource
-	defer func() { otelResource = oldRes }()
+	oldGlobalMP := otel.GetMeterProvider()
+	defer func() {
+		otelResource = oldRes
+		otel.SetMeterProvider(oldGlobalMP)
+	}()
 
 	// Set up tracing first to populate shared resource
 	otelResource = nil
@@ -157,7 +165,10 @@ func TestSetupOTELMetrics_SharedResource(t *testing.T) {
 }
 
 func TestBuildOTELOptions_MethodAttributeFilter(t *testing.T) {
-	// Set up a tracer provider so buildOTELOptions has something to use
+	// Save and restore global OTel state.
+	oldTP := otel.GetTracerProvider()
+	oldProp := otel.GetTextMapPropagator()
+
 	tp := sdktrace.NewTracerProvider(sdktrace.WithSampler(sdktrace.NeverSample()))
 	otel.SetTracerProvider(tp)
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
@@ -166,7 +177,8 @@ func TestBuildOTELOptions_MethodAttributeFilter(t *testing.T) {
 	))
 	defer func() {
 		tp.Shutdown(context.Background())
-		otel.SetTracerProvider(nil)
+		otel.SetTracerProvider(oldTP)
+		otel.SetTextMapPropagator(oldProp)
 	}()
 
 	oldMP := otelMeterProvider
@@ -214,12 +226,16 @@ func TestBuildOTELOptions_MethodAttributeFilter(t *testing.T) {
 }
 
 func TestBuildOTELOptions_WithMeterProvider(t *testing.T) {
+	oldTP := otel.GetTracerProvider()
+	oldProp := otel.GetTextMapPropagator()
+
 	tp := sdktrace.NewTracerProvider(sdktrace.WithSampler(sdktrace.NeverSample()))
 	otel.SetTracerProvider(tp)
 	otel.SetTextMapPropagator(propagation.TraceContext{})
 	defer func() {
 		tp.Shutdown(context.Background())
-		otel.SetTracerProvider(nil)
+		otel.SetTracerProvider(oldTP)
+		otel.SetTextMapPropagator(oldProp)
 	}()
 
 	// Set a MeterProvider
