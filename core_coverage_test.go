@@ -449,67 +449,73 @@ func TestGetCustomHeaderMatcher_EmptyPrefix(t *testing.T) {
 
 // --- Group 2: gRPC Server Options ---
 
-func TestGetGRPCServerOptions_Default(t *testing.T) {
+func testKeepaliveBaseline() int {
+	base := &cb{config: config.Config{}}
+	return len(base.getGRPCServerOptions())
+}
+
+func TestGetGRPCServerOptions_WithEnvconfigDefaults(t *testing.T) {
 	// removed t.Parallel() — core tests mutate package-level globals
-	// With sane defaults (300, 1800, 30), keepalive params should be applied
+	// Validates behavior when config has the envconfig default values (300, 1800, 30).
+	// Keepalive option should be appended beyond the baseline.
+	baseline := testKeepaliveBaseline()
 	c := &cb{config: config.Config{
 		GRPCServerMaxConnectionIdleInSeconds:     300,
 		GRPCServerMaxConnectionAgeInSeconds:      1800,
 		GRPCServerMaxConnectionAgeGraceInSeconds: 30,
 	}}
 	opts := c.getGRPCServerOptions()
-	if len(opts) < 3 {
-		t.Fatalf("expected at least 3 server options with default keepalive, got %d", len(opts))
+	if len(opts) <= baseline {
+		t.Fatalf("expected keepalive option beyond baseline %d, got %d", baseline, len(opts))
 	}
 }
 
 func TestGetGRPCServerOptions_KeepaliveDisabledWithNegativeOne(t *testing.T) {
 	// removed t.Parallel() — core tests mutate package-level globals
-	// Setting all values to -1 should still add keepalive params (outer != 0 check),
+	// Setting all values to -1 should still append keepalive params (outer != 0 check),
 	// but individual parameters are not set on ServerParameters (inner > 0 check),
 	// so gRPC uses infinity for each.
+	baseline := testKeepaliveBaseline()
 	c := &cb{config: config.Config{
 		GRPCServerMaxConnectionIdleInSeconds:     -1,
 		GRPCServerMaxConnectionAgeInSeconds:      -1,
 		GRPCServerMaxConnectionAgeGraceInSeconds: -1,
 	}}
 	opts := c.getGRPCServerOptions()
-	if len(opts) < 3 {
-		t.Fatalf("expected at least 3 server options with -1 keepalive, got %d", len(opts))
+	if len(opts) <= baseline {
+		t.Fatalf("expected keepalive option beyond baseline %d, got %d", baseline, len(opts))
 	}
 }
 
 func TestGetGRPCServerOptions_KeepaliveMixed(t *testing.T) {
 	// removed t.Parallel() — core tests mutate package-level globals
-	// Mix of -1 (disabled) and positive (enabled) values
+	// Mix of -1 (disabled) and positive (enabled) values should still append
+	// keepalive params relative to the all-zero baseline.
+	baseline := testKeepaliveBaseline()
 	c := &cb{config: config.Config{
 		GRPCServerMaxConnectionIdleInSeconds:     -1,
 		GRPCServerMaxConnectionAgeInSeconds:      1800,
 		GRPCServerMaxConnectionAgeGraceInSeconds: 30,
 	}}
 	opts := c.getGRPCServerOptions()
-	if len(opts) < 3 {
-		t.Fatalf("expected at least 3 server options with mixed keepalive, got %d", len(opts))
+	if len(opts) <= baseline {
+		t.Fatalf("expected keepalive option beyond baseline %d, got %d", baseline, len(opts))
 	}
 }
 
 func TestGetGRPCServerOptions_KeepaliveAllZero(t *testing.T) {
 	// removed t.Parallel() — core tests mutate package-level globals
-	// All zeros should NOT add keepalive params (outer != 0 check is false)
+	// All zeros should NOT add keepalive params (outer != 0 check is false),
+	// so option count should equal the baseline.
+	baseline := testKeepaliveBaseline()
 	c := &cb{config: config.Config{
 		GRPCServerMaxConnectionIdleInSeconds:     0,
 		GRPCServerMaxConnectionAgeInSeconds:      0,
 		GRPCServerMaxConnectionAgeGraceInSeconds: 0,
 	}}
 	opts := c.getGRPCServerOptions()
-	// Should only have the base options (interceptors + stats handler), no keepalive
-	baseOpts := len(opts)
-	c2 := &cb{config: config.Config{
-		GRPCServerMaxConnectionIdleInSeconds: 300,
-	}}
-	optsWithKeepalive := c2.getGRPCServerOptions()
-	if len(optsWithKeepalive) <= baseOpts {
-		t.Fatalf("expected more options with keepalive than without, got %d vs %d", len(optsWithKeepalive), baseOpts)
+	if len(opts) != baseline {
+		t.Fatalf("expected option count to equal baseline %d with all-zero keepalive, got %d", baseline, len(opts))
 	}
 }
 
