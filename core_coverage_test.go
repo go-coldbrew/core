@@ -1303,7 +1303,7 @@ func TestSetupOpenTelemetry_MissingServiceName(t *testing.T) {
 }
 
 func TestConfigureInterceptors_BothBranches(t *testing.T) {
-	ConfigureInterceptors(true, "X-My-Trace", "info", false)
+	ConfigureInterceptors(true, "X-My-Trace", "info", false, 60)
 }
 
 func TestConfig_Validate_HTTPCompressionMinSize(t *testing.T) {

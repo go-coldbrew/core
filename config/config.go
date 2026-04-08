@@ -113,6 +113,10 @@ type Config struct {
 	// sizes for sending and receiving messages over GRPC
 	GRPCMaxSendMsgSize int `envconfig:"GRPC_MAX_SEND_MSG_SIZE" default:"2147483647"` // Unlimited
 	GRPCMaxRecvMsgSize int `envconfig:"GRPC_MAX_RECV_MSG_SIZE" default:"4194304"`    // 4MB
+	// GRPCServerDefaultTimeoutInSeconds is the default timeout (in seconds) for
+	// incoming unary gRPC requests that arrive without a deadline. Set to 0 to
+	// disable. Does not apply to stream RPCs.
+	GRPCServerDefaultTimeoutInSeconds int `envconfig:"GRPC_SERVER_DEFAULT_TIMEOUT_IN_SECONDS" default:"60"`
 
 	// Custom OpenTelemetry OTLP Configuration
 	// When OTLPEndpoint is set, it takes precedence over NewRelic OpenTelemetry configuration
