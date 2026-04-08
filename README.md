@@ -85,7 +85,6 @@ For full documentation, visit https://docs.coldbrew.cloud
 ## Index
 
 - [Constants](<#constants>)
-- [func ConfigureInterceptors\(DoNotLogGRPCReflection bool, traceHeaderName string, responseTimeLogLevel string, responseTimeLogErrorOnly bool\)](<#ConfigureInterceptors>)
 - [func InitializeVTProto\(\)](<#InitializeVTProto>)
 - [func OTELMeterProvider\(\) otelmetric.MeterProvider](<#OTELMeterProvider>)
 - [func SetOTELGRPCClientOptions\(opts ...otelgrpc.Option\)](<#SetOTELGRPCClientOptions>)
@@ -117,17 +116,8 @@ For full documentation, visit https://docs.coldbrew.cloud
 const SupportPackageIsVersion1 = true
 ```
 
-<a name="ConfigureInterceptors"></a>
-## func [ConfigureInterceptors](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L389>)
-
-```go
-func ConfigureInterceptors(DoNotLogGRPCReflection bool, traceHeaderName string, responseTimeLogLevel string, responseTimeLogErrorOnly bool)
-```
-
-ConfigureInterceptors configures the interceptors package with the provided settings.
-
 <a name="InitializeVTProto"></a>
-## func [InitializeVTProto](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L444>)
+## func [InitializeVTProto](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L449>)
 
 ```go
 func InitializeVTProto()
@@ -174,7 +164,7 @@ func SetOTELOptions(opts grpcotel.Options)
 SetOTELOptions configures the native gRPC stats/opentelemetry integration. Must be called during init, before the gRPC server starts. When set, processConfig\(\) will NOT overwrite these with auto\-built options.
 
 <a name="SetupAutoMaxProcs"></a>
-## func [SetupAutoMaxProcs](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L410>)
+## func [SetupAutoMaxProcs](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L415>)
 
 ```go
 func SetupAutoMaxProcs()

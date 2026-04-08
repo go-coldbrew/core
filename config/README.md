@@ -66,7 +66,7 @@ import "github.com/go-coldbrew/core/config"
 
 
 <a name="Config"></a>
-## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L6-L170>)
+## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L6-L174>)
 
 Config is the configuration for the Coldbrew server It is populated from environment variables and has sensible defaults for all fields so that you can just use it as is without any configuration The following environment variables are supported and can be used to override the defaults for the fields
 
@@ -181,6 +181,10 @@ type Config struct {
     // sizes for sending and receiving messages over GRPC
     GRPCMaxSendMsgSize int `envconfig:"GRPC_MAX_SEND_MSG_SIZE" default:"2147483647"` // Unlimited
     GRPCMaxRecvMsgSize int `envconfig:"GRPC_MAX_RECV_MSG_SIZE" default:"4194304"`    // 4MB
+    // GRPCServerDefaultTimeoutInSeconds is the default timeout (in seconds) for
+    // incoming unary gRPC requests that arrive without a deadline. Set to 0 to
+    // disable. Does not apply to stream RPCs.
+    GRPCServerDefaultTimeoutInSeconds int `envconfig:"GRPC_SERVER_DEFAULT_TIMEOUT_IN_SECONDS" default:"60"`
 
     // OTLPEndpoint is the OTLP gRPC endpoint to send traces to
     // Examples: "localhost:4317", "api.honeycomb.io:443", "otel-collector:4317"
@@ -234,7 +238,7 @@ type Config struct {
 ```
 
 <a name="Config.Validate"></a>
-### func \(Config\) [Validate](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L175>)
+### func \(Config\) [Validate](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L179>)
 
 ```go
 func (c Config) Validate() []string
