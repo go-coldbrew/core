@@ -628,9 +628,9 @@ func (c *cb) getGRPCServerOptions() []grpc.ServerOption {
 		so = append(so, grpc.MaxSendMsgSize(c.config.GRPCMaxSendMsgSize))
 	}
 
-	if c.config.GRPCServerMaxConnectionAgeGraceInSeconds > 0 ||
-		c.config.GRPCServerMaxConnectionAgeInSeconds > 0 ||
-		c.config.GRPCServerMaxConnectionIdleInSeconds > 0 {
+	if c.config.GRPCServerMaxConnectionAgeGraceInSeconds != 0 ||
+		c.config.GRPCServerMaxConnectionAgeInSeconds != 0 ||
+		c.config.GRPCServerMaxConnectionIdleInSeconds != 0 {
 		option := keepalive.ServerParameters{}
 		if c.config.GRPCServerMaxConnectionIdleInSeconds > 0 {
 			option.MaxConnectionIdle = time.Duration(
