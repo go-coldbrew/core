@@ -207,6 +207,9 @@ func (c Config) Validate() []string {
 	if c.EnableOTELMetrics && c.OTELMetricsInterval <= 0 {
 		warnings = append(warnings, "OTELMetricsInterval should be positive when ENABLE_OTEL_METRICS is true")
 	}
+	if c.GRPCServerDefaultTimeoutInSeconds < 0 {
+		warnings = append(warnings, "GRPCServerDefaultTimeoutInSeconds is negative; use 0 to disable the timeout interceptor")
+	}
 
 	return warnings
 }

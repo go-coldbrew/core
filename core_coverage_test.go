@@ -1369,7 +1369,20 @@ func TestSetupOpenTelemetry_MissingServiceName(t *testing.T) {
 }
 
 func TestConfigureInterceptors_BothBranches(t *testing.T) {
-	ConfigureInterceptors(true, "X-My-Trace", "info", false, 60)
+	tests := []struct {
+		name                    string
+		defaultTimeoutInSeconds int
+	}{
+		{name: "timeout enabled", defaultTimeoutInSeconds: 60},
+		{name: "timeout disabled", defaultTimeoutInSeconds: 0},
+		{name: "timeout negative", defaultTimeoutInSeconds: -1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ConfigureInterceptors(true, "X-My-Trace", "info", false, tt.defaultTimeoutInSeconds)
+		})
+	}
 }
 
 func TestConfig_Validate_HTTPCompressionMinSize(t *testing.T) {
