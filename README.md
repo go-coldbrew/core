@@ -85,7 +85,6 @@ For full documentation, visit https://docs.coldbrew.cloud
 ## Index
 
 - [Constants](<#constants>)
-- [func ConfigureInterceptors\(DoNotLogGRPCReflection bool, traceHeaderName string, responseTimeLogLevel string, responseTimeLogErrorOnly bool\)](<#ConfigureInterceptors>)
 - [func InitializeVTProto\(\)](<#InitializeVTProto>)
 - [func OTELMeterProvider\(\) otelmetric.MeterProvider](<#OTELMeterProvider>)
 - [func SetOTELGRPCClientOptions\(opts ...otelgrpc.Option\)](<#SetOTELGRPCClientOptions>)
@@ -117,17 +116,8 @@ For full documentation, visit https://docs.coldbrew.cloud
 const SupportPackageIsVersion1 = true
 ```
 
-<a name="ConfigureInterceptors"></a>
-## func [ConfigureInterceptors](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L388>)
-
-```go
-func ConfigureInterceptors(DoNotLogGRPCReflection bool, traceHeaderName string, responseTimeLogLevel string, responseTimeLogErrorOnly bool)
-```
-
-ConfigureInterceptors configures the interceptors package with the provided settings.
-
 <a name="InitializeVTProto"></a>
-## func [InitializeVTProto](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L443>)
+## func [InitializeVTProto](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L449>)
 
 ```go
 func InitializeVTProto()
@@ -138,7 +128,7 @@ InitializeVTProto initializes the vtproto package for use with the service
 https://github.com/planetscale/vtprotobuf?tab=readme-ov-file#mixing-protobuf-implementations-with-grpc
 
 <a name="OTELMeterProvider"></a>
-## func [OTELMeterProvider](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L343>)
+## func [OTELMeterProvider](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L344>)
 
 ```go
 func OTELMeterProvider() otelmetric.MeterProvider
@@ -147,7 +137,7 @@ func OTELMeterProvider() otelmetric.MeterProvider
 OTELMeterProvider returns the global OTel MeterProvider. This is a convenience accessor for code that needs the interface type.
 
 <a name="SetOTELGRPCClientOptions"></a>
-## func [SetOTELGRPCClientOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L558>)
+## func [SetOTELGRPCClientOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L575>)
 
 ```go
 func SetOTELGRPCClientOptions(opts ...otelgrpc.Option)
@@ -156,7 +146,7 @@ func SetOTELGRPCClientOptions(opts ...otelgrpc.Option)
 Deprecated: Use SetOTELOptions instead. Only applies when OTEL\_USE\_LEGACY\_INSTRUMENTATION=true.
 
 <a name="SetOTELGRPCServerOptions"></a>
-## func [SetOTELGRPCServerOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L552>)
+## func [SetOTELGRPCServerOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L569>)
 
 ```go
 func SetOTELGRPCServerOptions(opts ...otelgrpc.Option)
@@ -165,7 +155,7 @@ func SetOTELGRPCServerOptions(opts ...otelgrpc.Option)
 Deprecated: Use SetOTELOptions instead. Only applies when OTEL\_USE\_LEGACY\_INSTRUMENTATION=true.
 
 <a name="SetOTELOptions"></a>
-## func [SetOTELOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L565>)
+## func [SetOTELOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L582>)
 
 ```go
 func SetOTELOptions(opts grpcotel.Options)
@@ -174,7 +164,7 @@ func SetOTELOptions(opts grpcotel.Options)
 SetOTELOptions configures the native gRPC stats/opentelemetry integration. Must be called during init, before the gRPC server starts. When set, processConfig\(\) will NOT overwrite these with auto\-built options.
 
 <a name="SetupAutoMaxProcs"></a>
-## func [SetupAutoMaxProcs](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L409>)
+## func [SetupAutoMaxProcs](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L415>)
 
 ```go
 func SetupAutoMaxProcs()
@@ -192,7 +182,7 @@ func SetupEnvironment(env string)
 SetupEnvironment sets the environment This is used to identify the environment in Sentry and New Relic env is the environment to set for the service \(e.g. prod, staging, dev\)
 
 <a name="SetupHystrixPrometheus"></a>
-## func [SetupHystrixPrometheus](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L380>)
+## func [SetupHystrixPrometheus](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L381>)
 
 ```go
 func SetupHystrixPrometheus()
@@ -210,7 +200,7 @@ func SetupLogger(logLevel string, jsonlogs bool) error
 SetupLogger sets up the logger It uses the coldbrew logger to log messages to stdout logLevel is the log level to set for the logger jsonlogs is a boolean to enable or disable json logs
 
 <a name="SetupNROpenTelemetry"></a>
-## func [SetupNROpenTelemetry](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L357>)
+## func [SetupNROpenTelemetry](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L358>)
 
 ```go
 func SetupNROpenTelemetry(serviceName, license, version string, ratio float64) error
@@ -237,7 +227,7 @@ func SetupNewRelic(serviceName, apiKey string, tracing bool) error
 SetupNewRelic sets up the New Relic tracing and monitoring agent for the service It uses the New Relic Go Agent to send traces to New Relic One APM and Insights serviceName is the name of the service apiKey is the New Relic license key tracing is a boolean to enable or disable tracing
 
 <a name="SetupOTELMetrics"></a>
-## func [SetupOTELMetrics](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L294>)
+## func [SetupOTELMetrics](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L293>)
 
 ```go
 func SetupOTELMetrics(config OTLPConfig, interval time.Duration) (*sdkmetric.MeterProvider, error)
@@ -248,7 +238,7 @@ SetupOTELMetrics creates a MeterProvider with an OTLP gRPC exporter that reuses 
 Call this after SetupOpenTelemetry so the shared resource is available.
 
 <a name="SetupOpenTelemetry"></a>
-## func [SetupOpenTelemetry](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L234>)
+## func [SetupOpenTelemetry](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L224>)
 
 ```go
 func SetupOpenTelemetry(config OTLPConfig) error
@@ -324,7 +314,7 @@ type CB interface {
 ```
 
 <a name="New"></a>
-### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L878>)
+### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L895>)
 
 ```go
 func New(c config.Config) CB

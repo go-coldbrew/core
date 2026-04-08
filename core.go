@@ -131,7 +131,7 @@ func (c *cb) processConfig() {
 	SetupEnvironment(c.config.Environment)
 	SetupReleaseName(c.config.ReleaseName)
 	SetupHystrixPrometheus()
-	ConfigureInterceptors(c.config.DoNotLogGRPCReflection, c.config.TraceHeaderName, c.config.ResponseTimeLogLevel, c.config.ResponseTimeLogErrorOnly)
+	configureInterceptors(c.config.DoNotLogGRPCReflection, c.config.TraceHeaderName, c.config.ResponseTimeLogLevel, c.config.ResponseTimeLogErrorOnly, c.config.GRPCServerDefaultTimeoutInSeconds)
 	if !c.config.DisableSignalHandler {
 		dur := time.Second * 10
 		if c.config.ShutdownDurationInSeconds > 0 {
@@ -628,9 +628,9 @@ func (c *cb) getGRPCServerOptions() []grpc.ServerOption {
 		so = append(so, grpc.MaxSendMsgSize(c.config.GRPCMaxSendMsgSize))
 	}
 
-	if c.config.GRPCServerMaxConnectionAgeGraceInSeconds > 0 ||
-		c.config.GRPCServerMaxConnectionAgeInSeconds > 0 ||
-		c.config.GRPCServerMaxConnectionIdleInSeconds > 0 {
+	if c.config.GRPCServerMaxConnectionAgeGraceInSeconds != 0 ||
+		c.config.GRPCServerMaxConnectionAgeInSeconds != 0 ||
+		c.config.GRPCServerMaxConnectionIdleInSeconds != 0 {
 		option := keepalive.ServerParameters{}
 		if c.config.GRPCServerMaxConnectionIdleInSeconds > 0 {
 			option.MaxConnectionIdle = time.Duration(

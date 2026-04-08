@@ -76,19 +76,19 @@ type Config struct {
 	// MaxConnectionIdle is a duration for the amount of time after which an
 	// idle connection would be closed by sending a GoAway. Idleness duration is
 	// defined since the most recent time the number of outstanding RPCs became
-	// zero or the connection establishment.
+	// zero or the connection establishment. Set to -1 to disable (infinite).
 	// https://github.com/grpc/grpc-go/blob/v1.48.0/keepalive/keepalive.go#L50
-	GRPCServerMaxConnectionIdleInSeconds int `envconfig:"GRPC_SERVER_MAX_CONNECTION_IDLE_IN_SECONDS"`
+	GRPCServerMaxConnectionIdleInSeconds int `envconfig:"GRPC_SERVER_MAX_CONNECTION_IDLE_IN_SECONDS" default:"300"`
 	// MaxConnectionAge is a duration for the maximum amount of time a
 	// connection may exist before it will be closed by sending a GoAway. A
 	// random jitter of +/-10% will be added to MaxConnectionAge to spread out
-	// connection storms.
+	// connection storms. Set to -1 to disable (infinite).
 	// https://github.com/grpc/grpc-go/blob/v1.48.0/keepalive/keepalive.go#L50
-	GRPCServerMaxConnectionAgeInSeconds int `envconfig:"GRPC_SERVER_MAX_CONNECTION_AGE_IN_SECONDS"`
+	GRPCServerMaxConnectionAgeInSeconds int `envconfig:"GRPC_SERVER_MAX_CONNECTION_AGE_IN_SECONDS" default:"1800"`
 	// MaxConnectionAgeGrace is an additive period after MaxConnectionAge after
-	// which the connection will be forcibly closed.
+	// which the connection will be forcibly closed. Set to -1 to disable (infinite).
 	// https://github.com/grpc/grpc-go/blob/v1.48.0/keepalive/keepalive.go#L50
-	GRPCServerMaxConnectionAgeGraceInSeconds int `envconfig:"GRPC_SERVER_MAX_CONNECTION_AGE_GRACE_IN_SECONDS"`
+	GRPCServerMaxConnectionAgeGraceInSeconds int `envconfig:"GRPC_SERVER_MAX_CONNECTION_AGE_GRACE_IN_SECONDS" default:"30"`
 
 	// DisableAutoMaxProcs disables the automatic setting of GOMAXPROCS
 	// This is useful when running in a container where the container runtime sets GOMAXPROCS for you already
@@ -113,6 +113,10 @@ type Config struct {
 	// sizes for sending and receiving messages over GRPC
 	GRPCMaxSendMsgSize int `envconfig:"GRPC_MAX_SEND_MSG_SIZE" default:"2147483647"` // Unlimited
 	GRPCMaxRecvMsgSize int `envconfig:"GRPC_MAX_RECV_MSG_SIZE" default:"4194304"`    // 4MB
+	// GRPCServerDefaultTimeoutInSeconds is the default timeout (in seconds) for
+	// incoming unary gRPC requests that arrive without a deadline. Set to 0 to
+	// disable. Does not apply to stream RPCs.
+	GRPCServerDefaultTimeoutInSeconds int `envconfig:"GRPC_SERVER_DEFAULT_TIMEOUT_IN_SECONDS" default:"60"`
 
 	// Custom OpenTelemetry OTLP Configuration
 	// When OTLPEndpoint is set, it takes precedence over NewRelic OpenTelemetry configuration
@@ -202,6 +206,9 @@ func (c Config) Validate() []string {
 	}
 	if c.EnableOTELMetrics && c.OTELMetricsInterval <= 0 {
 		warnings = append(warnings, "OTELMetricsInterval should be positive when ENABLE_OTEL_METRICS is true")
+	}
+	if c.GRPCServerDefaultTimeoutInSeconds < 0 {
+		warnings = append(warnings, "GRPCServerDefaultTimeoutInSeconds is negative; use 0 to disable the timeout interceptor")
 	}
 
 	return warnings

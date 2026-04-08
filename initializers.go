@@ -385,8 +385,8 @@ func SetupHystrixPrometheus() {
 	})
 }
 
-// ConfigureInterceptors configures the interceptors package with the provided settings.
-func ConfigureInterceptors(DoNotLogGRPCReflection bool, traceHeaderName string, responseTimeLogLevel string, responseTimeLogErrorOnly bool) {
+// configureInterceptors configures the interceptors package with the provided settings.
+func configureInterceptors(DoNotLogGRPCReflection bool, traceHeaderName string, responseTimeLogLevel string, responseTimeLogErrorOnly bool, defaultTimeoutInSeconds int) {
 	if DoNotLogGRPCReflection {
 		methods := append(interceptors.FilterMethods, "grpc.reflection.v1alpha.ServerReflection") //nolint:staticcheck // FilterMethods read is fine, using SetFilterMethods to write
 		interceptors.SetFilterMethods(context.Background(), methods)
@@ -403,6 +403,11 @@ func ConfigureInterceptors(DoNotLogGRPCReflection bool, traceHeaderName string, 
 		interceptors.SetResponseTimeLogLevel(context.Background(), level)
 	}
 	interceptors.SetResponseTimeLogErrorOnly(responseTimeLogErrorOnly)
+	if defaultTimeoutInSeconds > 0 {
+		interceptors.SetDefaultTimeout(time.Second * time.Duration(defaultTimeoutInSeconds))
+	} else {
+		interceptors.SetDefaultTimeout(0)
+	}
 }
 
 // SetupAutoMaxProcs sets up the GOMAXPROCS to match Linux container CPU quota
