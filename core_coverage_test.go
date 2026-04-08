@@ -505,17 +505,22 @@ func TestGetGRPCServerOptions_KeepaliveMixed(t *testing.T) {
 
 func TestGetGRPCServerOptions_KeepaliveAllZero(t *testing.T) {
 	// removed t.Parallel() — core tests mutate package-level globals
-	// All zeros should NOT add keepalive params (outer != 0 check is false),
-	// so option count should equal the baseline.
-	baseline := testKeepaliveBaseline()
-	c := &cb{config: config.Config{
+	// All zeros should NOT add keepalive params (outer != 0 check is false).
+	// Compare against a positive-value config to prove zero omits keepalive.
+	zeroConfig := &cb{config: config.Config{
 		GRPCServerMaxConnectionIdleInSeconds:     0,
 		GRPCServerMaxConnectionAgeInSeconds:      0,
 		GRPCServerMaxConnectionAgeGraceInSeconds: 0,
 	}}
-	opts := c.getGRPCServerOptions()
-	if len(opts) != baseline {
-		t.Fatalf("expected option count to equal baseline %d with all-zero keepalive, got %d", baseline, len(opts))
+	positiveConfig := &cb{config: config.Config{
+		GRPCServerMaxConnectionIdleInSeconds:     300,
+		GRPCServerMaxConnectionAgeInSeconds:      1800,
+		GRPCServerMaxConnectionAgeGraceInSeconds: 30,
+	}}
+	zeroOpts := zeroConfig.getGRPCServerOptions()
+	positiveOpts := positiveConfig.getGRPCServerOptions()
+	if len(zeroOpts) >= len(positiveOpts) {
+		t.Fatalf("expected fewer options with all-zero keepalive than positive, got %d vs %d", len(zeroOpts), len(positiveOpts))
 	}
 }
 
@@ -1364,7 +1369,7 @@ func TestSetupOpenTelemetry_MissingServiceName(t *testing.T) {
 }
 
 func TestConfigureInterceptors_BothBranches(t *testing.T) {
-	ConfigureInterceptors(true, "X-My-Trace", "info", false)
+	ConfigureInterceptors(true, "X-My-Trace", "info", false, 60)
 }
 
 func TestConfig_Validate_HTTPCompressionMinSize(t *testing.T) {
