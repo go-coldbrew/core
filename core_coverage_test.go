@@ -1368,7 +1368,7 @@ func TestSetupOpenTelemetry_MissingServiceName(t *testing.T) {
 	}
 }
 
-func TestConfigureInterceptors_BothBranches(t *testing.T) {
+func Test_configureInterceptors_BothBranches(t *testing.T) {
 	tests := []struct {
 		name                    string
 		defaultTimeoutInSeconds int
@@ -1380,7 +1380,7 @@ func TestConfigureInterceptors_BothBranches(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ConfigureInterceptors(true, "X-My-Trace", "info", false, tt.defaultTimeoutInSeconds)
+			configureInterceptors(true, "X-My-Trace", "info", false, tt.defaultTimeoutInSeconds)
 		})
 	}
 }

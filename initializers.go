@@ -385,8 +385,8 @@ func SetupHystrixPrometheus() {
 	})
 }
 
-// ConfigureInterceptors configures the interceptors package with the provided settings.
-func ConfigureInterceptors(DoNotLogGRPCReflection bool, traceHeaderName string, responseTimeLogLevel string, responseTimeLogErrorOnly bool, defaultTimeoutInSeconds int) {
+// configureInterceptors configures the interceptors package with the provided settings.
+func configureInterceptors(DoNotLogGRPCReflection bool, traceHeaderName string, responseTimeLogLevel string, responseTimeLogErrorOnly bool, defaultTimeoutInSeconds int) {
 	if DoNotLogGRPCReflection {
 		methods := append(interceptors.FilterMethods, "grpc.reflection.v1alpha.ServerReflection") //nolint:staticcheck // FilterMethods read is fine, using SetFilterMethods to write
 		interceptors.SetFilterMethods(context.Background(), methods)
