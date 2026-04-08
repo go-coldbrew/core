@@ -22,15 +22,16 @@ import (
 	nrutil "github.com/go-coldbrew/tracing/newrelic"
 	protov1 "github.com/golang/protobuf/proto" //nolint:staticcheck
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
-	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	otelBridge "go.opentelemetry.io/otel/bridge/opentracing"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	otelmetric "go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.40.0"
 	"go.uber.org/automaxprocs/maxprocs"
@@ -138,30 +139,75 @@ type OTLPConfig struct {
 	// If empty, defaults to "gzip"
 	Compression string
 
-	// UseOpenTracingBridge determines whether to set up OpenTracing compatibility bridge
-	// This allows using OpenTracing instrumentation with OpenTelemetry
-	UseOpenTracingBridge bool
-
 	// Insecure disables TLS verification for the connection
 	// Only use this for local development or testing
 	Insecure bool
 }
 
-// SetupOpenTelemetry sets up OpenTelemetry tracing with a generic OTLP exporter
+// nrOTLPEndpoint is the New Relic OTLP gRPC endpoint.
+const nrOTLPEndpoint = "otlp.nr-data.net:4317"
+
+// otelResource is the shared resource used by both TracerProvider and
+// MeterProvider so that traces and metrics correlate in backends.
+var otelResource *resource.Resource
+
+// otelTracerProvider stores the concrete TracerProvider for shutdown.
+var otelTracerProvider *sdktrace.TracerProvider
+
+// buildOTELResource builds a resource with service name, version, build info,
+// and VCS metadata. The result is cached in otelResource for reuse.
+func buildOTELResource(serviceName, serviceVersion string) (*resource.Resource, error) {
+	if otelResource != nil {
+		return otelResource, nil
+	}
+	d := resource.Default()
+	attrs := []attribute.KeyValue{
+		semconv.ServiceName(serviceName),
+		semconv.ServiceVersion(serviceVersion),
+	}
+	if bi, ok := debug.ReadBuildInfo(); ok {
+		attrs = append(attrs,
+			semconv.ProcessExecutableName(filepath.Base(os.Args[0])),
+			semconv.ProcessRuntimeVersion(bi.GoVersion),
+		)
+		for _, s := range bi.Settings {
+			switch s.Key {
+			case "vcs.revision":
+				attrs = append(attrs, semconv.VCSRefHeadRevision(s.Value))
+			case "vcs.time":
+				attrs = append(attrs, attribute.String("vcs.time", s.Value))
+			case "vcs.modified":
+				attrs = append(attrs, attribute.Bool("vcs.modified", s.Value == "true"))
+			}
+		}
+	}
+	res, err := resource.New(context.Background(),
+		resource.WithAttributes(attrs...),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("creating OTLP resource: %w", err)
+	}
+	r, err := resource.Merge(d, res)
+	if err != nil {
+		return nil, fmt.Errorf("merging OTLP resource: %w", err)
+	}
+	otelResource = r
+	return r, nil
+}
+
+// SetupOpenTelemetry sets up OpenTelemetry tracing with a generic OTLP exporter.
 //
-// This function provides a flexible way to configure OpenTelemetry tracing
-// with any OTLP-compatible backend. It sets up the trace provider, configures
-// sampling, and optionally sets up an OpenTracing bridge for compatibility.
+// It configures a TracerProvider with the given sampling ratio and OTLP backend,
+// sets it as the global provider, and stores it for graceful shutdown.
 //
 // Example usage with Jaeger:
 //
 //	config := OTLPConfig{
-//	    Endpoint:             "localhost:4317",
-//	    ServiceName:          "my-service",
-//	    ServiceVersion:       "v1.0.0",
-//	    SamplingRatio:        0.1,
-//	    UseOpenTracingBridge: true,
-//	    Insecure:            true,  // for local development
+//	    Endpoint:       "localhost:4317",
+//	    ServiceName:    "my-service",
+//	    ServiceVersion: "v1.0.0",
+//	    SamplingRatio:  0.1,
+//	    Insecure:       true, // for local development
 //	}
 //	err := SetupOpenTelemetry(config)
 //
@@ -185,23 +231,17 @@ func SetupOpenTelemetry(config OTLPConfig) error {
 		return nil
 	}
 
-	// Default compression to gzip if not specified
 	if config.Compression == "" {
 		config.Compression = "gzip"
 	}
 
-	// Build client options
 	clientOpts := []otlptracegrpc.Option{
 		otlptracegrpc.WithEndpoint(config.Endpoint),
 		otlptracegrpc.WithHeaders(config.Headers),
 	}
-
-	// Add compression if specified
 	if config.Compression != "none" {
 		clientOpts = append(clientOpts, otlptracegrpc.WithCompressor(config.Compression))
 	}
-
-	// Add insecure option if needed
 	if config.Insecure {
 		clientOpts = append(clientOpts, otlptracegrpc.WithInsecure())
 	}
@@ -212,39 +252,12 @@ func SetupOpenTelemetry(config OTLPConfig) error {
 		return err
 	}
 
-	d := resource.Default()
-	attrs := []attribute.KeyValue{
-		semconv.ServiceName(config.ServiceName),
-		semconv.ServiceVersion(config.ServiceVersion),
-	}
-	if bi, ok := debug.ReadBuildInfo(); ok {
-		attrs = append(attrs,
-			semconv.ProcessExecutableName(filepath.Base(os.Args[0])),
-			semconv.ProcessRuntimeVersion(bi.GoVersion),
-		)
-		for _, s := range bi.Settings {
-			switch s.Key {
-			case "vcs.revision":
-				attrs = append(attrs, semconv.VCSRefHeadRevision(s.Value))
-			case "vcs.time":
-				attrs = append(attrs, attribute.String("vcs.time", s.Value))
-			case "vcs.modified":
-				attrs = append(attrs, attribute.Bool("vcs.modified", s.Value == "true"))
-			}
-		}
-	}
-	res, err := resource.New(context.Background(),
-		resource.WithAttributes(attrs...),
-	)
+	r, err := buildOTELResource(config.ServiceName, config.ServiceVersion)
 	if err != nil {
-		log.Error(context.Background(), "msg", "creating OTLP resource", "err", err)
+		log.Error(context.Background(), "msg", "building OTLP resource", "err", err)
 		return err
 	}
-	r, err := resource.Merge(d, res)
-	if err != nil {
-		log.Error(context.Background(), "msg", "merging OTLP resource", "err", err)
-		return err
-	}
+
 	// Default sampling ratio when not explicitly set (negative) or invalid (> 1).
 	// 0 is a valid value meaning "sample nothing".
 	ratio := config.SamplingRatio
@@ -257,6 +270,7 @@ func SetupOpenTelemetry(config OTLPConfig) error {
 		sdktrace.WithBatcher(otlpExporter),
 		sdktrace.WithResource(r),
 	)
+	otelTracerProvider = tracerProvider
 
 	// Set global propagator for W3C trace context + baggage propagation.
 	// This is required for linking spans across HTTP→gRPC boundaries.
@@ -265,19 +279,70 @@ func SetupOpenTelemetry(config OTLPConfig) error {
 		propagation.Baggage{},
 	))
 
-	if config.UseOpenTracingBridge {
-		otelTracer := tracerProvider.Tracer(config.ServiceName)
-		// Use the bridgeTracer as your OpenTracing tracer.
-		bridgeTracer, wrapperTracerProvider := otelBridge.NewTracerPair(otelTracer)
-
-		otel.SetTracerProvider(wrapperTracerProvider)
-		opentracing.SetGlobalTracer(bridgeTracer)
-	} else {
-		otel.SetTracerProvider(tracerProvider)
-	}
+	otel.SetTracerProvider(tracerProvider)
 
 	log.Info(context.Background(), "msg", "Initialized opentelemetry tracing", "endpoint", config.Endpoint)
 	return nil
+}
+
+// SetupOTELMetrics creates a MeterProvider with an OTLP gRPC exporter that
+// reuses the same resource as the TracerProvider (set by SetupOpenTelemetry).
+// The MeterProvider is set as the global OTel MeterProvider.
+//
+// Call this after SetupOpenTelemetry so the shared resource is available.
+func SetupOTELMetrics(config OTLPConfig, interval time.Duration) (*sdkmetric.MeterProvider, error) {
+	if config.Endpoint == "" {
+		return nil, fmt.Errorf("OTLP endpoint is required for OTEL metrics")
+	}
+	if interval <= 0 {
+		return nil, fmt.Errorf("OTEL metrics interval must be positive, got %v", interval)
+	}
+	if config.Compression == "" {
+		config.Compression = "gzip"
+	}
+
+	exporterOpts := []otlpmetricgrpc.Option{
+		otlpmetricgrpc.WithEndpoint(config.Endpoint),
+		otlpmetricgrpc.WithHeaders(config.Headers),
+	}
+	if config.Compression != "none" {
+		exporterOpts = append(exporterOpts, otlpmetricgrpc.WithCompressor(config.Compression))
+	}
+	if config.Insecure {
+		exporterOpts = append(exporterOpts, otlpmetricgrpc.WithInsecure())
+	}
+
+	exporter, err := otlpmetricgrpc.New(context.Background(), exporterOpts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create OTLP metric exporter: %w", err)
+	}
+
+	r := otelResource
+	if r == nil {
+		// Fallback: build resource if SetupOpenTelemetry wasn't called first.
+		if config.ServiceName == "" {
+			return nil, fmt.Errorf("OTEL service name is required when tracing resource is not initialized")
+		}
+		r, err = buildOTELResource(config.ServiceName, config.ServiceVersion)
+		if err != nil {
+			return nil, fmt.Errorf("building OTLP resource for metrics: %w", err)
+		}
+	}
+
+	mp := sdkmetric.NewMeterProvider(
+		sdkmetric.WithResource(r),
+		sdkmetric.WithReader(sdkmetric.NewPeriodicReader(exporter,
+			sdkmetric.WithInterval(interval),
+		)),
+	)
+	otel.SetMeterProvider(mp)
+	return mp, nil
+}
+
+// OTELMeterProvider returns the global OTel MeterProvider. This is a convenience
+// accessor for code that needs the interface type.
+func OTELMeterProvider() otelmetric.MeterProvider {
+	return otel.GetMeterProvider()
 }
 
 // SetupNROpenTelemetry sets up OpenTelemetry tracing with New Relic
@@ -297,13 +362,12 @@ func SetupNROpenTelemetry(serviceName, license, version string, ratio float64) e
 	}
 	// Use the generic SetupOpenTelemetry with New Relic specific configuration
 	config := OTLPConfig{
-		Endpoint:             "otlp.nr-data.net:4317",
-		Headers:              map[string]string{"api-key": license},
-		ServiceName:          serviceName,
-		ServiceVersion:       version,
-		SamplingRatio:        ratio,
-		Compression:          "gzip",
-		UseOpenTracingBridge: true,
+		Endpoint:       nrOTLPEndpoint,
+		Headers:        map[string]string{"api-key": license},
+		ServiceName:    serviceName,
+		ServiceVersion: version,
+		SamplingRatio:  ratio,
+		Compression:    "gzip",
 	}
 	return SetupOpenTelemetry(config)
 }
