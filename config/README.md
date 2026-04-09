@@ -66,7 +66,7 @@ import "github.com/go-coldbrew/core/config"
 
 
 <a name="Config"></a>
-## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L6-L174>)
+## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L12-L188>)
 
 Config is the configuration for the Coldbrew server It is populated from environment variables and has sensible defaults for all fields so that you can just use it as is without any configuration The following environment variables are supported and can be used to override the defaults for the fields
 
@@ -174,13 +174,21 @@ type Config struct {
     // DisableProtoValidate disables the protovalidate interceptor in the default
     // interceptor chain. When disabled, proto validation annotations are ignored.
     DisableProtoValidate bool `envconfig:"DISABLE_PROTO_VALIDATE" default:"false"`
+    // DisableDebugLogInterceptor disables the DebugLogInterceptor in the default
+    // interceptor chain. When disabled, proto debug fields and metadata headers
+    // will not trigger per-request debug logging.
+    DisableDebugLogInterceptor bool `envconfig:"DISABLE_DEBUG_LOG_INTERCEPTOR" default:"false"`
+    // DebugLogHeaderName is the gRPC metadata / HTTP header name that triggers
+    // per-request debug logging. The header value should be a valid log level
+    // (e.g., "debug"). Default: "x-debug-log-level".
+    DebugLogHeaderName string `envconfig:"DEBUG_LOG_HEADER_NAME" default:"x-debug-log-level"`
     // DisableVTProtobuf disables the use of the vtprotobuf marshaller and unmarshaller for GRPC
     // https://github.com/planetscale/vtprotobuf
     DisableVTProtobuf bool `envconfig:"DISABLE_VT_PROTOBUF" default:"false"`
-    // GRPCMaxSendMsgSize and GRPCMaxRecvMsgSize are the maximum message
-    // sizes for sending and receiving messages over GRPC
-    GRPCMaxSendMsgSize int `envconfig:"GRPC_MAX_SEND_MSG_SIZE" default:"2147483647"` // Unlimited
-    GRPCMaxRecvMsgSize int `envconfig:"GRPC_MAX_RECV_MSG_SIZE" default:"4194304"`    // 4MB
+    // GRPCMaxSendMsgSize is the max response size your service can send back to clients.
+    GRPCMaxSendMsgSize int `envconfig:"GRPC_MAX_SEND_MSG_SIZE" default:"2147483647"` // ~2GB (gRPC maximum)
+    // GRPCMaxRecvMsgSize is the max request size your service accepts from clients.
+    GRPCMaxRecvMsgSize int `envconfig:"GRPC_MAX_RECV_MSG_SIZE" default:"4194304"` // 4MB
     // GRPCServerDefaultTimeoutInSeconds is the default timeout (in seconds) for
     // incoming unary gRPC requests that arrive without a deadline. Set to 0 to
     // disable. Does not apply to stream RPCs.
@@ -238,7 +246,7 @@ type Config struct {
 ```
 
 <a name="Config.Validate"></a>
-### func \(Config\) [Validate](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L179>)
+### func \(Config\) [Validate](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L193>)
 
 ```go
 func (c Config) Validate() []string
