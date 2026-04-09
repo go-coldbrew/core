@@ -137,7 +137,7 @@ func OTELMeterProvider() otelmetric.MeterProvider
 OTELMeterProvider returns the global OTel MeterProvider. This is a convenience accessor for code that needs the interface type.
 
 <a name="SetOTELGRPCClientOptions"></a>
-## func [SetOTELGRPCClientOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L594>)
+## func [SetOTELGRPCClientOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L600>)
 
 ```go
 func SetOTELGRPCClientOptions(opts ...otelgrpc.Option)
@@ -146,7 +146,7 @@ func SetOTELGRPCClientOptions(opts ...otelgrpc.Option)
 Deprecated: Use SetOTELOptions instead. Only applies when OTEL\_USE\_LEGACY\_INSTRUMENTATION=true.
 
 <a name="SetOTELGRPCServerOptions"></a>
-## func [SetOTELGRPCServerOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L588>)
+## func [SetOTELGRPCServerOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L594>)
 
 ```go
 func SetOTELGRPCServerOptions(opts ...otelgrpc.Option)
@@ -155,7 +155,7 @@ func SetOTELGRPCServerOptions(opts ...otelgrpc.Option)
 Deprecated: Use SetOTELOptions instead. Only applies when OTEL\_USE\_LEGACY\_INSTRUMENTATION=true.
 
 <a name="SetOTELOptions"></a>
-## func [SetOTELOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L601>)
+## func [SetOTELOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L607>)
 
 ```go
 func SetOTELOptions(opts grpcotel.Options)
@@ -314,7 +314,7 @@ type CB interface {
 ```
 
 <a name="New"></a>
-### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L914>)
+### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L920>)
 
 ```go
 func New(c config.Config) CB

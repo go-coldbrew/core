@@ -120,6 +120,16 @@ type Config struct {
 	// per-request debug logging. The header value should be a valid log level
 	// (e.g., "debug"). Default: "x-debug-log-level".
 	DebugLogHeaderName string `envconfig:"DEBUG_LOG_HEADER_NAME" default:"x-debug-log-level"`
+	// RateLimitPerSecond is the maximum number of incoming requests per second
+	// for this pod. This is a per-pod in-memory limit — with N pods, the
+	// effective cluster-wide limit is N × this value. Set to 0 to disable (default).
+	// For distributed rate limiting, use interceptors.SetRateLimiter() with a custom implementation.
+	RateLimitPerSecond float64 `envconfig:"RATE_LIMIT_PER_SECOND" default:"0"`
+	// RateLimitBurst is the maximum burst size for the token bucket rate limiter.
+	// Only takes effect when RateLimitPerSecond > 0.
+	RateLimitBurst int `envconfig:"RATE_LIMIT_BURST" default:"1"`
+	// DisableRateLimit disables the rate limiting interceptor entirely.
+	DisableRateLimit bool `envconfig:"DISABLE_RATE_LIMIT" default:"false"`
 	// DisableVTProtobuf disables the use of the vtprotobuf marshaller and unmarshaller for GRPC
 	// https://github.com/planetscale/vtprotobuf
 	DisableVTProtobuf bool `envconfig:"DISABLE_VT_PROTOBUF" default:"false"`
