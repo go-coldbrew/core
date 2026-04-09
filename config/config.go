@@ -226,10 +226,18 @@ func (c Config) Validate() []string {
 	}
 	if c.GRPCTLSCertFile != "" && c.GRPCTLSKeyFile != "" {
 		if _, err := os.Stat(c.GRPCTLSCertFile); err != nil {
-			warnings = append(warnings, "GRPCTLSCertFile not found: "+c.GRPCTLSCertFile)
+			if os.IsNotExist(err) {
+				warnings = append(warnings, "GRPCTLSCertFile not found: "+c.GRPCTLSCertFile)
+			} else {
+				warnings = append(warnings, "GRPCTLSCertFile could not be accessed: "+c.GRPCTLSCertFile+": "+err.Error())
+			}
 		}
 		if _, err := os.Stat(c.GRPCTLSKeyFile); err != nil {
-			warnings = append(warnings, "GRPCTLSKeyFile not found: "+c.GRPCTLSKeyFile)
+			if os.IsNotExist(err) {
+				warnings = append(warnings, "GRPCTLSKeyFile not found: "+c.GRPCTLSKeyFile)
+			} else {
+				warnings = append(warnings, "GRPCTLSKeyFile could not be accessed: "+c.GRPCTLSKeyFile+": "+err.Error())
+			}
 		}
 	}
 	if c.OTLPEndpoint != "" {

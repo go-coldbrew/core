@@ -164,3 +164,21 @@ func TestGetCustomHeaderMatcher(t *testing.T) {
 		}
 	})
 }
+
+func TestGetCustomHeaderMatcher_MultipleHeaders(t *testing.T) {
+	// removed t.Parallel() — core tests mutate package-level globals
+	matcher := getCustomHeaderMatcher(nil, "X-Trace-Id", "X-Debug-Log-Level")
+
+	_, traceMatched := matcher("X-Trace-Id")
+	if !traceMatched {
+		t.Fatal("expected trace header to match")
+	}
+	_, debugMatched := matcher("X-Debug-Log-Level")
+	if !debugMatched {
+		t.Fatal("expected debug log header to match")
+	}
+	_, unknownMatched := matcher("X-Random")
+	if unknownMatched {
+		t.Fatal("expected unknown header to not match")
+	}
+}
