@@ -16,6 +16,11 @@ type Config struct {
 	GRPCPort int `envconfig:"GRPC_PORT" default:"9090"`
 	// HTTP Port, defaults to 9091
 	HTTPPort int `envconfig:"HTTP_PORT" default:"9091"`
+	// AdminPort is an optional dedicated port for admin endpoints (pprof, metrics, swagger).
+	// When set to a non-zero value, admin endpoints are served on this port instead of HTTPPort.
+	// This allows network-level isolation (e.g., Kubernetes NetworkPolicy) to restrict access
+	// to profiling and metrics data. Default 0 (disabled — admin endpoints on HTTPPort).
+	AdminPort int `envconfig:"ADMIN_PORT" default:"0"`
 	// Name of the Application
 	AppName string `envconfig:"APP_NAME" default:""`
 	// Environment e.g. Production / Integration / Development
@@ -211,6 +216,17 @@ func (c Config) Validate() []string {
 	}
 	if c.GRPCPort == c.HTTPPort && c.GRPCPort != 0 {
 		warnings = append(warnings, "GRPCPort and HTTPPort are the same, this will cause a port conflict")
+	}
+	if c.AdminPort < 0 || c.AdminPort > 65535 {
+		warnings = append(warnings, "AdminPort is out of valid range (0-65535)")
+	}
+	if c.AdminPort > 0 {
+		if c.AdminPort == c.GRPCPort {
+			warnings = append(warnings, "AdminPort and GRPCPort are the same, this will cause a port conflict")
+		}
+		if c.AdminPort == c.HTTPPort {
+			warnings = append(warnings, "AdminPort and HTTPPort are the same; set AdminPort to 0 to serve admin endpoints on HTTPPort")
+		}
 	}
 	if c.NewRelicOpentelemetrySample < 0 || c.NewRelicOpentelemetrySample > 1.0 {
 		warnings = append(warnings, "NewRelicOpentelemetrySample should be between 0.0 and 1.0")

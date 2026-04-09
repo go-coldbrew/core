@@ -186,6 +186,74 @@ func TestValidateLogLevel(t *testing.T) {
 	}
 }
 
+func TestValidateAdminPortRange(t *testing.T) {
+	c := Config{
+		GRPCPort:  9090,
+		HTTPPort:  9091,
+		AdminPort: 70000,
+	}
+	warnings := c.Validate()
+	found := false
+	for _, w := range warnings {
+		if strings.Contains(w, "AdminPort") && strings.Contains(w, "range") {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("out-of-range AdminPort should produce a warning")
+	}
+}
+
+func TestValidateAdminPortConflictGRPC(t *testing.T) {
+	c := Config{
+		GRPCPort:  9090,
+		HTTPPort:  9091,
+		AdminPort: 9090,
+	}
+	warnings := c.Validate()
+	found := false
+	for _, w := range warnings {
+		if strings.Contains(w, "AdminPort") && strings.Contains(w, "GRPCPort") {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("AdminPort == GRPCPort should produce a warning")
+	}
+}
+
+func TestValidateAdminPortConflictHTTP(t *testing.T) {
+	c := Config{
+		GRPCPort:  9090,
+		HTTPPort:  9091,
+		AdminPort: 9091,
+	}
+	warnings := c.Validate()
+	found := false
+	for _, w := range warnings {
+		if strings.Contains(w, "AdminPort") && strings.Contains(w, "HTTPPort") {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("AdminPort == HTTPPort should produce a warning")
+	}
+}
+
+func TestValidateAdminPortZeroNoWarning(t *testing.T) {
+	c := Config{
+		GRPCPort:  9090,
+		HTTPPort:  9091,
+		AdminPort: 0,
+	}
+	warnings := c.Validate()
+	for _, w := range warnings {
+		if strings.Contains(w, "AdminPort") {
+			t.Errorf("AdminPort=0 should not produce AdminPort warnings, got: %s", w)
+		}
+	}
+}
+
 func TestValidateTimeoutExceedsShutdown(t *testing.T) {
 	c := Config{
 		GRPCPort:                          9090,

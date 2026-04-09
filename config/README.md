@@ -66,7 +66,7 @@ import "github.com/go-coldbrew/core/config"
 
 
 <a name="Config"></a>
-## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L12-L198>)
+## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L12-L203>)
 
 Config is the configuration for the Coldbrew server It is populated from environment variables and has sensible defaults for all fields so that you can just use it as is without any configuration The following environment variables are supported and can be used to override the defaults for the fields
 
@@ -78,6 +78,11 @@ type Config struct {
     GRPCPort int `envconfig:"GRPC_PORT" default:"9090"`
     // HTTP Port, defaults to 9091
     HTTPPort int `envconfig:"HTTP_PORT" default:"9091"`
+    // AdminPort is an optional dedicated port for admin endpoints (pprof, metrics, swagger).
+    // When set to a non-zero value, admin endpoints are served on this port instead of HTTPPort.
+    // This allows network-level isolation (e.g., Kubernetes NetworkPolicy) to restrict access
+    // to profiling and metrics data. Default 0 (disabled — admin endpoints on HTTPPort).
+    AdminPort int `envconfig:"ADMIN_PORT" default:"0"`
     // Name of the Application
     AppName string `envconfig:"APP_NAME" default:""`
     // Environment e.g. Production / Integration / Development
@@ -256,7 +261,7 @@ type Config struct {
 ```
 
 <a name="Config.Validate"></a>
-### func \(Config\) [Validate](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L203>)
+### func \(Config\) [Validate](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L208>)
 
 ```go
 func (c Config) Validate() []string
