@@ -66,7 +66,7 @@ import "github.com/go-coldbrew/core/config"
 
 
 <a name="Config"></a>
-## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L12-L188>)
+## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L12-L198>)
 
 Config is the configuration for the Coldbrew server It is populated from environment variables and has sensible defaults for all fields so that you can just use it as is without any configuration The following environment variables are supported and can be used to override the defaults for the fields
 
@@ -182,6 +182,16 @@ type Config struct {
     // per-request debug logging. The header value should be a valid log level
     // (e.g., "debug"). Default: "x-debug-log-level".
     DebugLogHeaderName string `envconfig:"DEBUG_LOG_HEADER_NAME" default:"x-debug-log-level"`
+    // RateLimitPerSecond is the maximum number of incoming requests per second
+    // for this pod. This is a per-pod in-memory limit — with N pods, the
+    // effective cluster-wide limit is N × this value. Set to 0 to disable (default).
+    // For distributed rate limiting, use interceptors.SetRateLimiter() with a custom implementation.
+    RateLimitPerSecond float64 `envconfig:"RATE_LIMIT_PER_SECOND" default:"0"`
+    // RateLimitBurst is the maximum burst size for the token bucket rate limiter.
+    // Only takes effect when RateLimitPerSecond > 0.
+    RateLimitBurst int `envconfig:"RATE_LIMIT_BURST" default:"1"`
+    // DisableRateLimit disables the rate limiting interceptor entirely.
+    DisableRateLimit bool `envconfig:"DISABLE_RATE_LIMIT" default:"false"`
     // DisableVTProtobuf disables the use of the vtprotobuf marshaller and unmarshaller for GRPC
     // https://github.com/planetscale/vtprotobuf
     DisableVTProtobuf bool `envconfig:"DISABLE_VT_PROTOBUF" default:"false"`
@@ -246,7 +256,7 @@ type Config struct {
 ```
 
 <a name="Config.Validate"></a>
-### func \(Config\) [Validate](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L193>)
+### func \(Config\) [Validate](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L203>)
 
 ```go
 func (c Config) Validate() []string

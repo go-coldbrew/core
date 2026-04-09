@@ -148,6 +148,12 @@ func (c *cb) processConfig() {
 	if c.config.DebugLogHeaderName != "" {
 		interceptors.SetDebugLogHeaderName(c.config.DebugLogHeaderName)
 	}
+	if c.config.DisableRateLimit {
+		interceptors.SetDisableRateLimit(true)
+	}
+	if c.config.RateLimitPerSecond > 0 {
+		interceptors.SetDefaultRateLimit(c.config.RateLimitPerSecond, c.config.RateLimitBurst)
+	}
 	if c.config.EnablePrometheusGRPCHistogram {
 		if len(c.config.PrometheusGRPCHistogramBuckets) > 0 {
 			interceptors.SetServerMetricsOptions(
