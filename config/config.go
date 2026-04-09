@@ -268,5 +268,12 @@ func (c Config) Validate() []string {
 		warnings = append(warnings, "GRPCServerDefaultTimeoutInSeconds exceeds ShutdownDurationInSeconds; in-flight RPCs may be killed before timeout")
 	}
 
+	if c.RateLimitPerSecond < 0 {
+		warnings = append(warnings, "RateLimitPerSecond is negative; use 0 to disable rate limiting")
+	}
+	if c.RateLimitPerSecond > 0 && c.RateLimitBurst <= 0 {
+		warnings = append(warnings, "RateLimitBurst should be positive when RateLimitPerSecond is set")
+	}
+
 	return warnings
 }
