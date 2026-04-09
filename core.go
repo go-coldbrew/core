@@ -142,6 +142,12 @@ func (c *cb) processConfig() {
 	if c.config.DisableProtoValidate {
 		interceptors.SetDisableProtoValidate(true)
 	}
+	if c.config.DisableDebugLogInterceptor {
+		interceptors.SetDisableDebugLogInterceptor(true)
+	}
+	if c.config.DebugLogHeaderName != "" {
+		interceptors.SetDebugLogHeaderName(c.config.DebugLogHeaderName)
+	}
 	if c.config.EnablePrometheusGRPCHistogram {
 		if len(c.config.PrometheusGRPCHistogramBuckets) > 0 {
 			interceptors.SetServerMetricsOptions(
@@ -390,19 +396,26 @@ func spanRouteMiddleware(next runtime.HandlerFunc) runtime.HandlerFunc {
 	}
 }
 
-// getCustomHeaderMatcher returns a matcher that matches the given header and prefix
-func getCustomHeaderMatcher(prefixes []string, header string) func(string) (string, bool) {
-	header = strings.ToLower(header)
+// getCustomHeaderMatcher returns a matcher that matches the given exact headers and prefixes.
+// Exact-match headers (e.g., trace header, debug log header) are forwarded from HTTP to gRPC metadata.
+func getCustomHeaderMatcher(prefixes []string, headers ...string) func(string) (string, bool) {
+	lowerHeaders := make([]string, 0, len(headers))
+	for _, h := range headers {
+		if h != "" {
+			lowerHeaders = append(lowerHeaders, strings.ToLower(h))
+		}
+	}
 	return func(key string) (string, bool) {
 		key = strings.ToLower(key)
 
-		if key == header {
-			return key, true
-		} else if len(prefixes) > 0 {
-			for _, prefix := range prefixes {
-				if len(prefix) > 0 && strings.HasPrefix(key, strings.ToLower(prefix)) {
-					return key, true
-				}
+		for _, h := range lowerHeaders {
+			if key == h {
+				return key, true
+			}
+		}
+		for _, prefix := range prefixes {
+			if len(prefix) > 0 && strings.HasPrefix(key, strings.ToLower(prefix)) {
+				return key, true
 			}
 		}
 
@@ -425,7 +438,7 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 
 	muxOpts := []runtime.ServeMuxOption{
 		runtime.WithIncomingHeaderMatcher(
-			getCustomHeaderMatcher(allowedHttpHeaderPrefixes, c.config.TraceHeaderName),
+			getCustomHeaderMatcher(allowedHttpHeaderPrefixes, c.config.TraceHeaderName, c.config.DebugLogHeaderName),
 		),
 		runtime.WithMarshalerOption("application/proto", pMar),
 		runtime.WithMarshalerOption("application/protobuf", pMar),
