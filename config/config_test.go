@@ -106,3 +106,101 @@ func TestValidateShutdownTiming(t *testing.T) {
 		t.Error("healthcheck duration >= shutdown duration should produce a warning")
 	}
 }
+
+func TestValidateTLSFileNotFound(t *testing.T) {
+	c := Config{
+		GRPCPort:        9090,
+		HTTPPort:        9091,
+		GRPCTLSCertFile: "/nonexistent/cert.pem",
+		GRPCTLSKeyFile:  "/nonexistent/key.pem",
+	}
+	warnings := c.Validate()
+	foundCert := false
+	foundKey := false
+	for _, w := range warnings {
+		if strings.Contains(w, "GRPCTLSCertFile not found") {
+			foundCert = true
+		}
+		if strings.Contains(w, "GRPCTLSKeyFile not found") {
+			foundKey = true
+		}
+	}
+	if !foundCert || !foundKey {
+		t.Errorf("non-existent TLS files should produce warnings, got: %v", warnings)
+	}
+}
+
+func TestValidateOTLPEndpointFormat(t *testing.T) {
+	// Invalid endpoint
+	c := Config{
+		GRPCPort:     9090,
+		HTTPPort:     9091,
+		OTLPEndpoint: "not-a-host-port",
+	}
+	warnings := c.Validate()
+	found := false
+	for _, w := range warnings {
+		if strings.Contains(w, "host:port") {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("invalid OTLP endpoint should produce a warning")
+	}
+
+	// Valid endpoint should not warn
+	c.OTLPEndpoint = "localhost:4317"
+	warnings = c.Validate()
+	for _, w := range warnings {
+		if strings.Contains(w, "host:port") {
+			t.Errorf("valid OTLP endpoint should not produce a warning, got: %s", w)
+		}
+	}
+}
+
+func TestValidateLogLevel(t *testing.T) {
+	// Invalid level
+	c := Config{
+		GRPCPort: 9090,
+		HTTPPort: 9091,
+		LogLevel: "trace",
+	}
+	warnings := c.Validate()
+	found := false
+	for _, w := range warnings {
+		if strings.Contains(w, "not a recognized level") {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("invalid log level should produce a warning")
+	}
+
+	// Valid level should not warn
+	c.LogLevel = "debug"
+	warnings = c.Validate()
+	for _, w := range warnings {
+		if strings.Contains(w, "not a recognized level") {
+			t.Errorf("valid log level should not produce a warning, got: %s", w)
+		}
+	}
+}
+
+func TestValidateTimeoutExceedsShutdown(t *testing.T) {
+	c := Config{
+		GRPCPort:                          9090,
+		HTTPPort:                          9091,
+		GRPCServerDefaultTimeoutInSeconds: 120,
+		ShutdownDurationInSeconds:         15,
+	}
+	warnings := c.Validate()
+	found := false
+	for _, w := range warnings {
+		if strings.Contains(w, "exceeds ShutdownDurationInSeconds") {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("timeout exceeding shutdown duration should produce a warning")
+	}
+}

@@ -1,5 +1,11 @@
 package config
 
+import (
+	"net"
+	"os"
+	"strings"
+)
+
 // Config is the configuration for the Coldbrew server
 // It is populated from environment variables and has sensible defaults for all fields so that you can just use it as is without any configuration
 // The following environment variables are supported and can be used to override the defaults for the fields
@@ -106,6 +112,14 @@ type Config struct {
 	// DisableProtoValidate disables the protovalidate interceptor in the default
 	// interceptor chain. When disabled, proto validation annotations are ignored.
 	DisableProtoValidate bool `envconfig:"DISABLE_PROTO_VALIDATE" default:"false"`
+	// DisableDebugLogInterceptor disables the DebugLogInterceptor in the default
+	// interceptor chain. When disabled, proto debug fields and metadata headers
+	// will not trigger per-request debug logging.
+	DisableDebugLogInterceptor bool `envconfig:"DISABLE_DEBUG_LOG_INTERCEPTOR" default:"false"`
+	// DebugLogHeaderName is the gRPC metadata / HTTP header name that triggers
+	// per-request debug logging. The header value should be a valid log level
+	// (e.g., "debug"). Default: "x-debug-log-level".
+	DebugLogHeaderName string `envconfig:"DEBUG_LOG_HEADER_NAME" default:"x-debug-log-level"`
 	// DisableVTProtobuf disables the use of the vtprotobuf marshaller and unmarshaller for GRPC
 	// https://github.com/planetscale/vtprotobuf
 	DisableVTProtobuf bool `envconfig:"DISABLE_VT_PROTOBUF" default:"false"`
@@ -209,6 +223,39 @@ func (c Config) Validate() []string {
 	}
 	if c.GRPCServerDefaultTimeoutInSeconds < 0 {
 		warnings = append(warnings, "GRPCServerDefaultTimeoutInSeconds is negative; use 0 to disable the timeout interceptor")
+	}
+	if c.GRPCTLSCertFile != "" && c.GRPCTLSKeyFile != "" {
+		if _, err := os.Stat(c.GRPCTLSCertFile); err != nil {
+			if os.IsNotExist(err) {
+				warnings = append(warnings, "GRPCTLSCertFile not found: "+c.GRPCTLSCertFile)
+			} else {
+				warnings = append(warnings, "GRPCTLSCertFile could not be accessed: "+c.GRPCTLSCertFile+": "+err.Error())
+			}
+		}
+		if _, err := os.Stat(c.GRPCTLSKeyFile); err != nil {
+			if os.IsNotExist(err) {
+				warnings = append(warnings, "GRPCTLSKeyFile not found: "+c.GRPCTLSKeyFile)
+			} else {
+				warnings = append(warnings, "GRPCTLSKeyFile could not be accessed: "+c.GRPCTLSKeyFile+": "+err.Error())
+			}
+		}
+	}
+	if c.OTLPEndpoint != "" {
+		if _, _, err := net.SplitHostPort(c.OTLPEndpoint); err != nil {
+			warnings = append(warnings, "OTLPEndpoint should be in host:port format")
+		}
+	}
+	if c.LogLevel != "" {
+		switch strings.ToLower(c.LogLevel) {
+		case "error", "warn", "warning", "info", "debug":
+			// valid
+		default:
+			warnings = append(warnings, "LogLevel is not a recognized level: "+c.LogLevel)
+		}
+	}
+	if c.GRPCServerDefaultTimeoutInSeconds > 0 && c.ShutdownDurationInSeconds > 0 &&
+		c.GRPCServerDefaultTimeoutInSeconds > c.ShutdownDurationInSeconds {
+		warnings = append(warnings, "GRPCServerDefaultTimeoutInSeconds exceeds ShutdownDurationInSeconds; in-flight RPCs may be killed before timeout")
 	}
 
 	return warnings

@@ -4,12 +4,12 @@ go 1.25.9
 
 require (
 	github.com/afex/hystrix-go v0.0.0-20180502004556-fa1af6a1f4f5
-	github.com/go-coldbrew/errors v0.2.13
+	github.com/go-coldbrew/errors v0.2.14
 	github.com/go-coldbrew/hystrixprometheus v0.1.2
-	github.com/go-coldbrew/interceptors v0.1.22
-	github.com/go-coldbrew/log v0.3.1
+	github.com/go-coldbrew/interceptors v0.1.23
+	github.com/go-coldbrew/log v0.3.2
 	github.com/go-coldbrew/options v0.3.0
-	github.com/go-coldbrew/tracing v0.2.0
+	github.com/go-coldbrew/tracing v0.2.2
 	github.com/golang/protobuf v1.5.4
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.28.0
@@ -26,6 +26,7 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.43.0
 	go.opentelemetry.io/otel/trace v1.43.0
 	go.uber.org/automaxprocs v1.6.0
+	go.uber.org/goleak v1.3.0
 	golang.org/x/sync v0.20.0
 	google.golang.org/grpc v1.79.3
 	google.golang.org/protobuf v1.36.11
