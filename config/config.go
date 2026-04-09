@@ -123,10 +123,10 @@ type Config struct {
 	// DisableVTProtobuf disables the use of the vtprotobuf marshaller and unmarshaller for GRPC
 	// https://github.com/planetscale/vtprotobuf
 	DisableVTProtobuf bool `envconfig:"DISABLE_VT_PROTOBUF" default:"false"`
-	// GRPCMaxSendMsgSize and GRPCMaxRecvMsgSize are the maximum message
-	// sizes for sending and receiving messages over GRPC
-	GRPCMaxSendMsgSize int `envconfig:"GRPC_MAX_SEND_MSG_SIZE" default:"2147483647"` // Unlimited
-	GRPCMaxRecvMsgSize int `envconfig:"GRPC_MAX_RECV_MSG_SIZE" default:"4194304"`    // 4MB
+	// GRPCMaxSendMsgSize is the max response size your service can send back to clients.
+	GRPCMaxSendMsgSize int `envconfig:"GRPC_MAX_SEND_MSG_SIZE" default:"2147483647"` // ~2GB (gRPC maximum)
+	// GRPCMaxRecvMsgSize is the max request size your service accepts from clients.
+	GRPCMaxRecvMsgSize int `envconfig:"GRPC_MAX_RECV_MSG_SIZE" default:"4194304"` // 4MB
 	// GRPCServerDefaultTimeoutInSeconds is the default timeout (in seconds) for
 	// incoming unary gRPC requests that arrive without a deadline. Set to 0 to
 	// disable. Does not apply to stream RPCs.

@@ -405,6 +405,12 @@ func getCustomHeaderMatcher(prefixes []string, headers ...string) func(string) (
 			lowerHeaders = append(lowerHeaders, strings.ToLower(h))
 		}
 	}
+	lowerPrefixes := make([]string, 0, len(prefixes))
+	for _, p := range prefixes {
+		if p != "" {
+			lowerPrefixes = append(lowerPrefixes, strings.ToLower(p))
+		}
+	}
 	return func(key string) (string, bool) {
 		key = strings.ToLower(key)
 
@@ -413,8 +419,8 @@ func getCustomHeaderMatcher(prefixes []string, headers ...string) func(string) (
 				return key, true
 			}
 		}
-		for _, prefix := range prefixes {
-			if len(prefix) > 0 && strings.HasPrefix(key, strings.ToLower(prefix)) {
+		for _, prefix := range lowerPrefixes {
+			if strings.HasPrefix(key, prefix) {
 				return key, true
 			}
 		}
