@@ -551,7 +551,7 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 		}
 		adminMux.Handle(swaggerPattern, http.StripPrefix(swaggerPattern, c.openAPIHandler))
 	}
-	if c.config.AdminPort > 0 {
+	if c.config.AdminPort > 0 && c.config.AdminPort != c.config.HTTPPort {
 		// Separate servers: admin endpoints on AdminPort, gateway on HTTPPort.
 		adminAddr := fmt.Sprintf("%s:%d", c.config.ListenHost, c.config.AdminPort)
 		c.adminServer = &http.Server{
@@ -838,7 +838,7 @@ func (c *cb) Run() error {
 	})
 	if c.adminServer != nil {
 		g.Go(func() error {
-			err := c.adminServer.ListenAndServe()
+			err := c.runHTTP(gctx, c.adminServer)
 			if errors.Is(err, http.ErrServerClosed) {
 				return nil
 			}

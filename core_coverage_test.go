@@ -1529,6 +1529,38 @@ func TestInitHTTP_AdminPortZero_CombinedBehavior(t *testing.T) {
 	}
 }
 
+func TestInitHTTP_AdminPortEqualsHTTPPort_CombinedMode(t *testing.T) {
+	// removed t.Parallel() — core tests mutate package-level globals
+	c := &cb{
+		config: config.Config{
+			GRPCPort:   19090,
+			HTTPPort:   19091,
+			AdminPort:  19091, // same as HTTPPort — should use combined mode
+			ListenHost: "127.0.0.1",
+		},
+		svc: []CBService{&testService{}},
+	}
+	svr, err := c.initHTTP(context.Background())
+	if err != nil {
+		t.Fatalf("initHTTP failed: %v", err)
+	}
+
+	// Should NOT create a separate admin server.
+	if c.adminServer != nil {
+		t.Fatal("expected adminServer to be nil when AdminPort == HTTPPort")
+	}
+
+	// Combined server should serve admin endpoints.
+	for _, path := range []string{"/debug/pprof/", "/metrics"} {
+		req := httptest.NewRequest("GET", path, nil)
+		w := httptest.NewRecorder()
+		svr.Handler.ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200 for %s on combined server, got %d", path, w.Code)
+		}
+	}
+}
+
 func TestInitHTTP_AdminPortSwagger(t *testing.T) {
 	// removed t.Parallel() — core tests mutate package-level globals
 	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {

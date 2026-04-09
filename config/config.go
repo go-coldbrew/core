@@ -225,7 +225,7 @@ func (c Config) Validate() []string {
 			warnings = append(warnings, "AdminPort and GRPCPort are the same, this will cause a port conflict")
 		}
 		if c.AdminPort == c.HTTPPort {
-			warnings = append(warnings, "AdminPort and HTTPPort are the same; set AdminPort to 0 to serve admin endpoints on HTTPPort")
+			warnings = append(warnings, "AdminPort equals HTTPPort; admin endpoints will be served on HTTPPort (combined mode)")
 		}
 	}
 	if c.NewRelicOpentelemetrySample < 0 || c.NewRelicOpentelemetrySample > 1.0 {
