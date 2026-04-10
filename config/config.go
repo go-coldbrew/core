@@ -19,7 +19,7 @@ type Config struct {
 	// AdminPort is an optional dedicated port for admin endpoints (pprof, metrics, swagger).
 	// When set to a non-zero value, admin endpoints are served on this port instead of HTTPPort.
 	// This allows network-level isolation (e.g., Kubernetes NetworkPolicy) to restrict access
-	// to profiling and metrics data. Default 0 (disabled — admin endpoints on HTTPPort).
+	// to profiling and metrics data. Default 0 (no dedicated admin server; admin endpoints served on HTTPPort).
 	AdminPort int `envconfig:"ADMIN_PORT" default:"0"`
 	// Name of the Application
 	AppName string `envconfig:"APP_NAME" default:""`

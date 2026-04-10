@@ -1472,14 +1472,10 @@ func TestInitHTTP_AdminPortSeparation(t *testing.T) {
 		req := httptest.NewRequest("GET", path, nil)
 		w := httptest.NewRecorder()
 		svr.Handler.ServeHTTP(w, req)
-		// Gateway handler has no routes for these — expect 404 from the
-		// gateway mux (grpc-gateway returns its own status for unknown paths).
-		// The key assertion is that the response does NOT come from pprof/prometheus.
-		if w.Code == http.StatusOK && (path == "/debug/pprof/" || path == "/metrics") {
-			body := w.Body.String()
-			if strings.Contains(body, "pprof") || strings.Contains(body, "go_goroutines") {
-				t.Errorf("admin endpoint %s should NOT be on gateway server when AdminPort is set", path)
-			}
+		// Gateway has no routes for admin paths — must not return pprof/prometheus content.
+		body := w.Body.String()
+		if strings.Contains(body, "pprof") || strings.Contains(body, "go_goroutines") {
+			t.Errorf("admin endpoint %s should NOT be on gateway server when AdminPort is set (got body containing admin content)", path)
 		}
 	}
 
