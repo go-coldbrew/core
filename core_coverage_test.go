@@ -1579,6 +1579,9 @@ func TestInitHTTP_AdminPortSwagger(t *testing.T) {
 	}
 
 	// Swagger should be on admin server.
+	if c.adminServer == nil {
+		t.Fatal("expected adminServer to be set when AdminPort > 0")
+	}
 	req := httptest.NewRequest("GET", "/swagger/index.html", nil)
 	w := httptest.NewRecorder()
 	c.adminServer.Handler.ServeHTTP(w, req)
