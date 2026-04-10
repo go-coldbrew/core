@@ -59,6 +59,7 @@ type cb struct {
 	closers        []io.Closer
 	grpcServer     *grpc.Server
 	httpServer     *http.Server
+	adminServer    *http.Server
 	cancelFunc     context.CancelFunc
 	gracefulWait   sync.WaitGroup
 	creds          credentials.TransportCredentials
@@ -550,6 +551,24 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 		}
 		adminMux.Handle(swaggerPattern, http.StripPrefix(swaggerPattern, c.openAPIHandler))
 	}
+	if c.config.AdminPort > 0 && c.config.AdminPort != c.config.HTTPPort {
+		// Separate servers: admin endpoints on AdminPort, gateway on HTTPPort.
+		adminAddr := fmt.Sprintf("%s:%d", c.config.ListenHost, c.config.AdminPort)
+		c.adminServer = &http.Server{
+			Addr:    adminAddr,
+			Handler: adminMux,
+		}
+		log.Info(ctx, "msg", "Starting admin server", "address", adminAddr)
+
+		gwServer := &http.Server{
+			Addr:    gatewayAddr,
+			Handler: gzipHandler,
+		}
+		log.Info(ctx, "msg", "Starting HTTP gateway server", "address", gatewayAddr)
+		return gwServer, nil
+	}
+
+	// Combined server: admin + gateway on HTTPPort (default behavior).
 	adminMux.Handle("/", gzipHandler)
 	gwServer := &http.Server{
 		Addr:    gatewayAddr,
@@ -817,6 +836,15 @@ func (c *cb) Run() error {
 		}
 		return err
 	})
+	if c.adminServer != nil {
+		g.Go(func() error {
+			err := c.runHTTP(gctx, c.adminServer)
+			if errors.Is(err, http.ErrServerClosed) {
+				return nil
+			}
+			return err
+		})
+	}
 	// When one server exits with an unexpected error (or parent context is
 	// cancelled by signal handler), stop the peer so g.Wait() completes.
 	g.Go(func() error {
@@ -826,6 +854,9 @@ func (c *cb) Run() error {
 		}
 		if c.httpServer != nil {
 			c.httpServer.Close()
+		}
+		if c.adminServer != nil {
+			c.adminServer.Close()
 		}
 		return nil
 	})
@@ -878,6 +909,11 @@ func (c *cb) Stop(dur time.Duration) error {
 		log.Info(context.Background(), "msg", "graceful shutdown timer finished", "duration", d)
 	}
 	log.Info(context.Background(), "msg", "Server shut down started, bye bye")
+	if c.adminServer != nil {
+		if err := c.adminServer.Shutdown(ctx); err != nil {
+			log.Error(context.Background(), "msg", "admin server shutdown error", "err", err)
+		}
+	}
 	if c.httpServer != nil {
 		if err := c.httpServer.Shutdown(ctx); err != nil {
 			log.Error(context.Background(), "msg", "http server shutdown error", "err", err)

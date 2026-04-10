@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -1447,5 +1448,147 @@ func TestProcessConfig_NRAutoDisable(t *testing.T) {
 				t.Errorf("DisableNewRelic = %v, want %v", cbInstance.config.DisableNewRelic, tt.wantDisabled)
 			}
 		})
+	}
+}
+
+func TestInitHTTP_AdminPortSeparation(t *testing.T) {
+	// removed t.Parallel() — core tests mutate package-level globals
+	c := &cb{
+		config: config.Config{
+			GRPCPort:   19090,
+			HTTPPort:   19091,
+			AdminPort:  19092,
+			ListenHost: "127.0.0.1",
+		},
+		svc: []CBService{&testService{}},
+	}
+	svr, err := c.initHTTP(context.Background())
+	if err != nil {
+		t.Fatalf("initHTTP failed: %v", err)
+	}
+
+	// Gateway server should NOT serve admin endpoints.
+	for _, path := range []string{"/debug/pprof/", "/metrics"} {
+		req := httptest.NewRequest("GET", path, nil)
+		w := httptest.NewRecorder()
+		svr.Handler.ServeHTTP(w, req)
+		// Gateway has no routes for admin paths — must not return pprof/prometheus content.
+		body := w.Body.String()
+		if strings.Contains(body, "pprof") || strings.Contains(body, "go_goroutines") {
+			t.Errorf("admin endpoint %s should NOT be on gateway server when AdminPort is set (got body containing admin content)", path)
+		}
+	}
+
+	// Admin server should serve admin endpoints.
+	if c.adminServer == nil {
+		t.Fatal("expected adminServer to be set when AdminPort > 0")
+	}
+	for _, path := range []string{"/debug/pprof/", "/metrics"} {
+		req := httptest.NewRequest("GET", path, nil)
+		w := httptest.NewRecorder()
+		c.adminServer.Handler.ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200 for admin %s, got %d", path, w.Code)
+		}
+	}
+}
+
+func TestInitHTTP_AdminPortZero_CombinedBehavior(t *testing.T) {
+	// removed t.Parallel() — core tests mutate package-level globals
+	c := &cb{
+		config: config.Config{
+			GRPCPort:   19090,
+			HTTPPort:   19091,
+			AdminPort:  0,
+			ListenHost: "127.0.0.1",
+		},
+		svc: []CBService{&testService{}},
+	}
+	svr, err := c.initHTTP(context.Background())
+	if err != nil {
+		t.Fatalf("initHTTP failed: %v", err)
+	}
+
+	// Admin server should NOT be created when AdminPort is 0.
+	if c.adminServer != nil {
+		t.Fatal("expected adminServer to be nil when AdminPort is 0")
+	}
+
+	// Combined server should serve admin endpoints on HTTPPort.
+	for _, path := range []string{"/debug/pprof/", "/metrics"} {
+		req := httptest.NewRequest("GET", path, nil)
+		w := httptest.NewRecorder()
+		svr.Handler.ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200 for %s on combined server, got %d", path, w.Code)
+		}
+	}
+}
+
+func TestInitHTTP_AdminPortEqualsHTTPPort_CombinedMode(t *testing.T) {
+	// removed t.Parallel() — core tests mutate package-level globals
+	c := &cb{
+		config: config.Config{
+			GRPCPort:   19090,
+			HTTPPort:   19091,
+			AdminPort:  19091, // same as HTTPPort — should use combined mode
+			ListenHost: "127.0.0.1",
+		},
+		svc: []CBService{&testService{}},
+	}
+	svr, err := c.initHTTP(context.Background())
+	if err != nil {
+		t.Fatalf("initHTTP failed: %v", err)
+	}
+
+	// Should NOT create a separate admin server.
+	if c.adminServer != nil {
+		t.Fatal("expected adminServer to be nil when AdminPort == HTTPPort")
+	}
+
+	// Combined server should serve admin endpoints.
+	for _, path := range []string{"/debug/pprof/", "/metrics"} {
+		req := httptest.NewRequest("GET", path, nil)
+		w := httptest.NewRecorder()
+		svr.Handler.ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200 for %s on combined server, got %d", path, w.Code)
+		}
+	}
+}
+
+func TestInitHTTP_AdminPortSwagger(t *testing.T) {
+	// removed t.Parallel() — core tests mutate package-level globals
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Write([]byte("swagger-admin"))
+	})
+	c := &cb{
+		config: config.Config{
+			GRPCPort:   19090,
+			HTTPPort:   19091,
+			AdminPort:  19092,
+			ListenHost: "127.0.0.1",
+			SwaggerURL: "/swagger/",
+		},
+		svc:            []CBService{&testService{}},
+		openAPIHandler: handler,
+	}
+	_, err := c.initHTTP(context.Background())
+	if err != nil {
+		t.Fatalf("initHTTP failed: %v", err)
+	}
+
+	// Swagger should be on admin server.
+	if c.adminServer == nil {
+		t.Fatal("expected adminServer to be set when AdminPort > 0")
+	}
+	req := httptest.NewRequest("GET", "/swagger/index.html", nil)
+	w := httptest.NewRecorder()
+	c.adminServer.Handler.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 for swagger on admin server, got %d", w.Code)
+	}
+	if w.Body.String() != "swagger-admin" {
+		t.Fatalf("expected 'swagger-admin' body, got %q", w.Body.String())
 	}
 }
