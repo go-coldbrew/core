@@ -74,7 +74,7 @@ func SetupNewRelic(serviceName, apiKey string, tracing bool) error {
 func SetupLogger(logLevel string, jsonlogs bool) error {
 	ll, err := loggers.ParseLevel(logLevel)
 	if err != nil {
-		log.Error(context.Background(), "err", "could not set log level", "level", logLevel)
+		log.Error(context.Background(), "msg", "could not set log level", "level", logLevel, "err", err)
 		return err
 	}
 	log.SetDefault(log.NewHandler(loggers.WithJSONLogs(jsonlogs), loggers.WithLevel(ll)))
