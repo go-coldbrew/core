@@ -1328,6 +1328,31 @@ func TestSetupLogger_ValidLevel(t *testing.T) {
 	}
 }
 
+func TestSetupLogger_RespectsExistingHandler(t *testing.T) {
+	prevSlog := slog.Default()
+	prevHandler := log.GetHandler()
+	t.Cleanup(func() {
+		slog.SetDefault(prevSlog)
+		log.SetDefault(prevHandler)
+	})
+
+	// User sets a custom handler before core runs.
+	customInner := slog.NewJSONHandler(io.Discard, nil)
+	customHandler := log.NewHandlerWithInner(customInner)
+	log.SetDefault(customHandler)
+
+	// SetupLogger should respect it and only update the level.
+	err := SetupLogger("debug", true)
+	if err != nil {
+		t.Fatalf("SetupLogger failed: %v", err)
+	}
+
+	// The handler should still be our custom one, not a new default.
+	if log.GetHandler() != customHandler {
+		t.Error("expected SetupLogger to preserve the custom handler")
+	}
+}
+
 func TestSetupLogger_InvalidLevel(t *testing.T) {
 	err := SetupLogger("notavalidlevel", false)
 	if err == nil {

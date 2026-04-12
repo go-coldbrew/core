@@ -77,6 +77,11 @@ func SetupLogger(logLevel string, jsonlogs bool) error {
 		log.Error(context.Background(), "msg", "could not set log level", "level", logLevel, "err", err)
 		return err
 	}
+	if log.DefaultIsSet() {
+		// User already configured a custom handler via log.SetDefault — respect it.
+		log.SetLevel(ll)
+		return nil
+	}
 	log.SetDefault(log.NewHandler(loggers.WithJSONLogs(jsonlogs), loggers.WithLevel(ll)))
 	return nil
 }
