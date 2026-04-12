@@ -13,6 +13,7 @@ import (
 	"time"
 
 	metricCollector "github.com/afex/hystrix-go/hystrix/metric_collector"
+	cbotel "github.com/go-coldbrew/core/otel"
 	"github.com/go-coldbrew/errors/notifier"
 	"github.com/go-coldbrew/hystrixprometheus" //nolint:staticcheck // deprecated but still in use
 	"github.com/go-coldbrew/interceptors"
@@ -26,9 +27,9 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
-	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	otelmetric "go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -145,6 +146,15 @@ type OTLPConfig struct {
 	// Insecure disables TLS verification for the connection
 	// Only use this for local development or testing
 	Insecure bool
+
+	// GRPCSpanNameFormat controls gRPC span naming.
+	// "short" extracts just the method name (e.g., "V0GetStats")
+	// "full" keeps the full path (e.g., "/pkg.Service/V0GetStats") - default
+	GRPCSpanNameFormat string
+
+	// FilterSpanNames is a comma-separated string of span names to filter out.
+	// Common use: "ServeHTTP" to filter HTTP transport spans.
+	FilterSpanNames string
 }
 
 // nrOTLPEndpoint is the New Relic OTLP gRPC endpoint.
@@ -156,6 +166,9 @@ var otelResource *resource.Resource
 
 // otelTracerProvider stores the concrete TracerProvider for shutdown.
 var otelTracerProvider *sdktrace.TracerProvider
+
+// otelSpanProcessor stores the custom span processor for runtime filter/transformer additions.
+var otelSpanProcessor *cbotel.SpanProcessor
 
 // buildOTELResource builds a resource with service name, version, build info,
 // and VCS metadata. The result is cached in otelResource for reuse.
@@ -268,9 +281,25 @@ func SetupOpenTelemetry(config OTLPConfig) error {
 		ratio = 0.2
 	}
 
+	// Wrap the batcher with custom SpanProcessor for filtering/transformation.
+	batcher := sdktrace.NewBatchSpanProcessor(otlpExporter)
+	var filterNames []string
+	if config.FilterSpanNames != "" {
+		for _, name := range strings.Split(config.FilterSpanNames, ",") {
+			if trimmed := strings.TrimSpace(name); trimmed != "" {
+				filterNames = append(filterNames, trimmed)
+			}
+		}
+	}
+	processor := cbotel.NewSpanProcessor(batcher, cbotel.SpanProcessorConfig{
+		GRPCSpanNameFormat: config.GRPCSpanNameFormat,
+		FilterSpanNames:    filterNames,
+	})
+	otelSpanProcessor = processor
+
 	tracerProvider := sdktrace.NewTracerProvider(
 		sdktrace.WithSampler(sdktrace.ParentBased(sdktrace.TraceIDRatioBased(ratio))),
-		sdktrace.WithBatcher(otlpExporter),
+		sdktrace.WithSpanProcessor(processor),
 		sdktrace.WithResource(r),
 	)
 	otelTracerProvider = tracerProvider
@@ -505,4 +534,22 @@ func (vtprotoCodec) Unmarshal(data []byte, v any) (err error) {
 func (vtprotoCodec) Name() string {
 	// name registered for the proto compressor
 	return "proto"
+}
+
+// AddOTELSpanFilter adds a custom span filter at runtime.
+// Filters are checked for each span; if any filter returns true, the span is dropped.
+// Must be called after SetupOpenTelemetry; no-op if OTEL is not initialized.
+func AddOTELSpanFilter(f cbotel.SpanFilter) {
+	if otelSpanProcessor != nil {
+		otelSpanProcessor.AddFilter(f)
+	}
+}
+
+// AddOTELSpanTransformer adds a custom span transformer at runtime.
+// Transformers are applied in order; first non-empty result wins.
+// Must be called after SetupOpenTelemetry; no-op if OTEL is not initialized.
+func AddOTELSpanTransformer(t cbotel.SpanTransformer) {
+	if otelSpanProcessor != nil {
+		otelSpanProcessor.AddTransformer(t)
+	}
 }

@@ -180,38 +180,33 @@ func (c *cb) processConfig() {
 	if c.config.OTLPEndpoint != "" {
 		headers := parseHeaders(c.config.OTLPHeaders)
 		otlpConfig = OTLPConfig{
-			Endpoint:       c.config.OTLPEndpoint,
-			Headers:        headers,
-			ServiceName:    c.config.AppName,
-			ServiceVersion: c.config.ReleaseName,
-			SamplingRatio:  c.config.OTLPSamplingRatio,
-			Compression:    c.config.OTLPCompression,
-			Insecure:       c.config.OTLPInsecure,
+			Endpoint:           c.config.OTLPEndpoint,
+			Headers:            headers,
+			ServiceName:        c.config.AppName,
+			ServiceVersion:     c.config.ReleaseName,
+			SamplingRatio:      c.config.OTLPSamplingRatio,
+			Compression:        c.config.OTLPCompression,
+			Insecure:           c.config.OTLPInsecure,
+			GRPCSpanNameFormat: c.config.OTELGRPCSpanNameFormat,
+			FilterSpanNames:    c.config.OTELFilterSpanNames,
 		}
 		if err := SetupOpenTelemetry(otlpConfig); err != nil {
 			log.Error(context.Background(), "msg", "Failed to setup custom OTLP", "err", err)
 		}
-	} else if c.config.NewRelicOpentelemetry {
-		err := SetupNROpenTelemetry(
-			nrName,
-			c.config.NewRelicLicenseKey,
-			c.config.ReleaseName,
-			c.config.NewRelicOpentelemetrySample,
-		)
-		if err != nil {
-			log.Error(context.Background(), "msg", "Failed to setup New Relic OpenTelemetry", "err", err)
+	} else if c.config.NewRelicOpentelemetry && strings.TrimSpace(c.config.NewRelicLicenseKey) != "" {
+		// Build full config for NR path to include filter/transformer settings.
+		otlpConfig = OTLPConfig{
+			Endpoint:           nrOTLPEndpoint,
+			Headers:            map[string]string{"api-key": c.config.NewRelicLicenseKey},
+			ServiceName:        nrName,
+			ServiceVersion:     c.config.ReleaseName,
+			SamplingRatio:      c.config.NewRelicOpentelemetrySample,
+			Compression:        "gzip",
+			GRPCSpanNameFormat: c.config.OTELGRPCSpanNameFormat,
+			FilterSpanNames:    c.config.OTELFilterSpanNames,
 		}
-		// Build otlpConfig for NR path so OTEL metrics can reuse the endpoint.
-		// Only populate when the license key is non-empty (SetupNROpenTelemetry
-		// no-ops without it, so metrics would just get auth failures).
-		if strings.TrimSpace(c.config.NewRelicLicenseKey) != "" {
-			otlpConfig = OTLPConfig{
-				Endpoint:       nrOTLPEndpoint,
-				Headers:        map[string]string{"api-key": c.config.NewRelicLicenseKey},
-				ServiceName:    nrName,
-				ServiceVersion: c.config.ReleaseName,
-				Compression:    "gzip",
-			}
+		if err := SetupOpenTelemetry(otlpConfig); err != nil {
+			log.Error(context.Background(), "msg", "Failed to setup New Relic OpenTelemetry", "err", err)
 		}
 	}
 

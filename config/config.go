@@ -179,6 +179,14 @@ type Config struct {
 	// EnableOTELMetrics enables OpenTelemetry metrics export via OTLP alongside
 	// Prometheus. Does not replace Prometheus. Default false.
 	EnableOTELMetrics bool `envconfig:"ENABLE_OTEL_METRICS" default:"false"`
+
+	// OTELGRPCSpanNameFormat controls gRPC span naming.
+	// "short" extracts just the method name (e.g., "V0GetStats")
+	// "full" keeps the full path (e.g., "/pkg.Service/V0GetStats") - default
+	OTELGRPCSpanNameFormat string `envconfig:"OTEL_GRPC_SPAN_NAME_FORMAT" default:"full"`
+	// OTELFilterSpanNames is a comma-separated list of span names to filter out (exact match).
+	// Common use: "ServeHTTP" to filter HTTP transport spans.
+	OTELFilterSpanNames string `envconfig:"OTEL_FILTER_SPAN_NAMES" default:""`
 	// OTELMetricsInterval controls the export interval in seconds for OTEL
 	// metrics. Default 60.
 	OTELMetricsInterval int `envconfig:"OTEL_METRICS_INTERVAL" default:"60"`
