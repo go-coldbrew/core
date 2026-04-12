@@ -18,7 +18,6 @@ import (
 	"github.com/go-coldbrew/interceptors"
 	"github.com/go-coldbrew/log"
 	"github.com/go-coldbrew/log/loggers"
-	cbslog "github.com/go-coldbrew/log/loggers/slog"
 	nrutil "github.com/go-coldbrew/tracing/newrelic"
 	protov1 "github.com/golang/protobuf/proto" //nolint:staticcheck
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
@@ -67,19 +66,23 @@ func SetupNewRelic(serviceName, apiKey string, tracing bool) error {
 	return nil
 }
 
-// SetupLogger sets up the logger
-// It uses the coldbrew logger to log messages to stdout
+// SetupLogger sets up the logger using ColdBrew's slog-native Handler.
+// It calls log.SetDefault which also wires slog.SetDefault, so native
+// slog.LogAttrs calls automatically get ColdBrew context fields.
 // logLevel is the log level to set for the logger
 // jsonlogs is a boolean to enable or disable json logs
 func SetupLogger(logLevel string, jsonlogs bool) error {
-	log.SetLogger(log.NewLogger(cbslog.NewLogger(loggers.WithJSONLogs(jsonlogs))))
-
 	ll, err := loggers.ParseLevel(logLevel)
 	if err != nil {
-		log.Error(context.Background(), "err", "could not set log level", "level", logLevel)
+		log.Error(context.Background(), "msg", "could not set log level", "level", logLevel, "err", err)
 		return err
 	}
-	log.SetLevel(ll)
+	if log.DefaultIsSet() {
+		// User already configured a custom handler via log.SetDefault — respect it.
+		log.SetLevel(ll)
+		return nil
+	}
+	log.SetDefault(log.NewHandler(loggers.WithJSONLogs(jsonlogs), loggers.WithLevel(ll)))
 	return nil
 }
 

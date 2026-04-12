@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"github.com/go-coldbrew/core/config"
+	"github.com/go-coldbrew/log"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
@@ -1306,9 +1308,48 @@ func TestVTProtoCodec_Name(t *testing.T) {
 // --- Group 8: Standalone Initializer Tests ---
 
 func TestSetupLogger_ValidLevel(t *testing.T) {
+	prevSlog := slog.Default()
+	prevHandler := log.GetHandler()
+	t.Cleanup(func() {
+		log.SetDefault(prevHandler)
+		slog.SetDefault(prevSlog)
+	})
+
 	err := SetupLogger("info", false)
 	if err != nil {
 		t.Fatalf("SetupLogger with valid level failed: %v", err)
+	}
+
+	// Verify slog.Default is wired through ColdBrew's Handler so native
+	// slog calls get context fields injected.
+	handler := slog.Default().Handler()
+	if _, ok := handler.(*log.Handler); !ok {
+		t.Errorf("expected slog.Default handler to be *log.Handler, got %T", handler)
+	}
+}
+
+func TestSetupLogger_RespectsExistingHandler(t *testing.T) {
+	prevSlog := slog.Default()
+	prevHandler := log.GetHandler()
+	t.Cleanup(func() {
+		log.SetDefault(prevHandler)
+		slog.SetDefault(prevSlog)
+	})
+
+	// User sets a custom handler before core runs.
+	customInner := slog.NewJSONHandler(io.Discard, nil)
+	customHandler := log.NewHandlerWithInner(customInner)
+	log.SetDefault(customHandler)
+
+	// SetupLogger should respect it and only update the level.
+	err := SetupLogger("debug", true)
+	if err != nil {
+		t.Fatalf("SetupLogger failed: %v", err)
+	}
+
+	// The handler should still be our custom one, not a new default.
+	if log.GetHandler() != customHandler {
+		t.Error("expected SetupLogger to preserve the custom handler")
 	}
 }
 
