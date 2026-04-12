@@ -1309,7 +1309,11 @@ func TestVTProtoCodec_Name(t *testing.T) {
 
 func TestSetupLogger_ValidLevel(t *testing.T) {
 	prevSlog := slog.Default()
-	t.Cleanup(func() { slog.SetDefault(prevSlog) })
+	prevHandler := log.GetHandler()
+	t.Cleanup(func() {
+		slog.SetDefault(prevSlog)
+		log.SetDefault(prevHandler)
+	})
 
 	err := SetupLogger("info", false)
 	if err != nil {
