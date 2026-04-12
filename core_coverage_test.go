@@ -1311,8 +1311,8 @@ func TestSetupLogger_ValidLevel(t *testing.T) {
 	prevSlog := slog.Default()
 	prevHandler := log.GetHandler()
 	t.Cleanup(func() {
-		slog.SetDefault(prevSlog)
 		log.SetDefault(prevHandler)
+		slog.SetDefault(prevSlog)
 	})
 
 	err := SetupLogger("info", false)
@@ -1332,8 +1332,8 @@ func TestSetupLogger_RespectsExistingHandler(t *testing.T) {
 	prevSlog := slog.Default()
 	prevHandler := log.GetHandler()
 	t.Cleanup(func() {
-		slog.SetDefault(prevSlog)
 		log.SetDefault(prevHandler)
+		slog.SetDefault(prevSlog)
 	})
 
 	// User sets a custom handler before core runs.
