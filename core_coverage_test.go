@@ -1668,10 +1668,14 @@ func generateTestCert(t *testing.T, dir string) (certPath, keyPath string) {
 	if err != nil {
 		t.Fatalf("create cert file: %v", err)
 	}
+	defer func() {
+		if err := certOut.Close(); err != nil {
+			t.Fatalf("close cert file: %v", err)
+		}
+	}()
 	if err := pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes}); err != nil {
 		t.Fatalf("encode cert: %v", err)
 	}
-	certOut.Close()
 
 	keyBytes, err := x509.MarshalECPrivateKey(key)
 	if err != nil {
@@ -1681,16 +1685,20 @@ func generateTestCert(t *testing.T, dir string) (certPath, keyPath string) {
 	if err != nil {
 		t.Fatalf("create key file: %v", err)
 	}
+	defer func() {
+		if err := keyOut.Close(); err != nil {
+			t.Fatalf("close key file: %v", err)
+		}
+	}()
 	if err := pem.Encode(keyOut, &pem.Block{Type: "EC PRIVATE KEY", Bytes: keyBytes}); err != nil {
 		t.Fatalf("encode key: %v", err)
 	}
-	keyOut.Close()
 
 	return certPath, keyPath
 }
 
 func TestLoadTLSCredentials_WithValidCerts(t *testing.T) {
-	t.Parallel()
+	// removed t.Parallel() — core tests mutate package-level globals
 	dir := t.TempDir()
 	certPath, keyPath := generateTestCert(t, dir)
 

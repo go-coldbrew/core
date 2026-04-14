@@ -848,8 +848,12 @@ func (c *cb) Run() error {
 	}
 	if c.certWatcher != nil {
 		g.Go(func() error {
-			if err := c.certWatcher.Start(gctx); err != nil && !errors.Is(err, context.Canceled) {
-				log.Warn(gctx, "msg", "TLS certificate watcher stopped", "err", err)
+			if err := c.certWatcher.Start(gctx); err != nil {
+				if errors.Is(err, context.Canceled) {
+					return nil
+				}
+				log.Error(gctx, "msg", "TLS certificate watcher stopped", "err", err)
+				return err
 			}
 			return nil
 		})
