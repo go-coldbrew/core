@@ -2,14 +2,22 @@ package core
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
+	"math/big"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -153,7 +161,7 @@ func TestClose_WithNilCloser(t *testing.T) {
 
 func TestLoadTLSCredentials_BadFiles(t *testing.T) {
 	// removed t.Parallel() — core tests mutate package-level globals
-	_, err := loadTLSCredentials("/nonexistent/cert.pem", "/nonexistent/key.pem", false)
+	_, _, err := loadTLSCredentials("/nonexistent/cert.pem", "/nonexistent/key.pem", false)
 	if err == nil {
 		t.Fatal("expected error for nonexistent TLS files")
 	}
@@ -1631,5 +1639,69 @@ func TestInitHTTP_AdminPortSwagger(t *testing.T) {
 	}
 	if w.Body.String() != "swagger-admin" {
 		t.Fatalf("expected 'swagger-admin' body, got %q", w.Body.String())
+	}
+}
+
+// generateTestCert creates a self-signed ECDSA P-256 certificate and writes
+// cert.pem and key.pem into dir. Returns the paths.
+func generateTestCert(t *testing.T, dir string) (certPath, keyPath string) {
+	t.Helper()
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatalf("generate key: %v", err)
+	}
+	tmpl := &x509.Certificate{
+		SerialNumber: big.NewInt(time.Now().UnixNano()),
+		Subject:      pkix.Name{CommonName: "test"},
+		NotBefore:    time.Now().Add(-time.Hour),
+		NotAfter:     time.Now().Add(time.Hour),
+	}
+	derBytes, err := x509.CreateCertificate(rand.Reader, tmpl, tmpl, &key.PublicKey, key)
+	if err != nil {
+		t.Fatalf("create cert: %v", err)
+	}
+
+	certPath = filepath.Join(dir, "cert.pem")
+	keyPath = filepath.Join(dir, "key.pem")
+
+	certOut, err := os.Create(certPath)
+	if err != nil {
+		t.Fatalf("create cert file: %v", err)
+	}
+	if err := pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes}); err != nil {
+		t.Fatalf("encode cert: %v", err)
+	}
+	certOut.Close()
+
+	keyBytes, err := x509.MarshalECPrivateKey(key)
+	if err != nil {
+		t.Fatalf("marshal key: %v", err)
+	}
+	keyOut, err := os.Create(keyPath)
+	if err != nil {
+		t.Fatalf("create key file: %v", err)
+	}
+	if err := pem.Encode(keyOut, &pem.Block{Type: "EC PRIVATE KEY", Bytes: keyBytes}); err != nil {
+		t.Fatalf("encode key: %v", err)
+	}
+	keyOut.Close()
+
+	return certPath, keyPath
+}
+
+func TestLoadTLSCredentials_WithValidCerts(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	certPath, keyPath := generateTestCert(t, dir)
+
+	watcher, creds, err := loadTLSCredentials(certPath, keyPath, false)
+	if err != nil {
+		t.Fatalf("loadTLSCredentials: %v", err)
+	}
+	if creds == nil {
+		t.Fatal("expected non-nil credentials")
+	}
+	if watcher == nil {
+		t.Fatal("expected non-nil watcher")
 	}
 }
