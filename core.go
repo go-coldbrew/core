@@ -17,6 +17,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
+	"github.com/cloudflare/certinel/fswatcher"
 	"github.com/go-coldbrew/core/config"
 	"github.com/go-coldbrew/interceptors"
 	"github.com/go-coldbrew/log"
@@ -63,6 +64,7 @@ type cb struct {
 	cancelFunc     context.CancelFunc
 	gracefulWait   sync.WaitGroup
 	creds          credentials.TransportCredentials
+	certWatcher    *fswatcher.Sentinel
 	unixSocketPath string
 }
 
@@ -699,27 +701,25 @@ func (c *cb) getGRPCServerOptions() []grpc.ServerOption {
 func loadTLSCredentials(
 	certFile, keyFile string,
 	insecureSkipVerify bool,
-) (credentials.TransportCredentials, error) {
-	// Load server's certificate and private key
-	serverCert, err := tls.LoadX509KeyPair(certFile, keyFile)
+) (*fswatcher.Sentinel, credentials.TransportCredentials, error) {
+	watcher, err := fswatcher.New(certFile, keyFile)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	// Create the credentials and return it
 	config := &tls.Config{
-		Certificates:       []tls.Certificate{serverCert},
+		GetCertificate:     watcher.GetCertificate,
 		ClientAuth:         tls.NoClientCert,
 		InsecureSkipVerify: insecureSkipVerify,
 	}
 
-	return credentials.NewTLS(config), nil
+	return watcher, credentials.NewTLS(config), nil
 }
 
 func (c *cb) initGRPC(ctx context.Context) (*grpc.Server, error) {
 	so := c.getGRPCServerOptions()
 	if c.config.GRPCTLSCertFile != "" && c.config.GRPCTLSKeyFile != "" {
-		creds, err := loadTLSCredentials(
+		watcher, creds, err := loadTLSCredentials(
 			c.config.GRPCTLSCertFile,
 			c.config.GRPCTLSKeyFile,
 			c.config.GRPCTLSInsecureSkipVerify,
@@ -728,6 +728,7 @@ func (c *cb) initGRPC(ctx context.Context) (*grpc.Server, error) {
 			return nil, err
 		}
 		c.creds = creds
+		c.certWatcher = watcher
 		so = append(so, grpc.Creds(creds))
 	}
 	grpcServer := grpc.NewServer(so...)
@@ -843,6 +844,18 @@ func (c *cb) Run() error {
 				return nil
 			}
 			return err
+		})
+	}
+	if c.certWatcher != nil {
+		g.Go(func() error {
+			if err := c.certWatcher.Start(gctx); err != nil {
+				if errors.Is(err, context.Canceled) {
+					return nil
+				}
+				log.Error(gctx, "msg", "TLS certificate watcher stopped", "err", err)
+				return err
+			}
+			return nil
 		})
 	}
 	// When one server exits with an unexpected error (or parent context is

@@ -4,6 +4,7 @@ go 1.25.9
 
 require (
 	github.com/afex/hystrix-go v0.0.0-20180502004556-fa1af6a1f4f5
+	github.com/cloudflare/certinel v0.4.1
 	github.com/go-coldbrew/errors v0.2.14
 	github.com/go-coldbrew/hystrixprometheus v0.1.2
 	github.com/go-coldbrew/interceptors v0.1.24
@@ -161,7 +162,7 @@ require (
 	github.com/jgautheron/goconst v1.8.2 // indirect
 	github.com/jingyugao/rowserrcheck v1.1.1 // indirect
 	github.com/jjti/go-spancheck v0.6.5 // indirect
-	github.com/jonboulle/clockwork v0.3.0 // indirect
+	github.com/jonboulle/clockwork v0.4.0 // indirect
 	github.com/jtolds/gls v4.20.0+incompatible // indirect
 	github.com/julz/importas v0.2.0 // indirect
 	github.com/k2io/hookingo v1.0.6 // indirect
