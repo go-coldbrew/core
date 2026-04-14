@@ -24,10 +24,11 @@ func (f SpanFilterFunc) ShouldDrop(span sdktrace.ReadOnlySpan) bool {
 	return f(span)
 }
 
-// SpanTransformer allows clients to transform span data before export.
-// This is useful for renaming spans, adding attributes, etc.
+// SpanTransformer allows clients to rename spans before export.
+// Note: This is a renaming-only contract; no other span data is modified.
 type SpanTransformer interface {
-	// Transform returns a modified span name. Return empty string to keep original.
+	// Transform returns a new span name. Return empty string to keep the original name.
+	// Only the span name is changed; attributes and other span data remain unmodified.
 	Transform(span sdktrace.ReadOnlySpan) string
 }
 
@@ -156,16 +157,22 @@ func (p *SpanProcessor) ForceFlush(ctx context.Context) error {
 }
 
 // AddFilter adds a custom filter at runtime.
-// Thread-safe.
+// Thread-safe. Nil filters are ignored to prevent panics in OnEnd.
 func (p *SpanProcessor) AddFilter(f SpanFilter) {
+	if f == nil {
+		return
+	}
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.config.Filters = append(p.config.Filters, f)
 }
 
 // AddTransformer adds a custom transformer at runtime.
-// Thread-safe.
+// Thread-safe. Nil transformers are ignored to prevent panics in OnEnd.
 func (p *SpanProcessor) AddTransformer(t SpanTransformer) {
+	if t == nil {
+		return
+	}
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.config.Transformers = append(p.config.Transformers, t)

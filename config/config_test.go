@@ -272,3 +272,33 @@ func TestValidateTimeoutExceedsShutdown(t *testing.T) {
 		t.Error("timeout exceeding shutdown duration should produce a warning")
 	}
 }
+
+func TestValidateOTELGRPCSpanNameFormat(t *testing.T) {
+	// Invalid format
+	c := Config{
+		GRPCPort:               9090,
+		HTTPPort:               9091,
+		OTELGRPCSpanNameFormat: "invalid",
+	}
+	warnings := c.Validate()
+	found := false
+	for _, w := range warnings {
+		if strings.Contains(w, "OTELGRPCSpanNameFormat") {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("invalid OTELGRPCSpanNameFormat should produce a warning")
+	}
+
+	// Valid formats should not warn
+	for _, format := range []string{"short", "full", ""} {
+		c.OTELGRPCSpanNameFormat = format
+		warnings = c.Validate()
+		for _, w := range warnings {
+			if strings.Contains(w, "OTELGRPCSpanNameFormat") {
+				t.Errorf("format %q should not produce a warning, got: %s", format, w)
+			}
+		}
+	}
+}

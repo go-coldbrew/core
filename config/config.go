@@ -299,5 +299,9 @@ func (c Config) Validate() []string {
 		warnings = append(warnings, "RateLimitBurst should be positive when RateLimitPerSecond is set")
 	}
 
+	if c.OTELGRPCSpanNameFormat != "" && c.OTELGRPCSpanNameFormat != "short" && c.OTELGRPCSpanNameFormat != "full" {
+		warnings = append(warnings, "OTELGRPCSpanNameFormat must be 'short' or 'full', got '"+c.OTELGRPCSpanNameFormat+"'; defaulting to 'full'")
+	}
+
 	return warnings
 }

@@ -410,3 +410,44 @@ func TestSpanProcessor_FilterDurationBased(t *testing.T) {
 		t.Errorf("expected slow span, got %s", spans[0].Name())
 	}
 }
+
+func TestSpanProcessor_NilFilterIgnored(t *testing.T) {
+	mock := &mockSpanProcessor{}
+	processor := NewSpanProcessor(mock, SpanProcessorConfig{})
+
+	// Adding nil filter should be ignored (no panic)
+	processor.AddFilter(nil)
+
+	tp := sdktrace.NewTracerProvider(
+		sdktrace.WithSpanProcessor(processor),
+	)
+
+	createTestSpan(tp, "test-span")
+
+	spans := mock.getSpans()
+	if len(spans) != 1 {
+		t.Errorf("expected 1 span, got %d", len(spans))
+	}
+}
+
+func TestSpanProcessor_NilTransformerIgnored(t *testing.T) {
+	mock := &mockSpanProcessor{}
+	processor := NewSpanProcessor(mock, SpanProcessorConfig{})
+
+	// Adding nil transformer should be ignored (no panic)
+	processor.AddTransformer(nil)
+
+	tp := sdktrace.NewTracerProvider(
+		sdktrace.WithSpanProcessor(processor),
+	)
+
+	createTestSpan(tp, "test-span")
+
+	spans := mock.getSpans()
+	if len(spans) != 1 {
+		t.Errorf("expected 1 span, got %d", len(spans))
+	}
+	if spans[0].Name() != "test-span" {
+		t.Errorf("expected test-span, got %s", spans[0].Name())
+	}
+}
