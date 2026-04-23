@@ -10,7 +10,7 @@ doc:
 
 lint:
 	go tool golangci-lint run
-	go tool govulncheck ./...
+	go tool govulncheck -scan=module
 
 bench:
 	go test -run=^$$ -bench=. -benchmem ./...
