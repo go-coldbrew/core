@@ -295,9 +295,8 @@ func (c Config) Validate() []string {
 	return warnings
 }
 
-// ValidateStrict checks the configuration and returns errors for fatal
-// misconfigurations. Unlike Validate (which returns warnings as strings),
-// this returns typed errors suitable for programmatic handling.
+// ValidateStrict converts Validate warnings to errors for programmatic use.
+// Returns nil when the configuration has no issues.
 func (c Config) ValidateStrict() []error {
 	var errs []error
 	for _, w := range c.Validate() {

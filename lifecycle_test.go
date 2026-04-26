@@ -21,6 +21,13 @@ type fullService struct {
 	failCheckCalled atomic.Bool
 	stopCalled      atomic.Bool
 	preStartErr     error
+
+	// seq tracks call ordering — each hook records its sequence number.
+	seq          atomic.Int32
+	preStopSeq   int32
+	failCheckSeq int32
+	stopSeq      int32
+	postStopSeq  int32
 }
 
 func (s *fullService) InitHTTP(_ context.Context, _ *runtime.ServeMux, _ string, _ []grpc.DialOption) error {
@@ -42,10 +49,12 @@ func (s *fullService) PostStart(_ context.Context) {
 
 func (s *fullService) PreStop(_ context.Context) {
 	s.preStopCalled.Store(true)
+	s.preStopSeq = s.seq.Add(1)
 }
 
 func (s *fullService) PostStop(_ context.Context) {
 	s.postStopCalled.Store(true)
+	s.postStopSeq = s.seq.Add(1)
 }
 
 func (s *fullService) Workers() []*workers.Worker {
@@ -61,10 +70,12 @@ func (s *fullService) Workers() []*workers.Worker {
 
 func (s *fullService) FailCheck(fail bool) {
 	s.failCheckCalled.Store(true)
+	s.failCheckSeq = s.seq.Add(1)
 }
 
 func (s *fullService) Stop() {
 	s.stopCalled.Store(true)
+	s.stopSeq = s.seq.Add(1)
 }
 
 // Compile-time interface assertions.
@@ -195,26 +206,37 @@ func TestWorkerProvider_SkippedForPlainService(t *testing.T) {
 	}
 }
 
-func TestStopHooks_Called(t *testing.T) {
+func TestStopHooks_CalledInOrder(t *testing.T) {
 	svc := &fullService{}
 	c := &cb{
 		svc: []CBService{svc},
 	}
 
-	// Call Stop directly to test hook ordering.
 	_ = c.Stop(0)
 
+	// Verify all hooks were called.
 	if !svc.preStopCalled.Load() {
-		t.Error("PreStop was not called")
+		t.Fatal("PreStop was not called")
 	}
 	if !svc.failCheckCalled.Load() {
-		t.Error("FailCheck was not called")
+		t.Fatal("FailCheck was not called")
 	}
 	if !svc.stopCalled.Load() {
-		t.Error("Stop was not called")
+		t.Fatal("Stop was not called")
 	}
 	if !svc.postStopCalled.Load() {
-		t.Error("PostStop was not called")
+		t.Fatal("PostStop was not called")
+	}
+
+	// Verify ordering: PreStop → FailCheck → Stop → PostStop
+	if svc.preStopSeq >= svc.failCheckSeq {
+		t.Errorf("PreStop (seq %d) should run before FailCheck (seq %d)", svc.preStopSeq, svc.failCheckSeq)
+	}
+	if svc.failCheckSeq >= svc.stopSeq {
+		t.Errorf("FailCheck (seq %d) should run before Stop (seq %d)", svc.failCheckSeq, svc.stopSeq)
+	}
+	if svc.stopSeq >= svc.postStopSeq {
+		t.Errorf("Stop (seq %d) should run before PostStop (seq %d)", svc.stopSeq, svc.postStopSeq)
 	}
 }
 
