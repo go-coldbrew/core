@@ -207,6 +207,8 @@ github.com/go-coldbrew/options v0.3.0 h1:JwyVntb9bzBeFdaHFK6yGVVz30G3aVlqJJ6uVyY
 github.com/go-coldbrew/options v0.3.0/go.mod h1:8JlmgVJXFoY1KiDLsyMmR//q1U1aBItCexvTrVT2Y60=
 github.com/go-coldbrew/tracing v0.2.2 h1:pvRMSwla5txZgtQOi18OqsuJhtsqPbfeC1arH9tJMys=
 github.com/go-coldbrew/tracing v0.2.2/go.mod h1:mMYoCOqxFN28fEPMFbufwK0w/6rCiSjGftSr0KrZ0T0=
+github.com/go-coldbrew/workers v0.2.0 h1:NNUYnzjZ9KMk3FDw5WDY5rhHp+g68bdPsLWrO+eILs8=
+github.com/go-coldbrew/workers v0.2.0/go.mod h1:2ThEhKvaFeQu4zmFf/FyzlatYPjDtPJ07BldvXSTv3o=
 github.com/go-critic/go-critic v0.14.3 h1:5R1qH2iFeo4I/RJU8vTezdqs08Egi4u5p6vOESA0pog=
 github.com/go-critic/go-critic v0.14.3/go.mod h1:xwntfW6SYAd7h1OqDzmN6hBX/JxsEKl5up/Y2bsxgVQ=
 github.com/go-errors/errors v1.4.2 h1:J6MZopCL4uSllY1OfXM374weqZFFItUbrImctkmUxIA=
@@ -604,6 +606,8 @@ github.com/tenntenn/text/transform v0.0.0-20200319021203-7eef512accb3 h1:f+jULpR
 github.com/tenntenn/text/transform v0.0.0-20200319021203-7eef512accb3/go.mod h1:ON8b8w4BN/kE1EOhwT0o+d62W65a6aPw1nouo9LMgyY=
 github.com/tetafro/godot v1.5.4 h1:u1ww+gqpRLiIA16yF2PV1CV1n/X3zhyezbNXC3E14Sg=
 github.com/tetafro/godot v1.5.4/go.mod h1:eOkMrVQurDui411nBY2FA05EYH01r14LuWY/NrVDVcU=
+github.com/thejerf/suture/v4 v4.0.6 h1:QsuCEsCqb03xF9tPAsWAj8QOAJBgQI1c0VqJNaingg8=
+github.com/thejerf/suture/v4 v4.0.6/go.mod h1:gu9Y4dXNUWFrByqRt30Rm9/UZ0wzRSt9AJS6xu/ZGxU=
 github.com/timakin/bodyclose v0.0.0-20241222091800-1db5c5ca4d67 h1:9LPGD+jzxMlnk5r6+hJnar67cgpDIz/iyD+rfl5r2Vk=
 github.com/timakin/bodyclose v0.0.0-20241222091800-1db5c5ca4d67/go.mod h1:mkjARE7Yr8qU23YcGMSALbIxTQ9r9QBVahQOBRfU460=
 github.com/timonwong/loggercheck v0.11.0 h1:jdaMpYBl+Uq9mWPXv1r8jc5fC3gyXx4/WGwTnnNKn4M=

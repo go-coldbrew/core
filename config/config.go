@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"net"
 	"os"
 	"strings"
@@ -11,141 +12,141 @@ import (
 // The following environment variables are supported and can be used to override the defaults for the fields
 type Config struct {
 	// Host to listen on
-	ListenHost string `envconfig:"LISTEN_HOST" default:"0.0.0.0"`
+	ListenHost string `envconfig:"LISTEN_HOST" env:"LISTEN_HOST" default:"0.0.0.0"`
 	// GRPC Port, defaults to 9090
-	GRPCPort int `envconfig:"GRPC_PORT" default:"9090"`
+	GRPCPort int `envconfig:"GRPC_PORT" env:"GRPC_PORT" default:"9090"`
 	// HTTP Port, defaults to 9091
-	HTTPPort int `envconfig:"HTTP_PORT" default:"9091"`
+	HTTPPort int `envconfig:"HTTP_PORT" env:"HTTP_PORT" default:"9091"`
 	// AdminPort is an optional dedicated port for admin endpoints (pprof, metrics, swagger).
 	// When set to a non-zero value, admin endpoints are served on this port instead of HTTPPort.
 	// This allows network-level isolation (e.g., Kubernetes NetworkPolicy) to restrict access
 	// to profiling and metrics data. Default 0 (no dedicated admin server; admin endpoints served on HTTPPort).
-	AdminPort int `envconfig:"ADMIN_PORT" default:"0"`
+	AdminPort int `envconfig:"ADMIN_PORT" env:"ADMIN_PORT" default:"0"`
 	// Name of the Application
-	AppName string `envconfig:"APP_NAME" default:""`
+	AppName string `envconfig:"APP_NAME" env:"APP_NAME" default:""`
 	// Environment e.g. Production / Integration / Development
-	Environment string `envconfig:"ENVIRONMENT" default:""`
+	Environment string `envconfig:"ENVIRONMENT" env:"ENVIRONMENT" default:""`
 	// LogLevel to print, default to info
-	LogLevel string `envconfig:"LOG_LEVEL" default:"info"`
+	LogLevel string `envconfig:"LOG_LEVEL" env:"LOG_LEVEL" default:"info"`
 	// Should logs be emitted in json format, defaults to true
-	JSONLogs bool `envconfig:"JSON_LOGS" default:"true"`
+	JSONLogs bool `envconfig:"JSON_LOGS" env:"JSON_LOGS" default:"true"`
 	// Should we disable swagger at /swagger/, defaults to false
-	DisableSwagger bool `envconfig:"DISABLE_SWAGGER" default:"false"`
+	DisableSwagger bool `envconfig:"DISABLE_SWAGGER" env:"DISABLE_SWAGGER" default:"false"`
 	// SwaggerURL is the URL at which swagger is served, defaults to /swagger/
-	SwaggerURL string `envconfig:"SWAGGER_URL" default:"/swagger/"`
+	SwaggerURL string `envconfig:"SWAGGER_URL" env:"SWAGGER_URL" default:"/swagger/"`
 	// Should we disable go debug at /debug/, defaults to false
-	DisableDebug bool `envconfig:"DISABLE_DEBUG" default:"false"`
+	DisableDebug bool `envconfig:"DISABLE_DEBUG" env:"DISABLE_DEBUG" default:"false"`
 	// DisablePrometheus controls whether prometheus metrics are disabled at /metrics, defaults to false
-	DisablePrometheus bool `envconfig:"DISABLE_PROMETHEUS" default:"false"`
+	DisablePrometheus bool `envconfig:"DISABLE_PROMETHEUS" env:"DISABLE_PROMETHEUS" default:"false"`
 	// Deprecated: Use DisablePrometheus instead.
-	DisablePormetheus bool `envconfig:"DISABLE_PROMETHEUS" default:"false"`
+	DisablePormetheus bool `envconfig:"DISABLE_PROMETHEUS" env:"DISABLE_PROMETHEUS" default:"false"`
 	// Enables grpc request histograms in prometheus reporting
-	EnablePrometheusGRPCHistogram bool `envconfig:"ENABLE_PROMETHEUS_GRPC_HISTOGRAM" default:"true"`
+	EnablePrometheusGRPCHistogram bool `envconfig:"ENABLE_PROMETHEUS_GRPC_HISTOGRAM" env:"ENABLE_PROMETHEUS_GRPC_HISTOGRAM" default:"true"`
 	// PrometheusGRPCHistogramBuckets specifies custom histogram buckets for gRPC request latency metrics
 	// Format: comma-separated float values in seconds (e.g., "0.005,0.01,0.025,0.05,0.1,0.25,0.5,1,2.5,5,10")
 	// If empty, uses the default buckets from go-grpc-prometheus
-	PrometheusGRPCHistogramBuckets []float64 `envconfig:"PROMETHEUS_GRPC_HISTOGRAM_BUCKETS" default:""`
+	PrometheusGRPCHistogramBuckets []float64 `envconfig:"PROMETHEUS_GRPC_HISTOGRAM_BUCKETS" env:"PROMETHEUS_GRPC_HISTOGRAM_BUCKETS" default:""`
 	// The License key for NewRelic metrics reporting
-	NewRelicLicenseKey string `envconfig:"NEW_RELIC_LICENSE_KEY" default:""`
+	NewRelicLicenseKey string `envconfig:"NEW_RELIC_LICENSE_KEY" env:"NEW_RELIC_LICENSE_KEY" default:""`
 	// When set to true, disables all NewRelic reporting
-	DisableNewRelic bool `envconfig:"DISABLE_NEW_RELIC" default:"false"`
+	DisableNewRelic bool `envconfig:"DISABLE_NEW_RELIC" env:"DISABLE_NEW_RELIC" default:"false"`
 	// Enable NewRelic Distributed Tracing
-	NewRelicDistributedTracing bool `envconfig:"NEW_RELIC_DISTRIBUTED_TRACING" default:"true"`
+	NewRelicDistributedTracing bool `envconfig:"NEW_RELIC_DISTRIBUTED_TRACING" env:"NEW_RELIC_DISTRIBUTED_TRACING" default:"true"`
 	// Enable new relic opentelemetry
-	NewRelicOpentelemetry bool `envconfig:"NEW_RELIC_OPENTELEMETRY" default:"true"`
+	NewRelicOpentelemetry bool `envconfig:"NEW_RELIC_OPENTELEMETRY" env:"NEW_RELIC_OPENTELEMETRY" default:"true"`
 	// Sampling ratio for NR opentelemetry
-	NewRelicOpentelemetrySample float64 `envconfig:"NEW_RELIC_OPENTELEMETRY_SAMPLE" default:"0.1"`
+	NewRelicOpentelemetrySample float64 `envconfig:"NEW_RELIC_OPENTELEMETRY_SAMPLE" env:"NEW_RELIC_OPENTELEMETRY_SAMPLE" default:"0.1"`
 	// The name of the application in NewRelic
-	NewRelicAppname string `envconfig:"NEW_RELIC_APPNAME" default:""`
+	NewRelicAppname string `envconfig:"NEW_RELIC_APPNAME" env:"NEW_RELIC_APPNAME" default:""`
 	// DSN for reporting errors to sentry
-	SentryDSN string `envconfig:"SENTRY_DSN" default:""`
+	SentryDSN string `envconfig:"SENTRY_DSN" env:"SENTRY_DSN" default:""`
 	// Name of this release
-	ReleaseName string `envconfig:"RELEASE_NAME" default:""`
+	ReleaseName string `envconfig:"RELEASE_NAME" env:"RELEASE_NAME" default:""`
 	// When set disable the GRPC reflecttion server which can be useful for tools like grpccurl, default false
-	DisableGRPCReflection bool `envconfig:"DISABLE_GRPC_REFLECTION" default:"false"`
+	DisableGRPCReflection bool `envconfig:"DISABLE_GRPC_REFLECTION" env:"DISABLE_GRPC_REFLECTION" default:"false"`
 	// Trace header, when this HTTP header is present CB will add the value to log/trace contexts
-	TraceHeaderName string `envconfig:"TRACE_HEADER_NAME" default:"x-trace-id"`
+	TraceHeaderName string `envconfig:"TRACE_HEADER_NAME" env:"TRACE_HEADER_NAME" default:"x-trace-id"`
 	// [Deprecated] - please use HTTPHeaderPrefixes instead
-	HTTPHeaderPrefix string `envconfig:"HTTP_HEADER_PREFIX" default:""`
+	HTTPHeaderPrefix string `envconfig:"HTTP_HEADER_PREFIX" env:"HTTP_HEADER_PREFIX" default:""`
 	// When we match one of the HTTP header prefix configured in this list,
 	// we forward append the values to grpc metadata. If the deprecated HTTPHeaderPrefix
 	// is set, it will only be used if this field is not configured
-	HTTPHeaderPrefixes []string `envconfig:"HTTP_HEADER_PREFIXES" default:""`
+	HTTPHeaderPrefixes []string `envconfig:"HTTP_HEADER_PREFIXES" env:"HTTP_HEADER_PREFIXES" default:""`
 	// Should we log calls to GRPC reflection API, defaults to true
-	DoNotLogGRPCReflection bool `envconfig:"DO_NOT_LOG_GRPC_REFLECTION" default:"true"`
+	DoNotLogGRPCReflection bool `envconfig:"DO_NOT_LOG_GRPC_REFLECTION" env:"DO_NOT_LOG_GRPC_REFLECTION" default:"true"`
 	// Should we disable signal handler, defaults to false and CB handles all SIG_INT/SIG_TERM
-	DisableSignalHandler bool `envconfig:"DISABLE_SIGNAL_HANDLER" default:"false"`
+	DisableSignalHandler bool `envconfig:"DISABLE_SIGNAL_HANDLER" env:"DISABLE_SIGNAL_HANDLER" default:"false"`
 	// Duration for which CB will wait for calls to complete before shutting down the server
-	ShutdownDurationInSeconds int `envconfig:"SHUTDOWN_DURATION_IN_SECONDS" default:"15"`
+	ShutdownDurationInSeconds int `envconfig:"SHUTDOWN_DURATION_IN_SECONDS" env:"SHUTDOWN_DURATION_IN_SECONDS" default:"15"`
 	// Duration for which CB will wait for healthcheck fail to be propagated before initiating server shutdown
 	// once shutdown is initiated all new calls will fail
-	HealthcheckWaitDurationInSeconds int `envconfig:"GRPC_GRACEFUL_DURATION_IN_SECONDS" default:"7"`
+	HealthcheckWaitDurationInSeconds int `envconfig:"GRPC_GRACEFUL_DURATION_IN_SECONDS" env:"GRPC_GRACEFUL_DURATION_IN_SECONDS" default:"7"`
 	// UseJSONBuiltinMarshaller switches marshaler for application/json to encoding/json
-	UseJSONBuiltinMarshaller bool `envconfig:"USE_JSON_BUILTIN_MARSHALLER" default:"false"`
+	UseJSONBuiltinMarshaller bool `envconfig:"USE_JSON_BUILTIN_MARSHALLER" env:"USE_JSON_BUILTIN_MARSHALLER" default:"false"`
 	// JSONBuiltinMarshallerMime specifies the Content-Type/Accept header for use by the json builtin marshaler
-	JSONBuiltinMarshallerMime string `envconfig:"JSON_BUILTIN_MARSHALLER_MIME" default:"application/json"`
+	JSONBuiltinMarshallerMime string `envconfig:"JSON_BUILTIN_MARSHALLER_MIME" env:"JSON_BUILTIN_MARSHALLER_MIME" default:"application/json"`
 	// MaxConnectionIdle is a duration for the amount of time after which an
 	// idle connection would be closed by sending a GoAway. Idleness duration is
 	// defined since the most recent time the number of outstanding RPCs became
 	// zero or the connection establishment. Set to -1 to disable (infinite).
 	// https://github.com/grpc/grpc-go/blob/v1.48.0/keepalive/keepalive.go#L50
-	GRPCServerMaxConnectionIdleInSeconds int `envconfig:"GRPC_SERVER_MAX_CONNECTION_IDLE_IN_SECONDS" default:"300"`
+	GRPCServerMaxConnectionIdleInSeconds int `envconfig:"GRPC_SERVER_MAX_CONNECTION_IDLE_IN_SECONDS" env:"GRPC_SERVER_MAX_CONNECTION_IDLE_IN_SECONDS" default:"300"`
 	// MaxConnectionAge is a duration for the maximum amount of time a
 	// connection may exist before it will be closed by sending a GoAway. A
 	// random jitter of +/-10% will be added to MaxConnectionAge to spread out
 	// connection storms. Set to -1 to disable (infinite).
 	// https://github.com/grpc/grpc-go/blob/v1.48.0/keepalive/keepalive.go#L50
-	GRPCServerMaxConnectionAgeInSeconds int `envconfig:"GRPC_SERVER_MAX_CONNECTION_AGE_IN_SECONDS" default:"1800"`
+	GRPCServerMaxConnectionAgeInSeconds int `envconfig:"GRPC_SERVER_MAX_CONNECTION_AGE_IN_SECONDS" env:"GRPC_SERVER_MAX_CONNECTION_AGE_IN_SECONDS" default:"1800"`
 	// MaxConnectionAgeGrace is an additive period after MaxConnectionAge after
 	// which the connection will be forcibly closed. Set to -1 to disable (infinite).
 	// https://github.com/grpc/grpc-go/blob/v1.48.0/keepalive/keepalive.go#L50
-	GRPCServerMaxConnectionAgeGraceInSeconds int `envconfig:"GRPC_SERVER_MAX_CONNECTION_AGE_GRACE_IN_SECONDS" default:"30"`
+	GRPCServerMaxConnectionAgeGraceInSeconds int `envconfig:"GRPC_SERVER_MAX_CONNECTION_AGE_GRACE_IN_SECONDS" env:"GRPC_SERVER_MAX_CONNECTION_AGE_GRACE_IN_SECONDS" default:"30"`
 
 	// DisableAutoMaxProcs disables the automatic setting of GOMAXPROCS
 	// This is useful when running in a container where the container runtime sets GOMAXPROCS for you already
-	DisableAutoMaxProcs bool `envconfig:"DISABLE_AUTO_MAX_PROCS" default:"false"`
+	DisableAutoMaxProcs bool `envconfig:"DISABLE_AUTO_MAX_PROCS" env:"DISABLE_AUTO_MAX_PROCS" default:"false"`
 
 	// GRPCTLSKeyFile and GRPCTLSCertFile are the paths to the key and cert files for the GRPC server
 	// If these are set, the server will be started with TLS enabled
-	GRPCTLSKeyFile string `envconfig:"GRPC_TLS_KEY_FILE"`
+	GRPCTLSKeyFile string `envconfig:"GRPC_TLS_KEY_FILE" env:"GRPC_TLS_KEY_FILE"`
 	// GRPCTLSCertFile an GRPCTLSKeyFile are the paths to the key and cert files for the GRPC server
 	// If these are set, the server will be started with TLS enabled
-	GRPCTLSCertFile string `envconfig:"GRPC_TLS_CERT_FILE"`
+	GRPCTLSCertFile string `envconfig:"GRPC_TLS_CERT_FILE" env:"GRPC_TLS_CERT_FILE"`
 	// GRPCTLSInsecureSkipVerify is used to skip verification of the server's certificate chain and host name
 	// Only set this to true if you are sure you want to disable TLS verification for the server
-	GRPCTLSInsecureSkipVerify bool `envconfig:"GRPC_TLS_INSECURE_SKIP_VERIFY" default:"false"`
+	GRPCTLSInsecureSkipVerify bool `envconfig:"GRPC_TLS_INSECURE_SKIP_VERIFY" env:"GRPC_TLS_INSECURE_SKIP_VERIFY" default:"false"`
 	// DisableProtoValidate disables the protovalidate interceptor in the default
 	// interceptor chain. When disabled, proto validation annotations are ignored.
-	DisableProtoValidate bool `envconfig:"DISABLE_PROTO_VALIDATE" default:"false"`
+	DisableProtoValidate bool `envconfig:"DISABLE_PROTO_VALIDATE" env:"DISABLE_PROTO_VALIDATE" default:"false"`
 	// DisableDebugLogInterceptor disables the DebugLogInterceptor in the default
 	// interceptor chain. When disabled, proto debug fields and metadata headers
 	// will not trigger per-request debug logging.
-	DisableDebugLogInterceptor bool `envconfig:"DISABLE_DEBUG_LOG_INTERCEPTOR" default:"false"`
+	DisableDebugLogInterceptor bool `envconfig:"DISABLE_DEBUG_LOG_INTERCEPTOR" env:"DISABLE_DEBUG_LOG_INTERCEPTOR" default:"false"`
 	// DebugLogHeaderName is the gRPC metadata / HTTP header name that triggers
 	// per-request debug logging. The header value should be a valid log level
 	// (e.g., "debug"). Default: "x-debug-log-level".
-	DebugLogHeaderName string `envconfig:"DEBUG_LOG_HEADER_NAME" default:"x-debug-log-level"`
+	DebugLogHeaderName string `envconfig:"DEBUG_LOG_HEADER_NAME" env:"DEBUG_LOG_HEADER_NAME" default:"x-debug-log-level"`
 	// RateLimitPerSecond is the maximum number of incoming requests per second
 	// for this pod. This is a per-pod in-memory limit — with N pods, the
 	// effective cluster-wide limit is N × this value. Set to 0 to disable (default).
 	// For distributed rate limiting, use interceptors.SetRateLimiter() with a custom implementation.
-	RateLimitPerSecond float64 `envconfig:"RATE_LIMIT_PER_SECOND" default:"0"`
+	RateLimitPerSecond float64 `envconfig:"RATE_LIMIT_PER_SECOND" env:"RATE_LIMIT_PER_SECOND" default:"0"`
 	// RateLimitBurst is the maximum burst size for the token bucket rate limiter.
 	// Only takes effect when RateLimitPerSecond > 0.
-	RateLimitBurst int `envconfig:"RATE_LIMIT_BURST" default:"1"`
+	RateLimitBurst int `envconfig:"RATE_LIMIT_BURST" env:"RATE_LIMIT_BURST" default:"1"`
 	// DisableRateLimit disables the rate limiting interceptor entirely.
-	DisableRateLimit bool `envconfig:"DISABLE_RATE_LIMIT" default:"false"`
+	DisableRateLimit bool `envconfig:"DISABLE_RATE_LIMIT" env:"DISABLE_RATE_LIMIT" default:"false"`
 	// DisableVTProtobuf disables the use of the vtprotobuf marshaller and unmarshaller for GRPC
 	// https://github.com/planetscale/vtprotobuf
-	DisableVTProtobuf bool `envconfig:"DISABLE_VT_PROTOBUF" default:"false"`
+	DisableVTProtobuf bool `envconfig:"DISABLE_VT_PROTOBUF" env:"DISABLE_VT_PROTOBUF" default:"false"`
 	// GRPCMaxSendMsgSize is the max response size your service can send back to clients.
-	GRPCMaxSendMsgSize int `envconfig:"GRPC_MAX_SEND_MSG_SIZE" default:"2147483647"` // ~2GB (gRPC maximum)
+	GRPCMaxSendMsgSize int `envconfig:"GRPC_MAX_SEND_MSG_SIZE" env:"GRPC_MAX_SEND_MSG_SIZE" default:"2147483647"` // ~2GB (gRPC maximum)
 	// GRPCMaxRecvMsgSize is the max request size your service accepts from clients.
-	GRPCMaxRecvMsgSize int `envconfig:"GRPC_MAX_RECV_MSG_SIZE" default:"4194304"` // 4MB
+	GRPCMaxRecvMsgSize int `envconfig:"GRPC_MAX_RECV_MSG_SIZE" env:"GRPC_MAX_RECV_MSG_SIZE" default:"4194304"` // 4MB
 	// GRPCServerDefaultTimeoutInSeconds is the default timeout (in seconds) for
 	// incoming unary gRPC requests that arrive without a deadline. Set to 0 to
 	// disable. Does not apply to stream RPCs.
-	GRPCServerDefaultTimeoutInSeconds int `envconfig:"GRPC_SERVER_DEFAULT_TIMEOUT_IN_SECONDS" default:"60"`
+	GRPCServerDefaultTimeoutInSeconds int `envconfig:"GRPC_SERVER_DEFAULT_TIMEOUT_IN_SECONDS" env:"GRPC_SERVER_DEFAULT_TIMEOUT_IN_SECONDS" default:"60"`
 
 	// Custom OpenTelemetry OTLP Configuration
 	// When OTLPEndpoint is set, it takes precedence over NewRelic OpenTelemetry configuration
@@ -153,53 +154,53 @@ type Config struct {
 	// OTLPEndpoint is the OTLP gRPC endpoint to send traces to
 	// Examples: "localhost:4317", "api.honeycomb.io:443", "otel-collector:4317"
 	// When set, this takes precedence over NewRelic OpenTelemetry configuration
-	OTLPEndpoint string `envconfig:"OTLP_ENDPOINT" default:""`
+	OTLPEndpoint string `envconfig:"OTLP_ENDPOINT" env:"OTLP_ENDPOINT" default:""`
 	// OTLPHeaders are custom headers to send with each OTLP request
 	// Format: "key1=value1,key2=value2" (comma-separated key=value pairs)
 	// Example: "x-honeycomb-team=your-api-key" or "api-key=your-key,dataset=your-dataset"
-	OTLPHeaders string `envconfig:"OTLP_HEADERS" default:""`
+	OTLPHeaders string `envconfig:"OTLP_HEADERS" env:"OTLP_HEADERS" default:""`
 	// OTLPCompression specifies the compression type for OTLP requests
 	// Options: "gzip", "none". Defaults to "gzip" if not specified
-	OTLPCompression string `envconfig:"OTLP_COMPRESSION" default:"gzip"`
+	OTLPCompression string `envconfig:"OTLP_COMPRESSION" env:"OTLP_COMPRESSION" default:"gzip"`
 	// OTLPInsecure disables TLS verification for OTLP connection
 	// Only use this for local development or testing with self-signed certificates
-	OTLPInsecure bool `envconfig:"OTLP_INSECURE" default:"false"`
+	OTLPInsecure bool `envconfig:"OTLP_INSECURE" env:"OTLP_INSECURE" default:"false"`
 	// OTLPSamplingRatio is the ratio of traces to sample (0.0 to 1.0)
 	// 1.0 means sample all traces, 0.1 means sample 10% of traces
-	OTLPSamplingRatio float64 `envconfig:"OTLP_SAMPLING_RATIO" default:"0.1"`
+	OTLPSamplingRatio float64 `envconfig:"OTLP_SAMPLING_RATIO" env:"OTLP_SAMPLING_RATIO" default:"0.1"`
 	// Deprecated: OpenTracing bridge has been removed. This field is ignored.
 	// If set to true, a warning is logged at startup.
-	OTLPUseOpenTracingBridge bool `envconfig:"OTLP_USE_OPENTRACING_BRIDGE" default:"false"`
+	OTLPUseOpenTracingBridge bool `envconfig:"OTLP_USE_OPENTRACING_BRIDGE" env:"OTLP_USE_OPENTRACING_BRIDGE" default:"false"`
 
 	// OTELUseLegacyInstrumentation reverts to the deprecated otelgrpc contrib
 	// package for gRPC OpenTelemetry instrumentation. Default false (uses native
 	// grpc stats/opentelemetry). Set to true only for rollback.
-	OTELUseLegacyInstrumentation bool `envconfig:"OTEL_USE_LEGACY_INSTRUMENTATION" default:"false"`
+	OTELUseLegacyInstrumentation bool `envconfig:"OTEL_USE_LEGACY_INSTRUMENTATION" env:"OTEL_USE_LEGACY_INSTRUMENTATION" default:"false"`
 
 	// EnableOTELMetrics enables OpenTelemetry metrics export via OTLP alongside
 	// Prometheus. Does not replace Prometheus. Default false.
-	EnableOTELMetrics bool `envconfig:"ENABLE_OTEL_METRICS" default:"false"`
+	EnableOTELMetrics bool `envconfig:"ENABLE_OTEL_METRICS" env:"ENABLE_OTEL_METRICS" default:"false"`
 	// OTELMetricsInterval controls the export interval in seconds for OTEL
 	// metrics. Default 60.
-	OTELMetricsInterval int `envconfig:"OTEL_METRICS_INTERVAL" default:"60"`
+	OTELMetricsInterval int `envconfig:"OTEL_METRICS_INTERVAL" env:"OTEL_METRICS_INTERVAL" default:"60"`
 
 	// Throughput tuning
 
 	// DisableHTTPCompression disables gzip/zstd compression for HTTP gateway responses
-	DisableHTTPCompression bool `envconfig:"DISABLE_HTTP_COMPRESSION" default:"false"`
+	DisableHTTPCompression bool `envconfig:"DISABLE_HTTP_COMPRESSION" env:"DISABLE_HTTP_COMPRESSION" default:"false"`
 	// HTTPCompressionMinSize is the minimum response body size (bytes) before compression is applied.
 	// Responses smaller than this are sent uncompressed. Applies to both gzip and zstd.
-	HTTPCompressionMinSize int `envconfig:"HTTP_COMPRESSION_MIN_SIZE" default:"256"`
+	HTTPCompressionMinSize int `envconfig:"HTTP_COMPRESSION_MIN_SIZE" env:"HTTP_COMPRESSION_MIN_SIZE" default:"256"`
 	// ResponseTimeLogLevel sets the log level for per-request response time logging.
 	// Valid values: "debug", "info", "warn", "error". Invalid values default to "info".
-	ResponseTimeLogLevel string `envconfig:"RESPONSE_TIME_LOG_LEVEL" default:"info"`
+	ResponseTimeLogLevel string `envconfig:"RESPONSE_TIME_LOG_LEVEL" env:"RESPONSE_TIME_LOG_LEVEL" default:"info"`
 	// ResponseTimeLogErrorOnly when true, only logs response time for requests that return an error.
 	// Successful requests are not logged. Default behavior logs all requests.
-	ResponseTimeLogErrorOnly bool `envconfig:"RESPONSE_TIME_LOG_ERROR_ONLY" default:"false"`
+	ResponseTimeLogErrorOnly bool `envconfig:"RESPONSE_TIME_LOG_ERROR_ONLY" env:"RESPONSE_TIME_LOG_ERROR_ONLY" default:"false"`
 	// DisableUnixGateway disables Unix domain socket for the HTTP gateway's
 	// internal gRPC connection. When false (enabled), the gateway connects via
 	// a Unix socket (~1.9x faster than TCP loopback). Default true (opt-in).
-	DisableUnixGateway bool `envconfig:"DISABLE_UNIX_GATEWAY" default:"true"`
+	DisableUnixGateway bool `envconfig:"DISABLE_UNIX_GATEWAY" env:"DISABLE_UNIX_GATEWAY" default:"true"`
 }
 
 // Validate checks the configuration for common misconfigurations and returns
@@ -292,4 +293,15 @@ func (c Config) Validate() []string {
 	}
 
 	return warnings
+}
+
+// ValidateStrict checks the configuration and returns errors for fatal
+// misconfigurations. Unlike Validate (which returns warnings as strings),
+// this returns typed errors suitable for programmatic handling.
+func (c Config) ValidateStrict() []error {
+	var errs []error
+	for _, w := range c.Validate() {
+		errs = append(errs, fmt.Errorf("%s", w))
+	}
+	return errs
 }

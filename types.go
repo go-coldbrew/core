@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/go-coldbrew/workers"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
 )
@@ -36,6 +37,46 @@ type CBStopper interface {
 	// Stop stops the service.
 	// Stop is called by the core package.
 	Stop()
+}
+
+// CBWorkerProvider is implemented by services that run background workers.
+// Workers are started after initGRPC/initHTTP and stopped during graceful
+// shutdown. Called once during Run(). Workers are managed by the
+// go-coldbrew/workers package with automatic panic recovery, configurable
+// restart, and structured shutdown via suture supervisor trees.
+type CBWorkerProvider interface {
+	Workers() []*workers.Worker
+}
+
+// CBPreStarter is implemented by services that need setup before servers
+// start. Called during Run(), before initGRPC/initHTTP. If PreStart returns
+// an error, startup is aborted. Use this for connecting to databases,
+// message brokers, configuring interceptors, or any setup that must
+// complete before the service accepts traffic.
+type CBPreStarter interface {
+	PreStart(ctx context.Context) error
+}
+
+// CBPostStarter is implemented by services that need to act after servers
+// are listening. Use this for registering with service discovery, logging
+// startup banners, or notifying external systems.
+type CBPostStarter interface {
+	PostStart(ctx context.Context)
+}
+
+// CBPreStopper is implemented by services that need to act before graceful
+// shutdown begins. Use this for deregistering from load balancers, flushing
+// buffers, or notifying external systems of impending shutdown.
+type CBPreStopper interface {
+	PreStop(ctx context.Context)
+}
+
+// CBPostStopper is implemented by services that need final cleanup after
+// all servers and workers have stopped. Use this for closing audit logs,
+// pushing final metrics, or any cleanup that must happen after all
+// in-flight work is complete.
+type CBPostStopper interface {
+	PostStop(ctx context.Context)
 }
 
 // CB is the interface that wraps coldbrew methods.

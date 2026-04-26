@@ -1,6 +1,6 @@
 module github.com/go-coldbrew/core
 
-go 1.25.9
+go 1.26.2
 
 require (
 	github.com/afex/hystrix-go v0.0.0-20180502004556-fa1af6a1f4f5
@@ -11,6 +11,7 @@ require (
 	github.com/go-coldbrew/log v0.4.1
 	github.com/go-coldbrew/options v0.3.0
 	github.com/go-coldbrew/tracing v0.2.2
+	github.com/go-coldbrew/workers v0.2.0
 	github.com/golang/protobuf v1.5.4
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.28.0
@@ -251,6 +252,7 @@ require (
 	github.com/stretchr/testify v1.11.1 // indirect
 	github.com/subosito/gotenv v1.4.1 // indirect
 	github.com/tetafro/godot v1.5.4 // indirect
+	github.com/thejerf/suture/v4 v4.0.6 // indirect
 	github.com/timakin/bodyclose v0.0.0-20241222091800-1db5c5ca4d67 // indirect
 	github.com/timonwong/loggercheck v0.11.0 // indirect
 	github.com/tomarrell/wrapcheck/v2 v2.12.0 // indirect
