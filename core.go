@@ -23,6 +23,7 @@ import (
 	"github.com/go-coldbrew/log"
 	"github.com/go-coldbrew/log/loggers"
 	"github.com/go-coldbrew/options"
+	"github.com/go-coldbrew/workers"
 	grpcprom "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/klauspost/compress/gzhttp"
@@ -66,6 +67,7 @@ type cb struct {
 	creds          credentials.TransportCredentials
 	certWatcher    *fswatcher.Sentinel
 	unixSocketPath string
+	workerCancel   context.CancelFunc
 }
 
 func (c *cb) SetService(svc CBService) error {
@@ -591,10 +593,10 @@ func (c *cb) runHTTP(ctx context.Context, svr *http.Server) error {
 
 // Native stats/opentelemetry options, built during processConfig().
 var (
-	otelGRPCOptionsSet bool            // true after processConfig builds or user calls SetOTELOptions
+	otelGRPCOptionsSet bool             // true after processConfig builds or user calls SetOTELOptions
 	otelGRPCOptions    grpcotel.Options // value used by getGRPCServerOptions / initHTTP
 	otelMeterProvider  *sdkmetric.MeterProvider
-	otelUseLegacy      bool            // set from config; forces legacy otelgrpc even if SetOTELOptions was called
+	otelUseLegacy      bool // set from config; forces legacy otelgrpc even if SetOTELOptions was called
 )
 
 // Legacy otelgrpc options — only used when OTEL_USE_LEGACY_INSTRUMENTATION=true.
@@ -778,6 +780,16 @@ func (c *cb) Run() error {
 	ctx, c.cancelFunc = context.WithCancel(ctx)
 	defer c.cancelFunc()
 
+	// PreStart: run setup hooks before building the interceptor chain.
+	// Services can call interceptors.Set*(), connect to databases, etc.
+	for _, svc := range c.svc {
+		if ps, ok := svc.(CBPreStarter); ok {
+			if err := ps.PreStart(ctx); err != nil {
+				return fmt.Errorf("pre-start: %w", err)
+			}
+		}
+	}
+
 	var err error
 
 	c.grpcServer, err = c.initGRPC(ctx)
@@ -820,7 +832,26 @@ func (c *cb) Run() error {
 		return err
 	}
 
+	// Collect workers from all services implementing CBWorkerProvider.
+	var allWorkers []*workers.Worker
+	for _, svc := range c.svc {
+		if wp, ok := svc.(CBWorkerProvider); ok {
+			allWorkers = append(allWorkers, wp.Workers()...)
+		}
+	}
+
 	g, gctx := errgroup.WithContext(ctx)
+
+	// Start workers before servers so they can warm caches/connections.
+	if len(allWorkers) > 0 {
+		workerCtx, workerCancel := context.WithCancel(gctx)
+		c.workerCancel = workerCancel
+		g.Go(func() error {
+			// workers.Run returns nil on context cancellation (clean shutdown).
+			return workers.Run(workerCtx, allWorkers)
+		})
+	}
+
 	g.Go(func() error {
 		err := c.runGRPC(gctx, c.grpcServer, unixLis)
 		// Expected shutdown error — don't cancel the group.
@@ -873,6 +904,14 @@ func (c *cb) Run() error {
 		}
 		return nil
 	})
+
+	// PostStart: notify services that servers are listening.
+	for _, svc := range c.svc {
+		if ps, ok := svc.(CBPostStarter); ok {
+			ps.PostStart(ctx)
+		}
+	}
+
 	err = g.Wait()
 	c.gracefulWait.Wait() // if graceful shutdown is in progress wait for it to finish
 	c.close()
@@ -900,7 +939,7 @@ func (c *cb) close() {
 // Stop stops the server gracefully
 // It will wait for the duration specified in the config for the healthcheck to pass
 func (c *cb) Stop(dur time.Duration) error {
-	c.gracefulWait.Add(1) // tell runner that a graceful shutdow is in progress
+	c.gracefulWait.Add(1) // tell runner that a graceful shutdown is in progress
 	defer c.gracefulWait.Done()
 	ctx, cancel := context.WithTimeout(context.Background(), dur)
 	defer func() {
@@ -909,6 +948,13 @@ func (c *cb) Stop(dur time.Duration) error {
 			c.cancelFunc()
 		}
 	}()
+
+	// PreStop: notify services before shutdown begins.
+	for _, svc := range c.svc {
+		if ps, ok := svc.(CBPreStopper); ok {
+			ps.PreStop(ctx)
+		}
+	}
 
 	for _, svc := range c.svc {
 		if s, ok := svc.(CBGracefulStopper); ok {
@@ -922,6 +968,12 @@ func (c *cb) Stop(dur time.Duration) error {
 		log.Info(context.Background(), "msg", "graceful shutdown timer finished", "duration", d)
 	}
 	log.Info(context.Background(), "msg", "Server shut down started, bye bye")
+
+	// Cancel worker context so workers begin draining before servers are force-stopped.
+	if c.workerCancel != nil {
+		c.workerCancel()
+	}
+
 	if c.adminServer != nil {
 		if err := c.adminServer.Shutdown(ctx); err != nil {
 			log.Error(context.Background(), "msg", "admin server shutdown error", "err", err)
@@ -942,6 +994,14 @@ func (c *cb) Stop(dur time.Duration) error {
 			s.Stop()
 		}
 	}
+
+	// PostStop: final cleanup after all servers and workers have stopped.
+	for _, svc := range c.svc {
+		if ps, ok := svc.(CBPostStopper); ok {
+			ps.PostStop(ctx)
+		}
+	}
+
 	return nil
 }
 

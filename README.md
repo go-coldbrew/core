@@ -103,8 +103,13 @@ For full documentation, visit https://docs.coldbrew.cloud
 - [type CB](<#CB>)
   - [func New\(c config.Config\) CB](<#New>)
 - [type CBGracefulStopper](<#CBGracefulStopper>)
+- [type CBPostStarter](<#CBPostStarter>)
+- [type CBPostStopper](<#CBPostStopper>)
+- [type CBPreStarter](<#CBPreStarter>)
+- [type CBPreStopper](<#CBPreStopper>)
 - [type CBService](<#CBService>)
 - [type CBStopper](<#CBStopper>)
+- [type CBWorkerProvider](<#CBWorkerProvider>)
 - [type OTLPConfig](<#OTLPConfig>)
 
 
@@ -117,7 +122,7 @@ const SupportPackageIsVersion1 = true
 ```
 
 <a name="InitializeVTProto"></a>
-## func [InitializeVTProto](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L449>)
+## func [InitializeVTProto](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L452>)
 
 ```go
 func InitializeVTProto()
@@ -128,7 +133,7 @@ InitializeVTProto initializes the vtproto package for use with the service
 https://github.com/planetscale/vtprotobuf?tab=readme-ov-file#mixing-protobuf-implementations-with-grpc
 
 <a name="OTELMeterProvider"></a>
-## func [OTELMeterProvider](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L344>)
+## func [OTELMeterProvider](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L347>)
 
 ```go
 func OTELMeterProvider() otelmetric.MeterProvider
@@ -137,7 +142,7 @@ func OTELMeterProvider() otelmetric.MeterProvider
 OTELMeterProvider returns the global OTel MeterProvider. This is a convenience accessor for code that needs the interface type.
 
 <a name="SetOTELGRPCClientOptions"></a>
-## func [SetOTELGRPCClientOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L619>)
+## func [SetOTELGRPCClientOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L623>)
 
 ```go
 func SetOTELGRPCClientOptions(opts ...otelgrpc.Option)
@@ -146,7 +151,7 @@ func SetOTELGRPCClientOptions(opts ...otelgrpc.Option)
 Deprecated: Use SetOTELOptions instead. Only applies when OTEL\_USE\_LEGACY\_INSTRUMENTATION=true.
 
 <a name="SetOTELGRPCServerOptions"></a>
-## func [SetOTELGRPCServerOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L613>)
+## func [SetOTELGRPCServerOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L617>)
 
 ```go
 func SetOTELGRPCServerOptions(opts ...otelgrpc.Option)
@@ -155,7 +160,7 @@ func SetOTELGRPCServerOptions(opts ...otelgrpc.Option)
 Deprecated: Use SetOTELOptions instead. Only applies when OTEL\_USE\_LEGACY\_INSTRUMENTATION=true.
 
 <a name="SetOTELOptions"></a>
-## func [SetOTELOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L626>)
+## func [SetOTELOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L630>)
 
 ```go
 func SetOTELOptions(opts grpcotel.Options)
@@ -164,7 +169,7 @@ func SetOTELOptions(opts grpcotel.Options)
 SetOTELOptions configures the native gRPC stats/opentelemetry integration. Must be called during init, before the gRPC server starts. When set, processConfig\(\) will NOT overwrite these with auto\-built options.
 
 <a name="SetupAutoMaxProcs"></a>
-## func [SetupAutoMaxProcs](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L415>)
+## func [SetupAutoMaxProcs](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L418>)
 
 ```go
 func SetupAutoMaxProcs()
@@ -173,7 +178,7 @@ func SetupAutoMaxProcs()
 SetupAutoMaxProcs sets up the GOMAXPROCS to match Linux container CPU quota This is used to set the GOMAXPROCS to the number of CPUs allocated to the container
 
 <a name="SetupEnvironment"></a>
-## func [SetupEnvironment](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L98>)
+## func [SetupEnvironment](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L101>)
 
 ```go
 func SetupEnvironment(env string)
@@ -182,7 +187,7 @@ func SetupEnvironment(env string)
 SetupEnvironment sets the environment This is used to identify the environment in Sentry and New Relic env is the environment to set for the service \(e.g. prod, staging, dev\)
 
 <a name="SetupHystrixPrometheus"></a>
-## func [SetupHystrixPrometheus](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L381>)
+## func [SetupHystrixPrometheus](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L384>)
 
 ```go
 func SetupHystrixPrometheus()
@@ -197,10 +202,10 @@ SetupHystrixPrometheus sets up the hystrix metrics This is a workaround for hyst
 func SetupLogger(logLevel string, jsonlogs bool) error
 ```
 
-SetupLogger sets up the logger It uses the coldbrew logger to log messages to stdout logLevel is the log level to set for the logger jsonlogs is a boolean to enable or disable json logs
+SetupLogger sets up the logger using ColdBrew's slog\-native Handler. It calls log.SetDefault which also wires slog.SetDefault, so native slog.LogAttrs calls automatically get ColdBrew context fields. logLevel is the log level to set for the logger jsonlogs is a boolean to enable or disable json logs
 
 <a name="SetupNROpenTelemetry"></a>
-## func [SetupNROpenTelemetry](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L358>)
+## func [SetupNROpenTelemetry](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L361>)
 
 ```go
 func SetupNROpenTelemetry(serviceName, license, version string, ratio float64) error
@@ -218,7 +223,7 @@ Parameters:
 - ratio: the sampling ratio to use for traces \(0.0 to 1.0\)
 
 <a name="SetupNewRelic"></a>
-## func [SetupNewRelic](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L48>)
+## func [SetupNewRelic](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L47>)
 
 ```go
 func SetupNewRelic(serviceName, apiKey string, tracing bool) error
@@ -227,7 +232,7 @@ func SetupNewRelic(serviceName, apiKey string, tracing bool) error
 SetupNewRelic sets up the New Relic tracing and monitoring agent for the service It uses the New Relic Go Agent to send traces to New Relic One APM and Insights serviceName is the name of the service apiKey is the New Relic license key tracing is a boolean to enable or disable tracing
 
 <a name="SetupOTELMetrics"></a>
-## func [SetupOTELMetrics](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L293>)
+## func [SetupOTELMetrics](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L296>)
 
 ```go
 func SetupOTELMetrics(config OTLPConfig, interval time.Duration) (*sdkmetric.MeterProvider, error)
@@ -238,7 +243,7 @@ SetupOTELMetrics creates a MeterProvider with an OTLP gRPC exporter that reuses 
 Call this after SetupOpenTelemetry so the shared resource is available.
 
 <a name="SetupOpenTelemetry"></a>
-## func [SetupOpenTelemetry](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L224>)
+## func [SetupOpenTelemetry](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L227>)
 
 ```go
 func SetupOpenTelemetry(config OTLPConfig) error
@@ -275,7 +280,7 @@ err := SetupOpenTelemetry(config)
 ```
 
 <a name="SetupReleaseName"></a>
-## func [SetupReleaseName](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L107>)
+## func [SetupReleaseName](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L110>)
 
 ```go
 func SetupReleaseName(rel string)
@@ -284,7 +289,7 @@ func SetupReleaseName(rel string)
 SetupReleaseName sets the release name This is used to identify the release in Sentry rel is the release name to set for the service \(e.g. v1.0.0\)
 
 <a name="SetupSentry"></a>
-## func [SetupSentry](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L89>)
+## func [SetupSentry](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L92>)
 
 ```go
 func SetupSentry(dsn string)
@@ -293,7 +298,7 @@ func SetupSentry(dsn string)
 SetupSentry sets up the Sentry notifier It uses the Sentry HTTP Transport to send errors to Sentry server dsn is the Sentry DSN to use for sending errors
 
 <a name="CB"></a>
-## type [CB](<https://github.com/go-coldbrew/core/blob/main/types.go#L42-L54>)
+## type [CB](<https://github.com/go-coldbrew/core/blob/main/types.go#L83-L95>)
 
 CB is the interface that wraps coldbrew methods.
 
@@ -314,7 +319,7 @@ type CB interface {
 ```
 
 <a name="New"></a>
-### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L956>)
+### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L1029>)
 
 ```go
 func New(c config.Config) CB
@@ -323,7 +328,7 @@ func New(c config.Config) CB
 New creates a new ColdBrew object It takes a config object and returns a CB interface The CB interface is used to start and stop the server The CB interface also provides a way to add services to the server The services are added using the AddService method The services are started and stopped in the order they are added
 
 <a name="CBGracefulStopper"></a>
-## type [CBGracefulStopper](<https://github.com/go-coldbrew/core/blob/main/types.go#L28-L32>)
+## type [CBGracefulStopper](<https://github.com/go-coldbrew/core/blob/main/types.go#L29-L33>)
 
 CBGracefulStopper is the interface that wraps the graceful stop method.
 
@@ -335,8 +340,52 @@ type CBGracefulStopper interface {
 }
 ```
 
+<a name="CBPostStarter"></a>
+## type [CBPostStarter](<https://github.com/go-coldbrew/core/blob/main/types.go#L63-L65>)
+
+CBPostStarter is implemented by services that need to act after servers are listening. Use this for registering with service discovery, logging startup banners, or notifying external systems.
+
+```go
+type CBPostStarter interface {
+    PostStart(ctx context.Context)
+}
+```
+
+<a name="CBPostStopper"></a>
+## type [CBPostStopper](<https://github.com/go-coldbrew/core/blob/main/types.go#L78-L80>)
+
+CBPostStopper is implemented by services that need final cleanup after all servers and workers have stopped. Use this for closing audit logs, pushing final metrics, or any cleanup that must happen after all in\-flight work is complete.
+
+```go
+type CBPostStopper interface {
+    PostStop(ctx context.Context)
+}
+```
+
+<a name="CBPreStarter"></a>
+## type [CBPreStarter](<https://github.com/go-coldbrew/core/blob/main/types.go#L56-L58>)
+
+CBPreStarter is implemented by services that need setup before servers start. Called during Run\(\), before initGRPC/initHTTP. If PreStart returns an error, startup is aborted. Use this for connecting to databases, message brokers, configuring interceptors, or any setup that must complete before the service accepts traffic.
+
+```go
+type CBPreStarter interface {
+    PreStart(ctx context.Context) error
+}
+```
+
+<a name="CBPreStopper"></a>
+## type [CBPreStopper](<https://github.com/go-coldbrew/core/blob/main/types.go#L70-L72>)
+
+CBPreStopper is implemented by services that need to act before graceful shutdown begins. Use this for deregistering from load balancers, flushing buffers, or notifying external systems of impending shutdown.
+
+```go
+type CBPreStopper interface {
+    PreStop(ctx context.Context)
+}
+```
+
 <a name="CBService"></a>
-## type [CBService](<https://github.com/go-coldbrew/core/blob/main/types.go#L16-L25>)
+## type [CBService](<https://github.com/go-coldbrew/core/blob/main/types.go#L17-L26>)
 
 CBService is the interface that wraps service methods used in ColdBrew. InitHTTP initializes the HTTP server. InitGRPC initializes the gRPC server. InitHTTP and InitGRPC are called by the core package.
 
@@ -354,7 +403,7 @@ type CBService interface {
 ```
 
 <a name="CBStopper"></a>
-## type [CBStopper](<https://github.com/go-coldbrew/core/blob/main/types.go#L35-L39>)
+## type [CBStopper](<https://github.com/go-coldbrew/core/blob/main/types.go#L36-L40>)
 
 CBStopper is the interface that wraps the stop method.
 
@@ -366,8 +415,19 @@ type CBStopper interface {
 }
 ```
 
+<a name="CBWorkerProvider"></a>
+## type [CBWorkerProvider](<https://github.com/go-coldbrew/core/blob/main/types.go#L47-L49>)
+
+CBWorkerProvider is implemented by services that run background workers. Workers are started after initGRPC/initHTTP and stopped during graceful shutdown. Called once during Run\(\). Workers are managed by the go\-coldbrew/workers package with automatic panic recovery, configurable restart, and structured shutdown via suture supervisor trees.
+
+```go
+type CBWorkerProvider interface {
+    Workers() []*workers.Worker
+}
+```
+
 <a name="OTLPConfig"></a>
-## type [OTLPConfig](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L117-L145>)
+## type [OTLPConfig](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L120-L148>)
 
 OTLPConfig holds configuration for OpenTelemetry OTLP exporter
 
