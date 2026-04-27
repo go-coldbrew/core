@@ -1,7 +1,7 @@
 package config
 
 import (
-	"fmt"
+	"errors"
 	"net"
 	"os"
 	"strings"
@@ -300,7 +300,7 @@ func (c Config) Validate() []string {
 func (c Config) ValidateStrict() []error {
 	var errs []error
 	for _, w := range c.Validate() {
-		errs = append(errs, fmt.Errorf("%s", w))
+		errs = append(errs, errors.New(w))
 	}
 	return errs
 }

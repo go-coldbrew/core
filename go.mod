@@ -11,7 +11,7 @@ require (
 	github.com/go-coldbrew/log v0.4.1
 	github.com/go-coldbrew/options v0.3.0
 	github.com/go-coldbrew/tracing v0.2.2
-	github.com/go-coldbrew/workers v0.2.0
+	github.com/go-coldbrew/workers v0.2.1
 	github.com/golang/protobuf v1.5.4
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.28.0

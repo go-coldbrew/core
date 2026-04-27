@@ -847,11 +847,8 @@ func (c *cb) Run() error {
 		workerCtx, workerCancel := context.WithCancel(gctx)
 		c.workerCancel = workerCancel
 		g.Go(func() error {
-			err := workers.Run(workerCtx, allWorkers)
-			if errors.Is(err, context.Canceled) {
-				return nil
-			}
-			return err
+			// workers.Run returns nil on context cancellation (clean shutdown).
+			return workers.Run(workerCtx, allWorkers)
 		})
 	}
 
@@ -942,7 +939,7 @@ func (c *cb) close() {
 // Stop stops the server gracefully
 // It will wait for the duration specified in the config for the healthcheck to pass
 func (c *cb) Stop(dur time.Duration) error {
-	c.gracefulWait.Add(1) // tell runner that a graceful shutdow is in progress
+	c.gracefulWait.Add(1) // tell runner that a graceful shutdown is in progress
 	defer c.gracefulWait.Done()
 	ctx, cancel := context.WithTimeout(context.Background(), dur)
 	defer func() {
