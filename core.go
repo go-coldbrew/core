@@ -969,7 +969,7 @@ func (c *cb) Stop(dur time.Duration) error {
 	}
 	log.Info(context.Background(), "msg", "Server shut down started, bye bye")
 
-	// Stop workers before servers so in-flight RPCs can still use worker-managed resources.
+	// Cancel worker context so workers begin draining before servers are force-stopped.
 	if c.workerCancel != nil {
 		c.workerCancel()
 	}
