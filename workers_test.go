@@ -132,21 +132,47 @@ func TestRun_WorkerMetricsWired(t *testing.T) {
 	errCh := make(chan error, 1)
 	go func() { errCh <- instance.Run() }()
 
-	deadline := time.Now().Add(5 * time.Second)
-	for rec.started.Load() == 0 && time.Now().Before(deadline) {
-		time.Sleep(10 * time.Millisecond)
-	}
-	if rec.started.Load() == 0 {
-		t.Fatal("recordingMetrics.WorkerStarted was never invoked")
+	// Always stop the instance and drain Run() before the test exits, so a
+	// failing assertion below doesn't leak the Run goroutine.
+	var stopped atomic.Bool
+	t.Cleanup(func() {
+		if !stopped.CompareAndSwap(false, true) {
+			return
+		}
+		_ = instance.Stop(2 * time.Second)
+		select {
+		case <-errCh:
+		case <-time.After(2 * time.Second):
+		}
+	})
+
+	startDeadline := time.After(5 * time.Second)
+	ticker := time.NewTicker(10 * time.Millisecond)
+	defer ticker.Stop()
+	for rec.started.Load() == 0 {
+		select {
+		case err := <-errCh:
+			t.Fatalf("Run exited before WorkerStarted fired: %v", err)
+		case <-startDeadline:
+			t.Fatal("recordingMetrics.WorkerStarted was never invoked")
+		case <-ticker.C:
+		}
 	}
 
+	if !stopped.CompareAndSwap(false, true) {
+		return
+	}
 	if err := instance.Stop(2 * time.Second); err != nil {
 		t.Fatalf("Stop failed: %v", err)
 	}
 
-	err := <-errCh
-	if err != nil && !errors.Is(err, http.ErrServerClosed) && !errors.Is(err, grpc.ErrServerStopped) {
-		t.Fatalf("unexpected Run error: %v", err)
+	select {
+	case err := <-errCh:
+		if err != nil && !errors.Is(err, http.ErrServerClosed) && !errors.Is(err, grpc.ErrServerStopped) {
+			t.Fatalf("unexpected Run error: %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("Run did not exit after Stop")
 	}
 }
 

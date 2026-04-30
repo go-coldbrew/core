@@ -129,7 +129,7 @@ const SupportPackageIsVersion1 = true
 func AddWorkerRunOptions(opts ...workers.RunOption)
 ```
 
-AddWorkerRunOptions appends \[workers.RunOption\] values applied when core.Run\(\) invokes \[workers.Run\]. Use this to configure framework\-wide worker behaviour: metrics, run\-level interceptors, default jitter, etc. Must be called during init, before Run\(\). Not concurrency\-safe.
+AddWorkerRunOptions appends \[workers.RunOption\] values applied when core.Run\(\) invokes \[workers.Run\]. Use this to configure framework\-wide worker behavior: metrics, run\-level interceptors, default jitter, etc. Must be called during init, before Run\(\). Not concurrency\-safe.
 
 By default, core wires a Prometheus metrics implementation using the service's APP\_NAME unless DISABLE\_PROMETHEUS=true or APP\_NAME is empty. Pass \[workers.WithMetrics\] here to override that default; a later WithMetrics wins because workers.WithMetrics overwrites runConfig.metrics on each apply.
 

@@ -9,7 +9,7 @@ var workerRunOpts []workers.RunOption
 
 // AddWorkerRunOptions appends [workers.RunOption] values applied when
 // core.Run() invokes [workers.Run]. Use this to configure framework-wide
-// worker behaviour: metrics, run-level interceptors, default jitter, etc.
+// worker behavior: metrics, run-level interceptors, default jitter, etc.
 // Must be called during init, before Run(). Not concurrency-safe.
 //
 // By default, core wires a Prometheus metrics implementation using the
