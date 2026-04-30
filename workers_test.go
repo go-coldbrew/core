@@ -128,7 +128,9 @@ func runWithRecorder(t *testing.T, cfg config.Config, rec *recordingMetrics) {
 	go func() { errCh <- instance.Run() }()
 
 	// Always stop the instance and drain Run() before the test exits, so a
-	// failing assertion below never leaks the Run goroutine.
+	// failing assertion below never leaks the Run goroutine. If Run() doesn't
+	// exit within the timeout, fail the test explicitly rather than letting
+	// goleak surface a less actionable error later.
 	var stopped atomic.Bool
 	t.Cleanup(func() {
 		if !stopped.CompareAndSwap(false, true) {
@@ -138,6 +140,7 @@ func runWithRecorder(t *testing.T, cfg config.Config, rec *recordingMetrics) {
 		select {
 		case <-errCh:
 		case <-time.After(2 * time.Second):
+			t.Errorf("instance.Run() did not exit within 2s after Stop during cleanup")
 		}
 	})
 
