@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"sync/atomic"
 	"testing"
@@ -105,35 +106,29 @@ func noopMiddleware(ctx context.Context, info *workers.WorkerInfo, next workers.
 	return next(ctx, info)
 }
 
-// TestRun_WorkerMetricsWired runs the full core.Run lifecycle with a worker
-// and a recording Metrics implementation injected via AddWorkerRunOptions,
-// and asserts that WorkerStarted fires — proving the option reaches workers.Run.
-func TestRun_WorkerMetricsWired(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping end-to-end Run lifecycle in short mode")
-	}
-	resetWorkerRunOpts(t)
-
-	rec := &recordingMetrics{}
+// runWithRecorder boots a core.cb with cfg, registers a CBWorkerProvider,
+// injects rec via AddWorkerRunOptions, runs, waits for the recorder's
+// WorkerStarted callback, then stops and drains. Used by the end-to-end
+// tests below to verify that the option slice reaches workers.Run.
+func runWithRecorder(t *testing.T, cfg config.Config, rec *recordingMetrics) {
+	t.Helper()
 	AddWorkerRunOptions(workers.WithMetrics(rec))
 
-	svc := &workerLifecycleService{}
-	instance := New(config.Config{
-		GRPCPort:             0,
-		HTTPPort:             0,
-		ListenHost:           "127.0.0.1",
-		DisableSignalHandler: true,
-		DisableNewRelic:      true,
-		DisableAutoMaxProcs:  true,
-		DisablePrometheus:    true, // suppress the default; recording metrics wins anyway
-	})
-	instance.SetService(svc)
+	cfg.GRPCPort = 0
+	cfg.HTTPPort = 0
+	cfg.ListenHost = "127.0.0.1"
+	cfg.DisableSignalHandler = true
+	cfg.DisableNewRelic = true
+	cfg.DisableAutoMaxProcs = true
+
+	instance := New(cfg)
+	instance.SetService(&workerLifecycleService{})
 
 	errCh := make(chan error, 1)
 	go func() { errCh <- instance.Run() }()
 
 	// Always stop the instance and drain Run() before the test exits, so a
-	// failing assertion below doesn't leak the Run goroutine.
+	// failing assertion below never leaks the Run goroutine.
 	var stopped atomic.Bool
 	t.Cleanup(func() {
 		if !stopped.CompareAndSwap(false, true) {
@@ -174,6 +169,35 @@ func TestRun_WorkerMetricsWired(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("Run did not exit after Stop")
 	}
+}
+
+// TestRun_WorkerMetricsWired runs the full core.Run lifecycle with a worker
+// and a recording Metrics implementation injected via AddWorkerRunOptions,
+// and asserts that WorkerStarted fires — proving the option reaches workers.Run.
+func TestRun_WorkerMetricsWired(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping end-to-end Run lifecycle in short mode")
+	}
+	resetWorkerRunOpts(t)
+	rec := &recordingMetrics{}
+	runWithRecorder(t, config.Config{DisablePrometheus: true}, rec)
+}
+
+// TestRun_UserMetricsOverridesDefaultPrometheus exercises the override
+// contract: when AppName is set (so the default Prometheus metrics is
+// prepended) and the caller also adds workers.WithMetrics via
+// AddWorkerRunOptions, the caller's recorder must be the effective metrics
+// implementation. Uses a unique app name per run to avoid colliding with
+// the process-global namespace cache in workers.NewPrometheusMetrics.
+func TestRun_UserMetricsOverridesDefaultPrometheus(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping end-to-end Run lifecycle in short mode")
+	}
+	resetWorkerRunOpts(t)
+	rec := &recordingMetrics{}
+	runWithRecorder(t, config.Config{
+		AppName: fmt.Sprintf("test_override_%d", time.Now().UnixNano()),
+	}, rec)
 }
 
 // workerLifecycleService is a CBService + CBWorkerProvider used by the
