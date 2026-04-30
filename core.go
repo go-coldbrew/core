@@ -846,9 +846,10 @@ func (c *cb) Run() error {
 	if len(allWorkers) > 0 {
 		workerCtx, workerCancel := context.WithCancel(gctx)
 		c.workerCancel = workerCancel
+		runOpts := c.buildWorkerRunOpts()
 		g.Go(func() error {
 			// workers.Run returns nil on context cancellation (clean shutdown).
-			return workers.Run(workerCtx, allWorkers)
+			return workers.Run(workerCtx, allWorkers, runOpts...)
 		})
 	}
 
