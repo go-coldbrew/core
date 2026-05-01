@@ -25,6 +25,10 @@ func (f *fakeMarshaler) NewEncoder(_ io.Writer) runtime.Encoder {
 }
 func (f *fakeMarshaler) ContentType(_ any) string { return f.contentType }
 
+func resetServeMuxOptionsForTest() {
+	httpServeMuxOptions = nil
+}
+
 func TestRegisterHTTPMarshaler_RoundTrip(t *testing.T) {
 	resetServeMuxOptionsForTest()
 	t.Cleanup(resetServeMuxOptionsForTest)

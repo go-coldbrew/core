@@ -46,7 +46,3 @@ func RegisterHTTPMarshaler(mime string, m runtime.Marshaler) {
 func registeredServeMuxOptions() []runtime.ServeMuxOption {
 	return append([]runtime.ServeMuxOption(nil), httpServeMuxOptions...)
 }
-
-func resetServeMuxOptionsForTest() {
-	httpServeMuxOptions = nil
-}
