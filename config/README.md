@@ -67,7 +67,7 @@ import "github.com/go-coldbrew/core/config"
 
 
 <a name="Config"></a>
-## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L13-L204>)
+## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L13-L211>)
 
 Config is the configuration for the Coldbrew server It is populated from environment variables and has sensible defaults for all fields so that you can just use it as is without any configuration The following environment variables are supported and can be used to override the defaults for the fields
 
@@ -248,6 +248,13 @@ type Config struct {
     // HTTPCompressionMinSize is the minimum response body size (bytes) before compression is applied.
     // Responses smaller than this are sent uncompressed. Applies to both gzip and zstd.
     HTTPCompressionMinSize int `envconfig:"HTTP_COMPRESSION_MIN_SIZE" env:"HTTP_COMPRESSION_MIN_SIZE" default:"256"`
+    // DisableZstdCompression disables zstd compression on the HTTP gateway. When false
+    // (default), zstd is offered alongside gzip and selected via Accept-Encoding
+    // negotiation. Has no effect if DisableHTTPCompression is true.
+    DisableZstdCompression bool `envconfig:"DISABLE_ZSTD_COMPRESSION" env:"DISABLE_ZSTD_COMPRESSION" default:"false"`
+    // PreferZstd causes the HTTP gateway to prefer zstd over gzip when a client
+    // advertises both in Accept-Encoding. Default true. Ignored if zstd is disabled.
+    PreferZstd bool `envconfig:"PREFER_ZSTD" env:"PREFER_ZSTD" default:"true"`
     // ResponseTimeLogLevel sets the log level for per-request response time logging.
     // Valid values: "debug", "info", "warn", "error". Invalid values default to "info".
     ResponseTimeLogLevel string `envconfig:"RESPONSE_TIME_LOG_LEVEL" env:"RESPONSE_TIME_LOG_LEVEL" default:"info"`
@@ -262,7 +269,7 @@ type Config struct {
 ```
 
 <a name="Config.Validate"></a>
-### func \(Config\) [Validate](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L209>)
+### func \(Config\) [Validate](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L216>)
 
 ```go
 func (c Config) Validate() []string
@@ -271,7 +278,7 @@ func (c Config) Validate() []string
 Validate checks the configuration for common misconfigurations and returns a list of warning messages. It does not return an error to avoid breaking existing services — warnings are meant to be logged at startup.
 
 <a name="Config.ValidateStrict"></a>
-### func \(Config\) [ValidateStrict](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L300>)
+### func \(Config\) [ValidateStrict](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L307>)
 
 ```go
 func (c Config) ValidateStrict() []error

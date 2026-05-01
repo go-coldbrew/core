@@ -88,6 +88,8 @@ For full documentation, visit https://docs.coldbrew.cloud
 - [func AddWorkerRunOptions\(opts ...workers.RunOption\)](<#AddWorkerRunOptions>)
 - [func InitializeVTProto\(\)](<#InitializeVTProto>)
 - [func OTELMeterProvider\(\) otelmetric.MeterProvider](<#OTELMeterProvider>)
+- [func RegisterHTTPMarshaler\(mime string, m runtime.Marshaler\)](<#RegisterHTTPMarshaler>)
+- [func RegisterServeMuxOption\(opt runtime.ServeMuxOption\)](<#RegisterServeMuxOption>)
 - [func SetOTELGRPCClientOptions\(opts ...otelgrpc.Option\)](<#SetOTELGRPCClientOptions>)
 - [func SetOTELGRPCServerOptions\(opts ...otelgrpc.Option\)](<#SetOTELGRPCServerOptions>)
 - [func SetOTELOptions\(opts grpcotel.Options\)](<#SetOTELOptions>)
@@ -153,8 +155,35 @@ func OTELMeterProvider() otelmetric.MeterProvider
 
 OTELMeterProvider returns the global OTel MeterProvider. This is a convenience accessor for code that needs the interface type.
 
+<a name="RegisterHTTPMarshaler"></a>
+## func [RegisterHTTPMarshaler](<https://github.com/go-coldbrew/core/blob/main/serve_mux_options.go#L40>)
+
+```go
+func RegisterHTTPMarshaler(mime string, m runtime.Marshaler)
+```
+
+RegisterHTTPMarshaler registers a runtime.Marshaler for the given MIME type on the HTTP gateway. Equivalent to RegisterServeMuxOption\(runtime.WithMarshalerOption\(mime, m\)\).
+
+To override the gateway's default fallback for unregistered Content\-Types \(which is protojson via runtime.JSONPb\), register for runtime.MIMEWildcard.
+
+Must be called before core.Run\(\). Not safe for concurrent registration.
+
+<a name="RegisterServeMuxOption"></a>
+## func [RegisterServeMuxOption](<https://github.com/go-coldbrew/core/blob/main/serve_mux_options.go#L28>)
+
+```go
+func RegisterServeMuxOption(opt runtime.ServeMuxOption)
+```
+
+RegisterServeMuxOption appends a runtime.ServeMuxOption that initHTTP passes to runtime.NewServeMux. Registered options are applied AFTER core's built\-ins \(the incoming\-header matcher derived from HTTPHeaderPrefixes, the application/proto and application/protobuf marshalers, and the span\-route middleware\), so:
+
+- Last\-write\-wins options — WithMarshalerOption for a given MIME, WithErrorHandler, WithRoutingErrorHandler, WithIncomingHeaderMatcher — can intentionally override core's defaults. Overriding the incoming header matcher disables the HTTPHeaderPrefixes wiring; reimplement it yourself if you still need that behavior.
+- Additive options — WithMiddlewares, WithMetadata, WithForwardResponseOption — stack with core's.
+
+Must be called before core.Run\(\) \(typically from a service's PreStart hook\). Not safe for concurrent registration.
+
 <a name="SetOTELGRPCClientOptions"></a>
-## func [SetOTELGRPCClientOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L623>)
+## func [SetOTELGRPCClientOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L624>)
 
 ```go
 func SetOTELGRPCClientOptions(opts ...otelgrpc.Option)
@@ -163,7 +192,7 @@ func SetOTELGRPCClientOptions(opts ...otelgrpc.Option)
 Deprecated: Use SetOTELOptions instead. Only applies when OTEL\_USE\_LEGACY\_INSTRUMENTATION=true.
 
 <a name="SetOTELGRPCServerOptions"></a>
-## func [SetOTELGRPCServerOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L617>)
+## func [SetOTELGRPCServerOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L618>)
 
 ```go
 func SetOTELGRPCServerOptions(opts ...otelgrpc.Option)
@@ -172,7 +201,7 @@ func SetOTELGRPCServerOptions(opts ...otelgrpc.Option)
 Deprecated: Use SetOTELOptions instead. Only applies when OTEL\_USE\_LEGACY\_INSTRUMENTATION=true.
 
 <a name="SetOTELOptions"></a>
-## func [SetOTELOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L630>)
+## func [SetOTELOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L631>)
 
 ```go
 func SetOTELOptions(opts grpcotel.Options)
@@ -331,7 +360,7 @@ type CB interface {
 ```
 
 <a name="New"></a>
-### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L1030>)
+### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L1031>)
 
 ```go
 func New(c config.Config) CB
