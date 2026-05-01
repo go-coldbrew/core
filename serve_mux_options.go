@@ -41,8 +41,10 @@ func RegisterHTTPMarshaler(mime string, m runtime.Marshaler) {
 	RegisterServeMuxOption(runtime.WithMarshalerOption(mime, m))
 }
 
+// registeredServeMuxOptions returns a defensive copy so callers (initHTTP,
+// tests) can append to the result without mutating the package-level slice.
 func registeredServeMuxOptions() []runtime.ServeMuxOption {
-	return httpServeMuxOptions
+	return append([]runtime.ServeMuxOption(nil), httpServeMuxOptions...)
 }
 
 func resetServeMuxOptionsForTest() {
