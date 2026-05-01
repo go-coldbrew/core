@@ -85,6 +85,7 @@ For full documentation, visit https://docs.coldbrew.cloud
 ## Index
 
 - [Constants](<#constants>)
+- [func AddWorkerRunOptions\(opts ...workers.RunOption\)](<#AddWorkerRunOptions>)
 - [func InitializeVTProto\(\)](<#InitializeVTProto>)
 - [func OTELMeterProvider\(\) otelmetric.MeterProvider](<#OTELMeterProvider>)
 - [func SetOTELGRPCClientOptions\(opts ...otelgrpc.Option\)](<#SetOTELGRPCClientOptions>)
@@ -120,6 +121,17 @@ For full documentation, visit https://docs.coldbrew.cloud
 ```go
 const SupportPackageIsVersion1 = true
 ```
+
+<a name="AddWorkerRunOptions"></a>
+## func [AddWorkerRunOptions](<https://github.com/go-coldbrew/core/blob/main/workers.go#L20>)
+
+```go
+func AddWorkerRunOptions(opts ...workers.RunOption)
+```
+
+AddWorkerRunOptions appends \[workers.RunOption\] values applied when core.Run\(\) invokes \[workers.Run\]. Use this to configure framework\-wide worker behavior: metrics, run\-level interceptors, default jitter, etc. Must be called during init, before Run\(\). Not concurrency\-safe.
+
+By default, core wires a Prometheus metrics implementation using the service's APP\_NAME unless DISABLE\_PROMETHEUS=true or APP\_NAME is empty. Pass \[workers.WithMetrics\] here to override that default; a later WithMetrics wins because workers.WithMetrics overwrites runConfig.metrics on each apply.
 
 <a name="InitializeVTProto"></a>
 ## func [InitializeVTProto](<https://github.com/go-coldbrew/core/blob/main/initializers.go#L452>)
@@ -319,7 +331,7 @@ type CB interface {
 ```
 
 <a name="New"></a>
-### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L1029>)
+### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L1030>)
 
 ```go
 func New(c config.Config) CB
