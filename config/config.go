@@ -191,6 +191,13 @@ type Config struct {
 	// HTTPCompressionMinSize is the minimum response body size (bytes) before compression is applied.
 	// Responses smaller than this are sent uncompressed. Applies to both gzip and zstd.
 	HTTPCompressionMinSize int `envconfig:"HTTP_COMPRESSION_MIN_SIZE" env:"HTTP_COMPRESSION_MIN_SIZE" default:"256"`
+	// DisableZstdCompression disables zstd compression on the HTTP gateway. When false
+	// (default), zstd is offered alongside gzip and selected via Accept-Encoding
+	// negotiation. Has no effect if DisableHTTPCompression is true.
+	DisableZstdCompression bool `envconfig:"DISABLE_ZSTD_COMPRESSION" env:"DISABLE_ZSTD_COMPRESSION" default:"false"`
+	// PreferZstd causes the HTTP gateway to prefer zstd over gzip when a client
+	// advertises both in Accept-Encoding. Default true. Ignored if zstd is disabled.
+	PreferZstd bool `envconfig:"PREFER_ZSTD" env:"PREFER_ZSTD" default:"true"`
 	// ResponseTimeLogLevel sets the log level for per-request response time logging.
 	// Valid values: "debug", "info", "warn", "error". Invalid values default to "info".
 	ResponseTimeLogLevel string `envconfig:"RESPONSE_TIME_LOG_LEVEL" env:"RESPONSE_TIME_LOG_LEVEL" default:"info"`

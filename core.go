@@ -26,7 +26,6 @@ import (
 	"github.com/go-coldbrew/workers"
 	grpcprom "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	"github.com/klauspost/compress/gzhttp"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
@@ -469,6 +468,8 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 		)
 	}
 
+	muxOpts = append(muxOpts, registeredServeMuxOptions()...)
+
 	mux := runtime.NewServeMux(muxOpts...)
 
 	creds := c.creds
@@ -522,7 +523,7 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 	promHandler := promhttp.Handler()
 	gzipHandler := http.Handler(tracingWrapper(mux))
 	if !c.config.DisableHTTPCompression {
-		wrapper, err := gzhttp.NewWrapper(gzhttp.MinSize(c.config.HTTPCompressionMinSize))
+		wrapper, err := newHTTPCompressionWrapper(c.config)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create compression handler: %w", err)
 		}
