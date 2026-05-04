@@ -67,9 +67,14 @@ import "github.com/go-coldbrew/core/config"
 
 
 <a name="Config"></a>
-## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L13-L211>)
+## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L21-L219>)
 
-Config is the configuration for the Coldbrew server It is populated from environment variables and has sensible defaults for all fields so that you can just use it as is without any configuration The following environment variables are supported and can be used to override the defaults for the fields
+Config is the configuration for the Coldbrew server. It is populated from environment variables and has sensible defaults for all fields so that you can just use it as is without any configuration. The following environment variables are supported and can be used to override the defaults for the fields.
+
+Each field carries both \`envconfig:"…"\` and \`env:"…"\` struct tags, so the struct can be populated by either family of loaders:
+
+- github.com/kelseyhightower/envconfig \(the cookiecutter default\)
+- any \`env:\`\-tag loader, e.g. github.com/caarlos0/env, github.com/sethvargo/go\-envconfig, or github.com/ilyakaznacheev/cleanenv
 
 ```go
 type Config struct {
@@ -269,7 +274,7 @@ type Config struct {
 ```
 
 <a name="Config.Validate"></a>
-### func \(Config\) [Validate](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L216>)
+### func \(Config\) [Validate](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L224>)
 
 ```go
 func (c Config) Validate() []string
@@ -278,7 +283,7 @@ func (c Config) Validate() []string
 Validate checks the configuration for common misconfigurations and returns a list of warning messages. It does not return an error to avoid breaking existing services — warnings are meant to be logged at startup.
 
 <a name="Config.ValidateStrict"></a>
-### func \(Config\) [ValidateStrict](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L307>)
+### func \(Config\) [ValidateStrict](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L315>)
 
 ```go
 func (c Config) ValidateStrict() []error

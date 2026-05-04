@@ -7,9 +7,17 @@ import (
 	"strings"
 )
 
-// Config is the configuration for the Coldbrew server
-// It is populated from environment variables and has sensible defaults for all fields so that you can just use it as is without any configuration
-// The following environment variables are supported and can be used to override the defaults for the fields
+// Config is the configuration for the Coldbrew server.
+// It is populated from environment variables and has sensible defaults for all
+// fields so that you can just use it as is without any configuration.
+// The following environment variables are supported and can be used to override
+// the defaults for the fields.
+//
+// Each field carries both `envconfig:"…"` and `env:"…"` struct tags, so the
+// struct can be populated by either family of loaders:
+//   - github.com/kelseyhightower/envconfig (the cookiecutter default)
+//   - any `env:`-tag loader, e.g. github.com/caarlos0/env,
+//     github.com/sethvargo/go-envconfig, or github.com/ilyakaznacheev/cleanenv
 type Config struct {
 	// Host to listen on
 	ListenHost string `envconfig:"LISTEN_HOST" env:"LISTEN_HOST" default:"0.0.0.0"`
