@@ -4,8 +4,33 @@ import (
 	"errors"
 	"io"
 
+	"github.com/go-coldbrew/core/config"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 )
+
+// buildHTTPMuxOptions assembles the base runtime.ServeMuxOptions applied to
+// the HTTP gateway, in the order grpc-gateway applies them: defaults first,
+// then config-toggled options (SSE marshaler, JSON builtin), then
+// service-registered options on top (appended by the caller). Service options
+// win on the same MIME so they can override SSEMarshaler with a custom
+// variant if needed.
+func buildHTTPMuxOptions(cfg config.Config, allowedHeaderPrefixes []string, protoMarshaler runtime.Marshaler) []runtime.ServeMuxOption {
+	opts := []runtime.ServeMuxOption{
+		runtime.WithIncomingHeaderMatcher(
+			getCustomHeaderMatcher(allowedHeaderPrefixes, cfg.TraceHeaderName, cfg.DebugLogHeaderName),
+		),
+		runtime.WithMarshalerOption("application/proto", protoMarshaler),
+		runtime.WithMarshalerOption("application/protobuf", protoMarshaler),
+		runtime.WithMiddlewares(spanRouteMiddleware),
+	}
+	if !cfg.DisableSSEMarshaler {
+		opts = append(opts, runtime.WithMarshalerOption(sseMediaType, &SSEMarshaler{}))
+	}
+	if cfg.UseJSONBuiltinMarshaller {
+		opts = append(opts, runtime.WithMarshalerOption(cfg.JSONBuiltinMarshallerMime, &runtime.JSONBuiltin{}))
+	}
+	return opts
+}
 
 // SSEMarshaler is a runtime.Marshaler that emits Server-Sent Events
 // (text/event-stream) frames for server-streaming gateway RPCs. It lets

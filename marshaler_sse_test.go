@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"net/http"
 	"strings"
 	"testing"
 
+	"github.com/go-coldbrew/core/config"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 )
 
@@ -116,3 +118,40 @@ func TestSSEMarshaler_NewEncoderPropagatesWriteError(t *testing.T) {
 type errWriter struct{}
 
 func (errWriter) Write(_ []byte) (int, error) { return 0, io.ErrClosedPipe }
+
+// TestBuildHTTPMuxOptions_SSERegisteredByDefault confirms that an HTTP gateway
+// built with default config selects SSEMarshaler when the client sends
+// Accept: text/event-stream. Without this, SSE clients would silently fall
+// back to the JSON marshaler and never receive event-stream framing.
+func TestBuildHTTPMuxOptions_SSERegisteredByDefault(t *testing.T) {
+	mux := runtime.NewServeMux(
+		buildHTTPMuxOptions(config.Config{}, nil, &runtime.ProtoMarshaller{})...,
+	)
+
+	req, _ := http.NewRequest(http.MethodGet, "/anything", nil)
+	req.Header.Set("Accept", "text/event-stream")
+
+	_, outbound := runtime.MarshalerForRequest(mux, req)
+	if _, ok := outbound.(*SSEMarshaler); !ok {
+		t.Fatalf("expected outbound marshaler to be *SSEMarshaler for Accept: text/event-stream, got %T", outbound)
+	}
+}
+
+// TestBuildHTTPMuxOptions_SSEDisabled confirms that setting
+// DisableSSEMarshaler suppresses the auto-registration so the gateway falls
+// back to the default JSON marshaler. Important so services that explicitly
+// don't want SSE — or want to register a custom SSE marshaler — get a clean
+// slate.
+func TestBuildHTTPMuxOptions_SSEDisabled(t *testing.T) {
+	mux := runtime.NewServeMux(
+		buildHTTPMuxOptions(config.Config{DisableSSEMarshaler: true}, nil, &runtime.ProtoMarshaller{})...,
+	)
+
+	req, _ := http.NewRequest(http.MethodGet, "/anything", nil)
+	req.Header.Set("Accept", "text/event-stream")
+
+	_, outbound := runtime.MarshalerForRequest(mux, req)
+	if _, ok := outbound.(*SSEMarshaler); ok {
+		t.Fatal("expected SSEMarshaler not to be registered when DisableSSEMarshaler is true")
+	}
+}
