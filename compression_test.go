@@ -78,6 +78,52 @@ func TestNewHTTPCompressionWrapper_NegotiatesEncoding(t *testing.T) {
 	}
 }
 
+func TestNewHTTPCompressionWrapper_ExcludesEventStream(t *testing.T) {
+	// SSE responses must never be compressed: intermediaries (proxies, CDNs)
+	// buffer compressed event streams, which defeats real-time delivery for
+	// EventSource clients consuming streaming gateway RPCs.
+	cfg := config.Config{HTTPCompressionMinSize: 256, PreferZstd: true}
+	wrapper, err := newHTTPCompressionWrapper(cfg)
+	if err != nil {
+		t.Fatalf("newHTTPCompressionWrapper: %v", err)
+	}
+
+	body := strings.Repeat("data: payload\n\n", 256) // well above MinSize
+
+	cases := []struct {
+		name        string
+		contentType string
+		wantEncoded bool
+	}{
+		{"plain-text-still-compresses", "text/plain", true},
+		{"sse-bare", "text/event-stream", false},
+		{"sse-with-charset", "text/event-stream; charset=utf-8", false},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set("Content-Type", tc.contentType)
+				_, _ = w.Write([]byte(body))
+			})
+			wrapped := wrapper(handler)
+
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			req.Header.Set("Accept-Encoding", "gzip, zstd")
+			rec := httptest.NewRecorder()
+			wrapped.ServeHTTP(rec, req)
+
+			encoding := rec.Header().Get("Content-Encoding")
+			if tc.wantEncoded && encoding == "" {
+				t.Fatalf("Content-Type %q: expected compression, got none", tc.contentType)
+			}
+			if !tc.wantEncoded && encoding != "" {
+				t.Fatalf("Content-Type %q: expected no compression, got %q", tc.contentType, encoding)
+			}
+		})
+	}
+}
+
 func TestNewHTTPCompressionWrapper_BelowMinSize(t *testing.T) {
 	cfg := config.Config{HTTPCompressionMinSize: 256, PreferZstd: true}
 	wrapper, err := newHTTPCompressionWrapper(cfg)
