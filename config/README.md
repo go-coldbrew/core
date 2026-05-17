@@ -67,7 +67,7 @@ import "github.com/go-coldbrew/core/config"
 
 
 <a name="Config"></a>
-## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L21-L219>)
+## type [Config](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L21-L226>)
 
 Config is the configuration for the Coldbrew server. It is populated from environment variables and has sensible defaults for all fields so that you can just use it as is without any configuration. The following environment variables are supported and can be used to override the defaults for the fields.
 
@@ -152,6 +152,13 @@ type Config struct {
     UseJSONBuiltinMarshaller bool `envconfig:"USE_JSON_BUILTIN_MARSHALLER" env:"USE_JSON_BUILTIN_MARSHALLER" default:"false"`
     // JSONBuiltinMarshallerMime specifies the Content-Type/Accept header for use by the json builtin marshaler
     JSONBuiltinMarshallerMime string `envconfig:"JSON_BUILTIN_MARSHALLER_MIME" env:"JSON_BUILTIN_MARSHALLER_MIME" default:"application/json"`
+    // DisableSSEMarshaler opts out of the auto-registered text/event-stream
+    // marshaler. By default, server-streaming gateway RPCs are consumable as
+    // Server-Sent Events when the client sends Accept: text/event-stream — the
+    // natural transport for browser EventSource clients and AI/LLM token
+    // streams. Set true to suppress the registration (e.g. if the service
+    // registers a custom SSE marshaler via core.RegisterHTTPMarshaler).
+    DisableSSEMarshaler bool `envconfig:"DISABLE_SSE_MARSHALER" env:"DISABLE_SSE_MARSHALER" default:"false"`
     // MaxConnectionIdle is a duration for the amount of time after which an
     // idle connection would be closed by sending a GoAway. Idleness duration is
     // defined since the most recent time the number of outstanding RPCs became
@@ -274,7 +281,7 @@ type Config struct {
 ```
 
 <a name="Config.Validate"></a>
-### func \(Config\) [Validate](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L224>)
+### func \(Config\) [Validate](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L231>)
 
 ```go
 func (c Config) Validate() []string
@@ -283,7 +290,7 @@ func (c Config) Validate() []string
 Validate checks the configuration for common misconfigurations and returns a list of warning messages. It does not return an error to avoid breaking existing services — warnings are meant to be logged at startup.
 
 <a name="Config.ValidateStrict"></a>
-### func \(Config\) [ValidateStrict](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L315>)
+### func \(Config\) [ValidateStrict](<https://github.com/go-coldbrew/core/blob/main/config/config.go#L322>)
 
 ```go
 func (c Config) ValidateStrict() []error
