@@ -11,6 +11,8 @@ import (
 
 	"github.com/go-coldbrew/core/config"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func TestSSEMarshaler_ContentType(t *testing.T) {
@@ -27,6 +29,18 @@ func TestSSEMarshaler_Delimiter(t *testing.T) {
 	m := &SSEMarshaler{}
 	if got := string(m.Delimiter()); got != "\n\n" {
 		t.Fatalf("Delimiter() = %q, want %q", got, "\n\n")
+	}
+}
+
+// TestSSEMarshaler_DelimiterReturnsFreshSlice guards against accidental
+// sharing of the underlying array: mutating the returned slice must not
+// change the framing the next caller sees.
+func TestSSEMarshaler_DelimiterReturnsFreshSlice(t *testing.T) {
+	m := &SSEMarshaler{}
+	first := m.Delimiter()
+	first[0] = 'X'
+	if got := string(m.Delimiter()); got != "\n\n" {
+		t.Fatalf("Delimiter mutated by previous caller: got %q, want %q", got, "\n\n")
 	}
 }
 
@@ -50,6 +64,48 @@ func TestSSEMarshaler_MarshalPrefixesDataNoTrailingNewline(t *testing.T) {
 	}
 	if got["token"] != "hello" {
 		t.Fatalf("expected token=hello, got %v", got)
+	}
+}
+
+// TestSSEMarshaler_MultilinePayloadPrefixesEveryLine guards the SSE
+// continuation behavior: callers that opt into multiline JSON (via
+// protojson.MarshalOptions.Multiline/Indent on the embedded JSONPb) get a
+// frame where every payload line starts with "data: ". Without this,
+// EventSource truncates the frame at the first newline.
+func TestSSEMarshaler_MultilinePayloadPrefixesEveryLine(t *testing.T) {
+	m := &SSEMarshaler{
+		JSONPb: runtime.JSONPb{
+			MarshalOptions: protojson.MarshalOptions{Multiline: true, Indent: "  "},
+		},
+	}
+	msg, err := structpb.NewStruct(map[string]any{"token": "hello", "index": 0})
+	if err != nil {
+		t.Fatalf("structpb.NewStruct: %v", err)
+	}
+
+	out, err := m.Marshal(msg)
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+
+	s := string(out)
+	if !strings.HasPrefix(s, "data: ") {
+		t.Fatalf("missing 'data: ' prefix: %q", s)
+	}
+	// Every internal newline in the payload must be followed by a "data: "
+	// continuation prefix. If we strip the leading prefix, no bare newline
+	// should be left unprefixed.
+	body := strings.TrimPrefix(s, "data: ")
+	for i := 0; i < len(body); {
+		idx := strings.IndexByte(body[i:], '\n')
+		if idx < 0 {
+			break
+		}
+		after := body[i+idx+1:]
+		if !strings.HasPrefix(after, "data: ") {
+			t.Fatalf("payload contains a bare newline not followed by 'data: ' continuation prefix\nfull output:\n%s", s)
+		}
+		i += idx + 1
 	}
 }
 

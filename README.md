@@ -515,7 +515,7 @@ type OTLPConfig struct {
 ```
 
 <a name="SSEMarshaler"></a>
-## type [SSEMarshaler](<https://github.com/go-coldbrew/core/blob/main/marshaler_sse.go#L62-L64>)
+## type [SSEMarshaler](<https://github.com/go-coldbrew/core/blob/main/marshaler_sse.go#L63-L65>)
 
 SSEMarshaler is a runtime.Marshaler that emits Server\-Sent Events \(text/event\-stream\) frames for server\-streaming gateway RPCs. It lets browser EventSource clients consume streaming RPCs directly — useful for AI/LLM token streaming and other long\-running progressive responses.
 
@@ -546,7 +546,7 @@ type SSEMarshaler struct {
 ```
 
 <a name="SSEMarshaler.ContentType"></a>
-### func \(\*SSEMarshaler\) [ContentType](<https://github.com/go-coldbrew/core/blob/main/marshaler_sse.go#L73>)
+### func \(\*SSEMarshaler\) [ContentType](<https://github.com/go-coldbrew/core/blob/main/marshaler_sse.go#L74>)
 
 ```go
 func (*SSEMarshaler) ContentType(_ any) string
@@ -555,16 +555,16 @@ func (*SSEMarshaler) ContentType(_ any) string
 ContentType always returns "text/event\-stream".
 
 <a name="SSEMarshaler.Delimiter"></a>
-### func \(\*SSEMarshaler\) [Delimiter](<https://github.com/go-coldbrew/core/blob/main/marshaler_sse.go#L99>)
+### func \(\*SSEMarshaler\) [Delimiter](<https://github.com/go-coldbrew/core/blob/main/marshaler_sse.go#L112>)
 
 ```go
 func (*SSEMarshaler) Delimiter() []byte
 ```
 
-Delimiter returns "\\n\\n", which terminates one SSE frame.
+Delimiter returns "\\n\\n", which terminates one SSE frame. A fresh slice is returned per call so callers cannot mutate the framing for other SSEMarshaler instances.
 
 <a name="SSEMarshaler.Marshal"></a>
-### func \(\*SSEMarshaler\) [Marshal](<https://github.com/go-coldbrew/core/blob/main/marshaler_sse.go#L87>)
+### func \(\*SSEMarshaler\) [Marshal](<https://github.com/go-coldbrew/core/blob/main/marshaler_sse.go#L94>)
 
 ```go
 func (s *SSEMarshaler) Marshal(v any) ([]byte, error)
@@ -572,8 +572,10 @@ func (s *SSEMarshaler) Marshal(v any) ([]byte, error)
 
 Marshal returns "data: \<json\>" with no trailing newline. Frame termination is supplied by Delimiter; the gateway writes Marshal output followed by Delimiter for each streamed message.
 
+Newlines inside the JSON payload \(when the embedded runtime.JSONPb is configured with MarshalOptions.Multiline or Indent\) are turned into continuation lines: each line of the payload starts with "data: " as the SSE spec requires, otherwise EventSource truncates the frame after the first line.
+
 <a name="SSEMarshaler.NewDecoder"></a>
-### func \(\*SSEMarshaler\) [NewDecoder](<https://github.com/go-coldbrew/core/blob/main/marshaler_sse.go#L111>)
+### func \(\*SSEMarshaler\) [NewDecoder](<https://github.com/go-coldbrew/core/blob/main/marshaler_sse.go#L124>)
 
 ```go
 func (*SSEMarshaler) NewDecoder(_ io.Reader) runtime.Decoder
@@ -582,7 +584,7 @@ func (*SSEMarshaler) NewDecoder(_ io.Reader) runtime.Decoder
 NewDecoder returns a decoder that always errors, for the same reason as Unmarshal.
 
 <a name="SSEMarshaler.NewEncoder"></a>
-### func \(\*SSEMarshaler\) [NewEncoder](<https://github.com/go-coldbrew/core/blob/main/marshaler_sse.go#L119>)
+### func \(\*SSEMarshaler\) [NewEncoder](<https://github.com/go-coldbrew/core/blob/main/marshaler_sse.go#L132>)
 
 ```go
 func (s *SSEMarshaler) NewEncoder(w io.Writer) runtime.Encoder
@@ -591,7 +593,7 @@ func (s *SSEMarshaler) NewEncoder(w io.Writer) runtime.Encoder
 NewEncoder returns an encoder that writes "data: \<json\>\\n\\n" per Encode call.
 
 <a name="SSEMarshaler.StreamContentType"></a>
-### func \(\*SSEMarshaler\) [StreamContentType](<https://github.com/go-coldbrew/core/blob/main/marshaler_sse.go#L80>)
+### func \(\*SSEMarshaler\) [StreamContentType](<https://github.com/go-coldbrew/core/blob/main/marshaler_sse.go#L81>)
 
 ```go
 func (*SSEMarshaler) StreamContentType(_ any) string
@@ -600,7 +602,7 @@ func (*SSEMarshaler) StreamContentType(_ any) string
 StreamContentType matches ContentType so server\-streaming responses also advertise text/event\-stream. Gateway prefers this over ContentType when implemented \(see runtime.ForwardResponseStream\).
 
 <a name="SSEMarshaler.Unmarshal"></a>
-### func \(\*SSEMarshaler\) [Unmarshal](<https://github.com/go-coldbrew/core/blob/main/marshaler_sse.go#L105>)
+### func \(\*SSEMarshaler\) [Unmarshal](<https://github.com/go-coldbrew/core/blob/main/marshaler_sse.go#L118>)
 
 ```go
 func (*SSEMarshaler) Unmarshal(_ []byte, _ any) error

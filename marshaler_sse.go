@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bytes"
 	"errors"
 	"io"
 
@@ -65,7 +66,7 @@ type SSEMarshaler struct {
 
 var (
 	ssePrefix              = []byte("data: ")
-	sseDelimiter           = []byte("\n\n")
+	sseLineContinuation    = []byte("\ndata: ")
 	errSSEReadNotSupported = errors.New("core: SSEMarshaler does not support reading; Server-Sent Events is a server-to-client format")
 )
 
@@ -84,20 +85,32 @@ func (*SSEMarshaler) StreamContentType(_ any) string {
 // Marshal returns "data: <json>" with no trailing newline. Frame
 // termination is supplied by Delimiter; the gateway writes Marshal output
 // followed by Delimiter for each streamed message.
+//
+// Newlines inside the JSON payload (when the embedded runtime.JSONPb is
+// configured with MarshalOptions.Multiline or Indent) are turned into
+// continuation lines: each line of the payload starts with "data: " as the
+// SSE spec requires, otherwise EventSource truncates the frame after the
+// first line.
 func (s *SSEMarshaler) Marshal(v any) ([]byte, error) {
 	body, err := s.JSONPb.Marshal(v)
 	if err != nil {
 		return nil, err
 	}
+	// Each subsequent line of a multiline JSON payload must also be
+	// "data: "-prefixed per the SSE spec. ReplaceAll is a no-op when the
+	// body contains no newlines (single-line JSON, the default).
+	body = bytes.ReplaceAll(body, []byte("\n"), sseLineContinuation)
 	out := make([]byte, 0, len(ssePrefix)+len(body))
 	out = append(out, ssePrefix...)
 	out = append(out, body...)
 	return out, nil
 }
 
-// Delimiter returns "\n\n", which terminates one SSE frame.
+// Delimiter returns "\n\n", which terminates one SSE frame. A fresh slice
+// is returned per call so callers cannot mutate the framing for other
+// SSEMarshaler instances.
 func (*SSEMarshaler) Delimiter() []byte {
-	return sseDelimiter
+	return []byte("\n\n")
 }
 
 // Unmarshal returns an error: SSE is a server-to-client format and the
