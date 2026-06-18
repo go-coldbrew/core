@@ -452,23 +452,10 @@ func (c *cb) initHTTP(ctx context.Context) (*http.Server, error) {
 		allowedHttpHeaderPrefixes = []string{c.config.HTTPHeaderPrefix}
 	}
 
-	muxOpts := []runtime.ServeMuxOption{
-		runtime.WithIncomingHeaderMatcher(
-			getCustomHeaderMatcher(allowedHttpHeaderPrefixes, c.config.TraceHeaderName, c.config.DebugLogHeaderName),
-		),
-		runtime.WithMarshalerOption("application/proto", pMar),
-		runtime.WithMarshalerOption("application/protobuf", pMar),
-		runtime.WithMiddlewares(spanRouteMiddleware),
-	}
-
-	if c.config.UseJSONBuiltinMarshaller {
-		muxOpts = append(
-			muxOpts,
-			runtime.WithMarshalerOption(c.config.JSONBuiltinMarshallerMime, &runtime.JSONBuiltin{}),
-		)
-	}
-
-	muxOpts = append(muxOpts, registeredServeMuxOptions()...)
+	muxOpts := append(
+		buildHTTPMuxOptions(c.config, allowedHttpHeaderPrefixes, pMar),
+		registeredServeMuxOptions()...,
+	)
 
 	mux := runtime.NewServeMux(muxOpts...)
 

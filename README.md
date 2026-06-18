@@ -114,6 +114,14 @@ For full documentation, visit https://docs.coldbrew.cloud
 - [type CBStopper](<#CBStopper>)
 - [type CBWorkerProvider](<#CBWorkerProvider>)
 - [type OTLPConfig](<#OTLPConfig>)
+- [type SSEMarshaler](<#SSEMarshaler>)
+  - [func \(\*SSEMarshaler\) ContentType\(\_ any\) string](<#SSEMarshaler.ContentType>)
+  - [func \(\*SSEMarshaler\) Delimiter\(\) \[\]byte](<#SSEMarshaler.Delimiter>)
+  - [func \(s \*SSEMarshaler\) Marshal\(v any\) \(\[\]byte, error\)](<#SSEMarshaler.Marshal>)
+  - [func \(\*SSEMarshaler\) NewDecoder\(\_ io.Reader\) runtime.Decoder](<#SSEMarshaler.NewDecoder>)
+  - [func \(s \*SSEMarshaler\) NewEncoder\(w io.Writer\) runtime.Encoder](<#SSEMarshaler.NewEncoder>)
+  - [func \(\*SSEMarshaler\) StreamContentType\(\_ any\) string](<#SSEMarshaler.StreamContentType>)
+  - [func \(\*SSEMarshaler\) Unmarshal\(\_ \[\]byte, \_ any\) error](<#SSEMarshaler.Unmarshal>)
 
 
 ## Constants
@@ -183,7 +191,7 @@ RegisterServeMuxOption appends a runtime.ServeMuxOption that initHTTP passes to 
 Must be called before core.Run\(\) \(typically from a service's PreStart hook\). Not safe for concurrent registration.
 
 <a name="SetOTELGRPCClientOptions"></a>
-## func [SetOTELGRPCClientOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L624>)
+## func [SetOTELGRPCClientOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L611>)
 
 ```go
 func SetOTELGRPCClientOptions(opts ...otelgrpc.Option)
@@ -192,7 +200,7 @@ func SetOTELGRPCClientOptions(opts ...otelgrpc.Option)
 Deprecated: Use SetOTELOptions instead. Only applies when OTEL\_USE\_LEGACY\_INSTRUMENTATION=true.
 
 <a name="SetOTELGRPCServerOptions"></a>
-## func [SetOTELGRPCServerOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L618>)
+## func [SetOTELGRPCServerOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L605>)
 
 ```go
 func SetOTELGRPCServerOptions(opts ...otelgrpc.Option)
@@ -201,7 +209,7 @@ func SetOTELGRPCServerOptions(opts ...otelgrpc.Option)
 Deprecated: Use SetOTELOptions instead. Only applies when OTEL\_USE\_LEGACY\_INSTRUMENTATION=true.
 
 <a name="SetOTELOptions"></a>
-## func [SetOTELOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L631>)
+## func [SetOTELOptions](<https://github.com/go-coldbrew/core/blob/main/core.go#L618>)
 
 ```go
 func SetOTELOptions(opts grpcotel.Options)
@@ -360,7 +368,7 @@ type CB interface {
 ```
 
 <a name="New"></a>
-### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L1031>)
+### func [New](<https://github.com/go-coldbrew/core/blob/main/core.go#L1018>)
 
 ```go
 func New(c config.Config) CB
@@ -505,5 +513,101 @@ type OTLPConfig struct {
     Insecure bool
 }
 ```
+
+<a name="SSEMarshaler"></a>
+## type [SSEMarshaler](<https://github.com/go-coldbrew/core/blob/main/marshaler_sse.go#L63-L65>)
+
+SSEMarshaler is a runtime.Marshaler that emits Server\-Sent Events \(text/event\-stream\) frames for server\-streaming gateway RPCs. It lets browser EventSource clients consume streaming RPCs directly — useful for AI/LLM token streaming and other long\-running progressive responses.
+
+Each Marshal call returns "data: \<json\>" with no trailing newline; the Delimiter \("\\n\\n"\) terminates each SSE frame per the SSE spec. The JSON payload uses protojson via the embedded runtime.JSONPb, so field naming matches the gateway's default JSON responses.
+
+Wire it up from a service's PreStart hook:
+
+```
+core.RegisterHTTPMarshaler("text/event-stream", &core.SSEMarshaler{})
+```
+
+Clients then opt in by sending Accept: text/event\-stream on the gateway URL. The newHTTPCompressionWrapper excludes text/event\-stream from gzip/zstd compression so frames reach the client in real time \(compressed SSE is buffered by many HTTP intermediaries\).
+
+SSE is server\-to\-client only: Unmarshal and NewDecoder return an error.
+
+Per\-field protojson options \(EmitUnpopulated, UseProtoNames, etc.\) can be set by initializing the embedded JSONPb directly:
+
+```
+&core.SSEMarshaler{JSONPb: runtime.JSONPb{
+    MarshalOptions: protojson.MarshalOptions{EmitUnpopulated: true},
+}}
+```
+
+```go
+type SSEMarshaler struct {
+    runtime.JSONPb
+}
+```
+
+<a name="SSEMarshaler.ContentType"></a>
+### func \(\*SSEMarshaler\) [ContentType](<https://github.com/go-coldbrew/core/blob/main/marshaler_sse.go#L74>)
+
+```go
+func (*SSEMarshaler) ContentType(_ any) string
+```
+
+ContentType always returns "text/event\-stream".
+
+<a name="SSEMarshaler.Delimiter"></a>
+### func \(\*SSEMarshaler\) [Delimiter](<https://github.com/go-coldbrew/core/blob/main/marshaler_sse.go#L112>)
+
+```go
+func (*SSEMarshaler) Delimiter() []byte
+```
+
+Delimiter returns "\\n\\n", which terminates one SSE frame. A fresh slice is returned per call so callers cannot mutate the framing for other SSEMarshaler instances.
+
+<a name="SSEMarshaler.Marshal"></a>
+### func \(\*SSEMarshaler\) [Marshal](<https://github.com/go-coldbrew/core/blob/main/marshaler_sse.go#L94>)
+
+```go
+func (s *SSEMarshaler) Marshal(v any) ([]byte, error)
+```
+
+Marshal returns "data: \<json\>" with no trailing newline. Frame termination is supplied by Delimiter; the gateway writes Marshal output followed by Delimiter for each streamed message.
+
+Newlines inside the JSON payload \(when the embedded runtime.JSONPb is configured with MarshalOptions.Multiline or Indent\) are turned into continuation lines: each line of the payload starts with "data: " as the SSE spec requires, otherwise EventSource truncates the frame after the first line.
+
+<a name="SSEMarshaler.NewDecoder"></a>
+### func \(\*SSEMarshaler\) [NewDecoder](<https://github.com/go-coldbrew/core/blob/main/marshaler_sse.go#L124>)
+
+```go
+func (*SSEMarshaler) NewDecoder(_ io.Reader) runtime.Decoder
+```
+
+NewDecoder returns a decoder that always errors, for the same reason as Unmarshal.
+
+<a name="SSEMarshaler.NewEncoder"></a>
+### func \(\*SSEMarshaler\) [NewEncoder](<https://github.com/go-coldbrew/core/blob/main/marshaler_sse.go#L132>)
+
+```go
+func (s *SSEMarshaler) NewEncoder(w io.Writer) runtime.Encoder
+```
+
+NewEncoder returns an encoder that writes "data: \<json\>\\n\\n" per Encode call.
+
+<a name="SSEMarshaler.StreamContentType"></a>
+### func \(\*SSEMarshaler\) [StreamContentType](<https://github.com/go-coldbrew/core/blob/main/marshaler_sse.go#L81>)
+
+```go
+func (*SSEMarshaler) StreamContentType(_ any) string
+```
+
+StreamContentType matches ContentType so server\-streaming responses also advertise text/event\-stream. Gateway prefers this over ContentType when implemented \(see runtime.ForwardResponseStream\).
+
+<a name="SSEMarshaler.Unmarshal"></a>
+### func \(\*SSEMarshaler\) [Unmarshal](<https://github.com/go-coldbrew/core/blob/main/marshaler_sse.go#L118>)
+
+```go
+func (*SSEMarshaler) Unmarshal(_ []byte, _ any) error
+```
+
+Unmarshal returns an error: SSE is a server\-to\-client format and the gateway never reads SSE bodies from inbound requests.
 
 Generated by [gomarkdoc](<https://github.com/princjef/gomarkdoc>)
