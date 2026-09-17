@@ -638,6 +638,17 @@ func TestProcessConfig_WithNewRelicEmptyKey(t *testing.T) {
 }
 
 func TestProcessConfig_WithOTLP(t *testing.T) {
+	oldTP := otelTracerProvider
+	oldRes := otelResource
+	oldGlobalTP := otel.GetTracerProvider()
+	oldGlobalProp := otel.GetTextMapPropagator()
+	defer func() {
+		otelTracerProvider = oldTP
+		otelResource = oldRes
+		otel.SetTracerProvider(oldGlobalTP)
+		otel.SetTextMapPropagator(oldGlobalProp)
+	}()
+
 	c := &cb{config: config.Config{
 		DisableSignalHandler: true,
 		DisableNewRelic:      true,
@@ -652,6 +663,12 @@ func TestProcessConfig_WithOTLP(t *testing.T) {
 		OTLPInsecure:         true,
 	}}
 	c.processConfig()
+
+	if otelTracerProvider != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		_ = otelTracerProvider.Shutdown(ctx)
+	}
 }
 
 func TestProcessConfig_WithNROpenTelemetry(t *testing.T) {
