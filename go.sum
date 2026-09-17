@@ -199,8 +199,8 @@ github.com/go-coldbrew/errors v0.2.14 h1:SQcV9Kw+hNfNGXjvu4fWl5uXw5NRD6lW+rkHgtz
 github.com/go-coldbrew/errors v0.2.14/go.mod h1:f9eGGKKF9KmyCpSWZRSqqV4HRWqbzmh1E9lyL8jyL+Y=
 github.com/go-coldbrew/hystrixprometheus v0.1.2 h1:WSt4FtYr8xNDKgdGWYpMfXGFIK7zdDSBwDSbpuPhBHI=
 github.com/go-coldbrew/hystrixprometheus v0.1.2/go.mod h1:OrNRHHxZagpmQXNp//oHKOemGSU0ScOqEcJgeKbJ+wg=
-github.com/go-coldbrew/interceptors v0.1.24 h1:z24O4TRxT/+fHTJIILml9ulmK2cYGKKCENpxxL8pGaA=
-github.com/go-coldbrew/interceptors v0.1.24/go.mod h1:YkAmxYZ7R3Sjif0WpzhuhGjv2j67CwUoqnq9K8XgpBY=
+github.com/go-coldbrew/interceptors v0.3.2 h1:liaLpbQKKqpxOc3CBNoXllSq9DEf12Magr2kmEQD7vg=
+github.com/go-coldbrew/interceptors v0.3.2/go.mod h1:5/GyP630IBbwEPa8O9TrKwxnsv3c3ppZQ87qdLfG9FQ=
 github.com/go-coldbrew/log v0.4.1 h1:ZvTU7YXBFfe9QD9diY8lVD/WhkvpyoyixpFJAMq4+Ps=
 github.com/go-coldbrew/log v0.4.1/go.mod h1:HqGpOhI4nCnl8OjM3awye4joR7m2tducjQBltMb0QiY=
 github.com/go-coldbrew/options v0.3.0 h1:JwyVntb9bzBeFdaHFK6yGVVz30G3aVlqJJ6uVyYQfCc=
@@ -219,8 +219,8 @@ github.com/go-git/go-billy/v5 v5.8.0 h1:I8hjc3LbBlXTtVuFNJuwYuMiHvQJDq1AT6u4DwDz
 github.com/go-git/go-billy/v5 v5.8.0/go.mod h1:RpvI/rw4Vr5QA+Z60c6d6LXH0rYJo0uD5SqfmrrheCY=
 github.com/go-git/go-git-fixtures/v4 v4.3.2-0.20231010084843-55a94097c399 h1:eMje31YglSBqCdIqdhKBW8lokaMrL3uTkpGYlE2OOT4=
 github.com/go-git/go-git-fixtures/v4 v4.3.2-0.20231010084843-55a94097c399/go.mod h1:1OCfN199q1Jm3HZlxleg+Dw/mwps2Wbk9frAWm+4FII=
-github.com/go-git/go-git/v5 v5.17.1 h1:WnljyxIzSj9BRRUlnmAU35ohDsjRK0EKmL0evDqi5Jk=
-github.com/go-git/go-git/v5 v5.17.1/go.mod h1:pW/VmeqkanRFqR6AljLcs7EA7FbZaN5MQqO7oZADXpo=
+github.com/go-git/go-git/v5 v5.18.0 h1:O831KI+0PR51hM2kep6T8k+w0/LIAD490gvqMCvL5hM=
+github.com/go-git/go-git/v5 v5.18.0/go.mod h1:pW/VmeqkanRFqR6AljLcs7EA7FbZaN5MQqO7oZADXpo=
 github.com/go-jose/go-jose/v4 v4.1.3 h1:CVLmWDhDVRa6Mi/IgCgaopNosCaHz7zrMeF9MlZRkrs=
 github.com/go-jose/go-jose/v4 v4.1.3/go.mod h1:x4oUasVrzR7071A4TnHLGSPpNOm2a21K9Kf04k1rs08=
 github.com/go-logr/logr v1.2.2/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbVz/1A=
